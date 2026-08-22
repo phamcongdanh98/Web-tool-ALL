@@ -1,0 +1,31 @@
+{
+  "name": "toolhub-vietnamese",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB -c yellow,cyan \"npm:server\" \"npm:client\"",
+    "client": "vite",
+    "server": "node server.js",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
+    "archiver": "^8.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^2.2.0",
+    "onnxruntime-web": "^1.21.0-dev.20250206-d981b153d3",
+    "pdf-lib": "^1.17.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^10.0.5",
+    "vite": "^6.1.0"
+  }
+}

@@ -1,0 +1,12 @@
+# Dependencies and generated builds
+node_modules/
+dist/
+
+# Local environment and editor settings
+.env
+.env.local
+.vscode/
+
+# Logs
+*.log
+npm-debug.log*
