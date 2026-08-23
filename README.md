@@ -4,7 +4,7 @@
 
 ![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=111827)
 ![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?style=flat-square&logo=node.js&logoColor=white)
+![Node.js 22+](https://img.shields.io/badge/Node.js-22%2B-339933?style=flat-square&logo=node.js&logoColor=white)
 ![Production](https://img.shields.io/badge/Production-Online-16A34A?style=flat-square&logo=nginx&logoColor=white)
 
 > [!TIP]
@@ -19,10 +19,14 @@
 - Nén PDF theo dung lượng MB thực tế, tự cân chỉnh nhiều lượt để kết quả nằm sát phía dưới mục tiêu; có chế độ bảo toàn văn bản riêng.
 - Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
+- Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; hỗ trợ tự đánh số `Trang N / Tổng`.
+- Chuyển phần chữ có thể chọn trong PDF sang **Word, Excel, PowerPoint hoặc TXT**, có preview nội dung trước khi chuyển. Word giữ ngắt trang, Excel tạo một sheet mỗi trang, PowerPoint tạo slide với chữ có thể sửa.
+- Chỉnh ảnh trực quan: độ sáng, tương phản, bão hòa, sắc độ, làm mờ, trắng-đen, xoay và lật; preview dùng cùng thông số với ảnh kết quả.
 - Dark mode, tìm kiếm công cụ và giao diện responsive.
-- Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.0.0 · Bản dựng #11`; số bản dựng tự tăng theo Git commit.
+- Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.1.0 · Bản dựng #14`; số bản dựng tự tăng theo Git commit.
 
-Các mục PDF sang Word/Excel/PowerPoint, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao hiện đang hiển thị là “đang hoàn thiện”; không nên coi chúng là đã triển khai.
+> [!NOTE]
+> Chuyển Office ưu tiên **nội dung có thể chỉnh sửa**, không sao chép hoàn hảo toàn bộ bố cục. PDF scan/ảnh chưa có chữ chọn được sẽ được từ chối kèm hướng dẫn OCR; giới hạn hiện tại là 100 trang và 25 MB. Chỉnh PDF hiện thêm lớp chữ/watermark hoặc số trang, chưa xóa hay sửa trực tiếp chữ gốc.
 
 ## 🚀 Hướng dẫn nhanh
 
@@ -61,7 +65,7 @@ Hai lệnh `lsof` chỉ kiểm tra tiến trình nào đang dùng cổng giao di
 
 ### 🧰 2. Cài trên máy mới
 
-Cần Node.js 20+ và Git. Sau đó chạy một lần:
+Cần Node.js 22.12+ và Git. Sau đó chạy một lần:
 
 ```bash
 git clone https://github.com/phamcongdanh98/Web-tool-ALL.git
@@ -169,6 +173,8 @@ Hướng dẫn cài VPS, domain, HTTPS và rollback chi tiết nằm trong [`dep
 src/App.jsx       Giao diện React và luồng xử lý tệp
 src/styles.css    Hệ thống giao diện và responsive layout
 server.js         Express API xử lý ảnh/PDF
+lib/pdf-office.js Trích xuất chữ PDF và tạo DOCX/XLSX/TXT
+lib/pptx.js       Tạo PowerPoint OOXML với chữ có thể sửa
 vite.config.js    Vite và proxy /api sang Express
 deploy/           Script release, systemd, Nginx và hướng dẫn VPS
 scripts/          Smoke/E2E production dùng cho local và CI
@@ -181,6 +187,15 @@ AGENTS.md         Hướng dẫn dành cho Codex
 
 ### 2026-08-23
 
+- Phát hành mốc code **1.1.0**: hoàn thiện chỉnh ảnh, thêm chữ/watermark/đánh số PDF và chuyển PDF sang Word, Excel, PowerPoint, TXT.
+- Bổ sung preview chữ trước khi chuyển Office, preview kết quả theo loại tệp, metadata số trang/ký tự và thông báo riêng cho PDF scan cần OCR.
+- Loại bỏ form nhận email giả chỉ báo thành công nhưng không lưu dữ liệu; footer nay liên kết tới GitHub để theo dõi phiên bản thật.
+- Word giữ ngắt trang; Excel tạo một sheet cho mỗi trang; PowerPoint dùng OOXML gọn nhẹ để giữ chữ có thể chỉnh sửa và tránh dependency PowerPoint có advisory mức cao.
+- Thêm dependency production `docx`, `@excel.js/exceljs`, `jszip`; máy còn lại phải chạy `git pull --ff-only` rồi `npm ci` sau khi commit được push.
+- Chuẩn hóa runtime thành Node.js 22.12+ để đồng nhất dependency Excel, GitHub Actions và VPS; VPS hiện tại dùng Node 22 nên không cần cài lại.
+- Mở rộng E2E qua đường API thật: chỉnh ảnh, chỉnh PDF, kiểm tra nội dung bên trong DOCX/XLSX/PPTX/TXT và lỗi 422 cho PDF không có chữ. DOCX/XLSX/PPTX cũng đã được kiểm tra ZIP; LibreOffice mở/chuyển được cả ba định dạng.
+- Đã chạy production smoke/E2E, build, kiểm tra desktop/mobile bằng browser và `npm audit --omit=dev` (**0 lỗ hổng**).
+- Phiên bản 1.1.0 hiện là thay đổi cục bộ: **chưa commit, chưa push và chưa deploy**. Trước khi phát hành, chạy `npm run verify`, commit/push, chờ CI rồi `npm run deploy:vps`.
 - Khắc phục preview PDF tải rất lâu trên VPS: preview ưu tiên trình xem native và tự fallback sang PDF.js sau khoảng 1,2 giây nếu browser nhúng không hỗ trợ.
 - Tải nền PDF.js/PDF worker khi browser rảnh hoặc người dùng trỏ vào công cụ PDF, tránh bắt đầu tải thư viện nặng sau khi đã chọn tệp.
 - Production build tự sinh Brotli/Gzip cho asset; Express chọn đúng biến thể theo `Accept-Encoding`, còn Nginx phục vụ `/assets/` trực tiếp với cache immutable và `gzip_static`.
@@ -210,9 +225,8 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Thêm `npm run status:vps` để kiểm tra trực quan Mac ↔ GitHub ↔ VPS ↔ domain bằng một lệnh read-only.
 - Viết lại hướng dẫn README theo luồng local → GitHub → VPS, giải thích ngắn gọn từng lệnh và bổ sung cách nhận biết dev server hoặc lỗi cổng bị chiếm.
 - Kiểm thử deploy/runtime: `npm ci`, `npm run verify`, syntax toàn bộ shell script, guard Git; production smoke xác nhận `/api/health`, trang SPA, cache header asset, graceful shutdown và API thật cho nén/cắt ảnh, nén/ghép/tách PDF.
-- `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
+- `package.json` yêu cầu Node.js 22.12+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
 - Bổ sung `.DS_Store` vào `.gitignore` để tránh đồng bộ tệp hệ thống macOS sang máy khác.
-- Trạng thái tại thời điểm ghi chú: production đang chạy **Phiên bản 1.0.0 · Bản dựng #12** (`b03bd8951b0d`); tối ưu tốc độ PDF hiện chỉ ở máy cục bộ, **chưa commit, chưa push và chưa deploy**.
 
 ## 🤖 Lưu ý về xóa phông AI
 

@@ -9,6 +9,8 @@
 - `src/App.jsx`: toàn bộ giao diện React và state của các modal công cụ.
 - `src/styles.css`: kiểu giao diện. Không thêm framework CSS trừ khi người dùng yêu cầu.
 - `server.js`: Express API. Dùng `sharp` cho ảnh, `pdf-lib` cho PDF và `archiver` cho ZIP.
+- `lib/pdf-office.js`: trích xuất chữ bằng PDF.js và tạo DOCX/XLSX/TXT bằng `docx` cùng `@excel.js/exceljs`.
+- `lib/pptx.js`: sinh PowerPoint OOXML bằng `jszip`; mỗi dòng PDF là một text shape có thể chỉnh sửa.
 - `vite.config.js`: Vite proxy `/api` đến Express ở cổng 3001.
 
 ## Lệnh cần dùng
@@ -25,11 +27,15 @@ npm run status:vps
 `npm run dev` phải khởi chạy cả Express lẫn Vite. Không đổi sang chỉ chạy Vite nếu các công cụ API vẫn cần hoạt động.
 `npm run verify` là cổng chất lượng chuẩn trước khi commit/push: kiểm tra cú pháp, shell script, production build, smoke test Express và E2E API xử lý ảnh/PDF thật.
 `npm run status:vps` là lệnh read-only để so sánh commit/bản dựng giữa Mac, GitHub, repository VPS, release đang chạy và public health.
+Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không hạ xuống Node 20 vì dependency Excel hiện yêu cầu runtime mới hơn.
 
 ## Quy ước thay đổi
 
 - Chỉ tuyên bố một công cụ “hoạt động” sau khi đã kiểm thử đường đi thật: chọn tệp → xử lý → tải tệp kết quả.
-- Các công cụ PDF sang Office, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao chưa được triển khai; giữ nhãn “đang hoàn thiện” cho đến khi có backend đúng nghĩa.
+- Chỉnh PDF hiện chỉ thêm lớp chữ Unicode/watermark hoặc đánh số trang; không mô tả thành sửa/xóa chữ gốc. Overlay dài phải tự co để không vượt khổ trang.
+- PDF sang Word/Excel/PowerPoint/TXT chỉ xử lý văn bản có thể chọn, tối đa 100 trang. PDF scan phải trả 422 và hướng dẫn OCR; không fallback sang tệp Office rỗng. Bố cục Office là gần đúng và phải được mô tả trung thực trên UI.
+- Khi sửa chuyển đổi Office, E2E phải kiểm tra **nội dung semantic bên trong** DOCX/XLSX/PPTX/TXT, không chỉ MIME, đuôi tệp hoặc chữ ký ZIP. Khi thay đổi cấu trúc PPTX, mở/chuyển thử bằng LibreOffice nếu runtime có sẵn.
+- Chỉnh ảnh phải giữ preview CSS và pipeline Sharp đồng nghĩa cho sáng/tương phản/bão hòa/sắc độ/blur/xoay/lật/trắng-đen; E2E tối thiểu kiểm tra kích thước sau xoay và định dạng đầu ra.
 - Xóa phông dùng `@imgly/background-removal` ở phía client. Chỉ nhận JPG, PNG và WebP. Lần đầu chạy phải tải model AI; giữ hiển thị tiến độ cho người dùng.
 - Preview PDF dùng chiến lược hai lớp: thử viewer native trước, tự fallback sang PDF.js nếu viewer không phản hồi. PDF.js và worker được lazy-load/prewarm; không đổi lại sang tải đồng bộ trong bundle đầu trang.
 - `npm run build` phải tiếp tục sinh `.br`/`.gz` qua `scripts/precompress-assets.mjs`. Express phục vụ Brotli/Gzip theo `Accept-Encoding`; Nginx phục vụ `/assets/` trực tiếp bằng `deploy/nginx-assets.conf` và `gzip_static`. Smoke test phải giữ kiểm tra `Content-Encoding` cùng `Vary: Accept-Encoding`.

@@ -6,7 +6,7 @@ Không lưu IP, SSH key, mật khẩu hoặc nội dung `~/.ssh/config` trong re
 
 ## Yêu cầu
 
-- Ubuntu có Git, curl, Nginx và Node.js 20 trở lên được cài ở `/usr/bin/node`.
+- Ubuntu có Git, curl, Nginx và Node.js 22.12 trở lên được cài ở `/usr/bin/node`.
 - Repository nằm tại `/var/www/pdftools`, thuộc quyền user `ubuntu` và đang ở nhánh `main`.
 - SSH từ máy phát triển bằng `ssh orace` đã hoạt động.
 
@@ -30,7 +30,7 @@ cd /var/www/pdftools
 sudo ./deploy/setup-ubuntu.sh
 ```
 
-Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, cấu hình `/assets/` có cache lâu và Gzip build sẵn, tạo release đầu tiên rồi kiểm tra cả API lẫn trang chủ. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
+Script tự cài Git, curl và Nginx; nếu chưa có Node.js 22+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, cấu hình `/assets/` có cache lâu và Gzip build sẵn, tạo release đầu tiên rồi kiểm tra cả API lẫn trang chủ. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
 
 Các lệnh thủ công tương đương để chẩn đoán khi script tự động báo lỗi:
 

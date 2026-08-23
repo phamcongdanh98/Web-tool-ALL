@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
+import ExcelJS from '@excel.js/exceljs'
+import JSZip from 'jszip'
 import sharp from 'sharp'
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
 
 const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:13999'
 
@@ -12,9 +14,28 @@ const request = async (path, form) => {
   return { response, body }
 }
 
+const requestError = async (path, form, expectedStatus) => {
+  const response = await fetch(`${baseUrl}${path}`, { method: 'POST', body: form })
+  const body = await response.json()
+  assert.equal(response.status, expectedStatus, `${path} cần trả HTTP ${expectedStatus}.`)
+  return body
+}
+
 const makePdf = async (width, height) => {
   const pdf = await PDFDocument.create()
   pdf.addPage([width, height])
+  return Buffer.from(await pdf.save())
+}
+
+const makeTextPdf = async () => {
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  const first = pdf.addPage([595, 842])
+  first.drawText('PDFTools editable office test', { x: 50, y: 780, size: 18, font })
+  first.drawText('Name    Quantity    Price', { x: 50, y: 730, size: 12, font })
+  first.drawText('Apple    2    30000', { x: 50, y: 705, size: 12, font })
+  const second = pdf.addPage([595, 842])
+  second.drawText('Second page content', { x: 50, y: 780, size: 18, font })
   return Buffer.from(await pdf.save())
 }
 
@@ -46,6 +67,18 @@ const croppedImage = await request('/api/tools/image/crop', cropForm)
 const cropMetadata = await sharp(croppedImage.body).metadata()
 assert.deepEqual([cropMetadata.width, cropMetadata.height], [40, 30])
 
+const editImageForm = new FormData()
+editImageForm.append('file', new Blob([imageInput], { type: 'image/png' }), 'smoke.png')
+editImageForm.append('format', 'png')
+editImageForm.append('saturation', '0')
+editImageForm.append('brightness', '120')
+editImageForm.append('contrast', '110')
+editImageForm.append('rotation', '90')
+editImageForm.append('flop', 'true')
+const editedImage = await request('/api/tools/image/edit', editImageForm)
+const editedImageMetadata = await sharp(editedImage.body).metadata()
+assert.deepEqual([editedImageMetadata.width, editedImageMetadata.height], [60, 80])
+
 const firstPdf = await makePdf(200, 300)
 const secondPdf = await makePdf(400, 500)
 const mergeForm = new FormData()
@@ -74,4 +107,55 @@ const split = await request('/api/tools/pdf/split', splitForm)
 assert.match(split.response.headers.get('content-type') || '', /^application\/zip/)
 assert.equal(split.body.subarray(0, 2).toString('ascii'), 'PK', 'Kết quả tách PDF không phải ZIP hợp lệ.')
 
-console.log('E2E API thành công: nén/cắt ảnh và nén/ghép/tách PDF đều trả file hợp lệ.')
+const textPdf = await makeTextPdf()
+const pdfEditForm = new FormData()
+pdfEditForm.append('file', new Blob([textPdf], { type: 'application/pdf' }), 'office.pdf')
+pdfEditForm.append('editType', 'text')
+pdfEditForm.append('text', 'Danh Pham - Trang {page}/{pages}')
+pdfEditForm.append('pages', '2')
+pdfEditForm.append('position', 'bottom-right')
+pdfEditForm.append('fontSize', '20')
+const editedPdfResult = await request('/api/tools/pdf/edit', pdfEditForm)
+const editedPdf = await PDFDocument.load(editedPdfResult.body)
+assert.equal(editedPdf.getPageCount(), 2)
+assert.ok(editedPdfResult.body.length > textPdf.length, 'PDF chỉnh sửa không có dữ liệu overlay mới.')
+
+const convert = async format => {
+  const form = new FormData()
+  form.append('file', new Blob([textPdf], { type: 'application/pdf' }), 'office.pdf')
+  const output = await request(`/api/tools/pdf/to-${format}`, form)
+  assert.equal(output.response.headers.get('x-extracted-pages'), '2')
+  assert.ok(Number(output.response.headers.get('x-extracted-characters')) > 50)
+  return output
+}
+
+const word = await convert('word')
+assert.match(word.response.headers.get('content-type') || '', /wordprocessingml/)
+const wordZip = await JSZip.loadAsync(word.body)
+const wordXml = await wordZip.file('word/document.xml').async('string')
+assert.match(wordXml, /PDFTools editable office test/)
+
+const excel = await convert('excel')
+assert.match(excel.response.headers.get('content-type') || '', /spreadsheetml/)
+const workbook = new ExcelJS.Workbook()
+await workbook.xlsx.load(excel.body)
+assert.equal(workbook.worksheets.length, 2)
+assert.match(workbook.getWorksheet(1).getCell('A1').value, /PDFTools editable office test/)
+
+const powerPoint = await convert('powerpoint')
+assert.match(powerPoint.response.headers.get('content-type') || '', /presentationml/)
+const powerPointZip = await JSZip.loadAsync(powerPoint.body)
+assert.ok(powerPointZip.file('ppt/slides/slide1.xml'))
+assert.ok(powerPointZip.file('ppt/slides/slide2.xml'))
+assert.match(await powerPointZip.file('ppt/slides/slide1.xml').async('string'), /PDFTools editable office test/)
+
+const text = await convert('text')
+assert.match(text.response.headers.get('content-type') || '', /^text\/plain/)
+assert.match(text.body.toString('utf8'), /Second page content/)
+
+const blankForm = new FormData()
+blankForm.append('file', new Blob([firstPdf], { type: 'application/pdf' }), 'blank.pdf')
+const blankError = await requestError('/api/tools/pdf/to-word', blankForm, 422)
+assert.match(blankError.message, /OCR/)
+
+console.log('E2E API thành công: ảnh, PDF, chỉnh sửa và chuyển Word/Excel/PowerPoint/TXT đều trả nội dung hợp lệ.')

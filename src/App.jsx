@@ -5,13 +5,14 @@ const appBuildNumber = import.meta.env.VITE_APP_BUILD_NUMBER
 const appRevision = import.meta.env.VITE_APP_REVISION
 
 const pdfTools = [
-  { icon: '✎', name: 'Chỉnh sửa PDF', description: 'Thêm văn bản, hình ảnh, ký tên, ghi chú...', color: 'coral', mode: 'soon' },
+  { icon: '✎', name: 'Chỉnh sửa PDF', description: 'Thêm chữ, watermark và đánh số trang', color: 'coral', mode: 'pdf-edit' },
   { icon: '✳', name: 'Nén PDF', description: 'Đặt dung lượng MB và tự động nén sát mục tiêu', color: 'red', mode: 'pdf-compress' },
   { icon: '⊕', name: 'Ghép PDF', description: 'Sắp xếp và ghép nhiều tệp PDF thành một', color: 'blue', mode: 'pdf-merge' },
   { icon: '◫', name: 'Tách PDF', description: 'Chọn trực tiếp thumbnail và tải kết quả dạng ZIP', color: 'purple', mode: 'pdf-split' },
-  { icon: 'W', name: 'PDF sang Word', description: 'Chuyển đổi PDF sang file Word dễ dàng', color: 'blue', mode: 'soon' },
-  { icon: 'X', name: 'PDF sang Excel', description: 'Chuyển đổi PDF sang file Excel', color: 'green', mode: 'soon' },
-  { icon: 'P', name: 'PDF sang PowerPoint', description: 'Chuyển đổi PDF sang file PowerPoint', color: 'orange', mode: 'soon' },
+  { icon: 'W', name: 'PDF sang Word', description: 'Trích xuất chữ thành DOCX có thể chỉnh sửa', color: 'blue', mode: 'pdf-to-word' },
+  { icon: 'X', name: 'PDF sang Excel', description: 'Tách dòng và cột thành workbook XLSX', color: 'green', mode: 'pdf-to-excel' },
+  { icon: 'P', name: 'PDF sang PowerPoint', description: 'Mỗi trang thành slide với chữ có thể sửa', color: 'orange', mode: 'pdf-to-powerpoint' },
+  { icon: 'TXT', name: 'PDF sang văn bản', description: 'Xuất nội dung có thể chọn thành tệp TXT', color: 'teal', mode: 'pdf-to-text' },
 ]
 
 const imageTools = [
@@ -20,21 +21,28 @@ const imageTools = [
   { icon: '⛶', name: 'Thay đổi kích thước', description: 'Nhập kích thước và xem kết quả trước khi tải', color: 'violet', mode: 'resize' },
   { icon: '⌗', name: 'Cắt ảnh', description: 'Kéo, thả và thu phóng khung cắt trực tiếp', color: 'pink', mode: 'crop' },
   { icon: '✳', name: 'Nén ảnh', description: 'Điều chỉnh chất lượng và so sánh dung lượng', color: 'yellow', mode: 'compress' },
-  { icon: '☷', name: 'Chỉnh sửa ảnh', description: 'Điều chỉnh màu sắc, độ sáng, tương phản và hơn thế nữa', color: 'indigo', mode: 'soon' },
+  { icon: '☷', name: 'Chỉnh sửa ảnh', description: 'Màu sắc, độ sáng, tương phản, xoay và lật', color: 'indigo', mode: 'edit' },
 ]
 
 const labels = {
   'pdf-compress': 'Nén PDF',
   'pdf-merge': 'Ghép PDF',
   'pdf-split': 'Tách PDF',
+  'pdf-edit': 'Chỉnh sửa PDF',
+  'pdf-to-word': 'PDF sang Word',
+  'pdf-to-excel': 'PDF sang Excel',
+  'pdf-to-powerpoint': 'PDF sang PowerPoint',
+  'pdf-to-text': 'PDF sang văn bản',
   compress: 'Nén ảnh',
   convert: 'Chuyển đổi định dạng ảnh',
   resize: 'Thay đổi kích thước',
   crop: 'Cắt ảnh',
+  edit: 'Chỉnh sửa ảnh',
   'remove-background': 'Xóa phông nền',
 }
 
-const imageModes = ['compress', 'convert', 'resize', 'crop', 'remove-background']
+const imageModes = ['compress', 'convert', 'resize', 'crop', 'edit', 'remove-background']
+const pdfOfficeModes = ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-text']
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const formatBytes = (bytes = 0) => {
   if (!bytes) return '0 KB'
@@ -80,6 +88,26 @@ const warmPdfTools = () => {
     })
   }
   return pdfWarmPromise
+}
+
+const readPdfTextPreview = async file => {
+  const pdfjs = await loadPdfJs()
+  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
+  try {
+    const pdf = await loadingTask.promise
+    const pageTexts = []
+    for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 4); pageNumber++) {
+      const page = await pdf.getPage(pageNumber)
+      const content = await page.getTextContent()
+      const text = content.items.map(item => item.str || '').join(' ').replace(/\s+/g, ' ').trim()
+      if (text) pageTexts.push(`Trang ${pageNumber}\n${text}`)
+      page.cleanup?.()
+      if (pageTexts.join('\n\n').length >= 5000) break
+    }
+    return pageTexts.join('\n\n').slice(0, 5000)
+  } finally {
+    await loadingTask.destroy().catch(() => null)
+  }
 }
 
 const loadThumbnailPdf = async url => {
@@ -427,13 +455,14 @@ function PdfPageBoard({ mode, pages, fileInfo, selectedPages, setSelectedPages, 
   </section>
 }
 
-function MediaPreview({ info, title, checkerboard = false }) {
+function MediaPreview({ info, title, checkerboard = false, imageStyle }) {
   if (!info) return null
   return <div className={`media-preview ${checkerboard ? 'checkerboard' : ''}`}>
     <div className="preview-label"><span>{title}</span><b>{formatBytes(info.size)}</b></div>
-    {info.kind === 'image' && <img src={info.url} alt={title} />}
+    {info.kind === 'image' && <img src={info.url} alt={title} style={imageStyle} />}
     {info.kind === 'pdf' && <PdfCanvasPreview info={info} />}
     {info.kind === 'archive' && <div className="archive-preview"><i>ZIP</i><strong>Kết quả đã sẵn sàng</strong><small>Các trang PDF được đóng gói trong một tệp ZIP.</small></div>}
+    {info.kind === 'document' && <div className="document-preview"><i>{info.extension?.toUpperCase()}</i><strong>{info.outputLabel || 'Tệp đã sẵn sàng'}</strong>{info.pages && <small>{info.pages} trang · {Number(info.characters || 0).toLocaleString('vi-VN')} ký tự được trích xuất</small>}{info.previewText && <pre>{info.previewText}</pre>}</div>}
   </div>
 }
 
@@ -445,6 +474,10 @@ function FileFacts({ info }) {
     {info.pages && <span><small>Số trang</small><b>{info.pages} trang</b></span>}
     <span><small>Định dạng</small><b>{info.extension?.toUpperCase() || 'Tệp'}</b></span>
   </div>
+}
+
+function RangeControl({ label, value, setValue, min, max, step = 1, suffix = '' }) {
+  return <div className="adjustment-row"><div className="range-label"><span>{label}</span><b>{value}{suffix}</b></div><input type="range" min={min} max={max} step={step} value={value} onChange={event => setValue(Number(event.target.value))} /></div>
 }
 
 function CropPreview({ info, crop, setCrop, cropStageRef }) {
@@ -528,8 +561,25 @@ function ToolModal({ mode, close }) {
   const [lockRatio, setLockRatio] = useState(true)
   const [crop, setCrop] = useState({ x: 10, y: 10, w: 80, h: 80 })
   const [backgroundQuality, setBackgroundQuality] = useState('balanced')
+  const [brightness, setBrightness] = useState(100)
+  const [contrast, setContrast] = useState(100)
+  const [saturation, setSaturation] = useState(100)
+  const [hue, setHue] = useState(0)
+  const [blur, setBlur] = useState(0)
+  const [rotation, setRotation] = useState(0)
+  const [flip, setFlip] = useState(false)
+  const [flop, setFlop] = useState(false)
+  const [grayscale, setGrayscale] = useState(false)
   const [pdfCompression, setPdfCompression] = useState('target')
   const [targetMb, setTargetMb] = useState('4')
+  const [pdfEditType, setPdfEditType] = useState('text')
+  const [pdfEditText, setPdfEditText] = useState('Danh Phạm')
+  const [pdfEditPages, setPdfEditPages] = useState('')
+  const [pdfEditPosition, setPdfEditPosition] = useState('bottom-center')
+  const [pdfEditFontSize, setPdfEditFontSize] = useState(16)
+  const [pdfEditColor, setPdfEditColor] = useState('#4f46e5')
+  const [pdfEditOpacity, setPdfEditOpacity] = useState(75)
+  const [pdfTextPreview, setPdfTextPreview] = useState('')
   const [pdfPages, setPdfPages] = useState([])
   const [selectedPages, setSelectedPages] = useState(new Set())
   const [result, setResult] = useState(null)
@@ -541,9 +591,16 @@ function ToolModal({ mode, close }) {
   const isImage = imageModes.includes(mode)
   const isMerge = mode === 'pdf-merge'
   const isPdf = mode?.startsWith('pdf-')
+  const isPdfOffice = pdfOfficeModes.includes(mode)
   const fileAccept = mode === 'remove-background' ? '.png,.jpg,.jpeg,.webp' : isImage ? 'image/*' : '.pdf,application/pdf'
 
   useEffect(() => () => urlPool.current.forEach(url => { releaseThumbnailPdf(url); URL.revokeObjectURL(url) }), [])
+  useEffect(() => () => {
+    if (result?.url) {
+      URL.revokeObjectURL(result.url)
+      urlPool.current.delete(result.url)
+    }
+  }, [result?.url])
   const makeUrl = blob => { const url = URL.createObjectURL(blob); urlPool.current.add(url); return url }
 
   const analyze = async (blob, name = blob.name || 'kết-quả') => {
@@ -560,6 +617,10 @@ function ToolModal({ mode, close }) {
       const pdf = await PDFDocument.load(await blob.arrayBuffer(), { ignoreEncryption: true, updateMetadata: false })
       return { url, name, size: blob.size, type: 'application/pdf', kind: 'pdf', pages: pdf.getPageCount(), extension: 'pdf' }
     }
+    if (['docx', 'xlsx', 'pptx', 'txt'].includes(extension.toLowerCase())) {
+      const previewText = extension.toLowerCase() === 'txt' ? (await blob.text()).slice(0, 5000) : ''
+      return { url, name, size: blob.size, type: blob.type, kind: 'document', extension: extension.toLowerCase(), previewText }
+    }
     return { url, name, size: blob.size, type: blob.type, kind: 'archive', extension }
   }
 
@@ -569,8 +630,15 @@ function ToolModal({ mode, close }) {
     const nextFiles = isMerge ? picked : picked.slice(0, 1)
     setLoading(true); setMessage('Đang đọc thông tin tệp…'); setResult(null)
     try {
+      let extractedPreview = ''
       const nextInfo = await Promise.all(nextFiles.map(file => analyze(file)))
       setFiles(nextFiles); setFileInfo(nextInfo); setCrop({ x: 10, y: 10, w: 80, h: 80 })
+      setBrightness(100); setContrast(100); setSaturation(100); setHue(0); setBlur(0); setRotation(0); setFlip(false); setFlop(false); setGrayscale(false)
+      if (isPdfOffice) {
+        setMessage('Đang đọc trước phần văn bản có thể chuyển đổi…')
+        extractedPreview = await readPdfTextPreview(nextFiles[0])
+        setPdfTextPreview(extractedPreview)
+      } else setPdfTextPreview('')
       if (nextInfo[0]?.width) { setWidth(String(nextInfo[0].width)); setHeight(String(nextInfo[0].height)) }
       if (mode === 'pdf-merge' || mode === 'pdf-split') {
         const nextPages = makePageItems(nextInfo)
@@ -582,7 +650,7 @@ function ToolModal({ mode, close }) {
         const suggestedMb = Math.max(0.15, Math.floor(sourceMb * 0.6 * 10) / 10)
         setTargetMb(String(Math.min(suggestedMb, Math.max(0.1, sourceMb - 0.1)).toFixed(1)))
       }
-      setMessage('')
+      setMessage(isPdfOffice && !extractedPreview ? 'Không thấy chữ có thể chọn. Nếu đây là PDF scan, cần OCR trước khi chuyển đổi.' : '')
     } catch (error) { setMessage(error.message || 'Không thể đọc tệp này.') }
     finally { setLoading(false) }
   }
@@ -620,9 +688,10 @@ function ToolModal({ mode, close }) {
     if (!files.length) return setMessage('Hãy chọn tệp trước khi xử lý.')
     if (mode === 'pdf-merge' && !pdfPages.length) return setMessage('Tài liệu phải còn ít nhất một trang.')
     if (mode === 'pdf-split' && !selectedPages.size) return setMessage('Hãy chọn ít nhất một trang cần tách.')
+    if (mode === 'pdf-edit' && pdfEditType === 'text' && !pdfEditText.trim()) return setMessage('Hãy nhập nội dung cần thêm vào PDF.')
     setLoading(true); setMessage('Đang xử lý tệp…'); setResult(null)
     try {
-      let blob, name
+      let blob, name, outputMetadata = {}
       if (mode === 'remove-background') {
         setMessage('Đang chuẩn bị AI xóa phông…')
         const { removeBackground } = await import('@imgly/background-removal')
@@ -649,9 +718,12 @@ function ToolModal({ mode, close }) {
             left: Math.round(info.width * crop.x / 100), top: Math.round(info.height * crop.y / 100),
             cropWidth: Math.round(info.width * crop.w / 100), cropHeight: Math.round(info.height * crop.h / 100),
           } : {}
-          Object.entries({ format, quality, width, height, ...cropValues }).forEach(([key, value]) => form.append(key, value))
+          Object.entries({ format, quality, width, height, ...cropValues, brightness, contrast, saturation, hue, blur, rotation, flip, flop, grayscale }).forEach(([key, value]) => form.append(key, value))
         }
         if (mode === 'pdf-compress') form.append('level', 'balanced')
+        if (mode === 'pdf-edit') {
+          Object.entries({ editType: pdfEditType, text: pdfEditText, pages: pdfEditPages, position: pdfEditPosition, fontSize: pdfEditFontSize, color: pdfEditColor, opacity: pdfEditOpacity / 100 }).forEach(([key, value]) => form.append(key, value))
+        }
         if (mode === 'pdf-split') {
           const chosenPages = pdfPages.filter(page => selectedPages.has(page.id))
           form.append('pages', chosenPages.map(page => page.pageIndex + 1).join(','))
@@ -663,14 +735,19 @@ function ToolModal({ mode, close }) {
         blob = await response.blob()
         const disposition = response.headers.get('content-disposition') || ''
         name = /filename="?([^";]+)"?/i.exec(disposition)?.[1] || `pdftools-result.${blob.type.includes('pdf') ? 'pdf' : blob.type.includes('zip') ? 'zip' : format}`
+        outputMetadata = {
+          pages: Number(response.headers.get('x-extracted-pages')) || undefined,
+          characters: Number(response.headers.get('x-extracted-characters')) || undefined,
+        }
       }
       const output = await analyze(blob, name)
-      setResult({ ...output, blob })
+      setResult({ ...output, ...outputMetadata, previewText: output.previewText || (isPdfOffice ? pdfTextPreview : ''), outputLabel: isPdfOffice ? 'Tệp Office có thể chỉnh sửa đã sẵn sàng' : undefined, blob })
       if (mode === 'pdf-compress' && pdfCompression === 'target') {
         const targetBytes = Number(targetMb) * 1024 * 1024
         const proximity = Math.max(0, (targetBytes - blob.size) / targetBytes * 100)
         setMessage(`Xử lý hoàn tất — tệp thấp hơn mục tiêu ${proximity.toFixed(1)}%. Hãy xem preview trước khi tải.`)
-      } else setMessage('Xử lý hoàn tất — hãy xem preview và tải xuống khi đã hài lòng.')
+      } else if (isPdfOffice) setMessage(`Chuyển đổi hoàn tất — đã trích xuất ${Number(outputMetadata.characters || 0).toLocaleString('vi-VN')} ký tự từ ${outputMetadata.pages || 0} trang.`)
+      else setMessage('Xử lý hoàn tất — hãy xem preview và tải xuống khi đã hài lòng.')
     } catch (error) { setMessage(error.message || 'Không thể xử lý tệp này. Hãy thử lại.') }
     finally { setLoading(false) }
   }
@@ -681,12 +758,16 @@ function ToolModal({ mode, close }) {
   const reduction = result && files[0] ? Math.round((1 - result.size / files[0].size) * 100) : null
   const targetBytes = Number(targetMb) * 1024 * 1024
   const targetRatio = files[0]?.size && Number.isFinite(targetBytes) ? Math.round(targetBytes / files[0].size * 100) : 0
+  const imageEditStyle = mode === 'edit' ? {
+    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) hue-rotate(${hue}deg) blur(${blur}px) grayscale(${grayscale ? 100 : 0}%)`,
+    transform: `rotate(${rotation}deg) scaleX(${flop ? -1 : 1}) scaleY(${flip ? -1 : 1})`,
+  } : undefined
 
   return <div className="modal-shade" role="dialog" aria-modal="true">
     <form className={`tool-modal ${files.length ? 'tool-modal-wide' : ''}`} onSubmit={submit}>
       <button className="close" type="button" onClick={close}>×</button>
       <div className="modal-heading"><i>✦</i><div><p>CÔNG CỤ PDFTOOLS</p><h2>{labels[mode]}</h2></div></div>
-      <p className="modal-copy">{isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
+      <p className="modal-copy">{isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
 
       {!files.length ? <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files) }}>
         <input ref={input} className="drop-file-input" aria-label="Chọn tệp từ máy tính" type="file" accept={fileAccept} multiple={isMerge} onChange={event => choose(event.target.files)} />
@@ -700,7 +781,7 @@ function ToolModal({ mode, close }) {
           <FileFacts info={source} />
           <div className="editor-layout">
           <div className="editor-preview">
-            {mode === 'crop' ? <CropPreview info={source} crop={crop} setCrop={setCrop} cropStageRef={cropStageRef} /> : <MediaPreview info={source} title="Bản gốc" />}
+            {mode === 'crop' ? <CropPreview info={source} crop={crop} setCrop={setCrop} cropStageRef={cropStageRef} /> : <MediaPreview info={source} title={mode === 'edit' ? 'Preview chỉnh sửa' : 'Bản gốc'} imageStyle={imageEditStyle} />}
           </div>
           <div className="editor-controls">
             {mode === 'remove-background' && <div className="control-group"><span>Chế độ AI</span><div className="option-cards"><button type="button" className={backgroundQuality === 'balanced' ? 'active' : ''} onClick={() => setBackgroundQuality('balanced')}><b>Nhanh</b><small>~40 MB · ảnh thông thường</small></button><button type="button" className={backgroundQuality === 'high' ? 'active' : ''} onClick={() => setBackgroundQuality('high')}><b>Chất lượng cao</b><small>~80 MB · viền tóc tốt hơn</small></button></div></div>}
@@ -709,7 +790,21 @@ function ToolModal({ mode, close }) {
               <div className="control-group"><label>Định dạng kết quả<select value={format} onChange={event => setFormat(event.target.value)}><option value="webp">WebP — nhẹ, hiện đại</option><option value="jpeg">JPG — tương thích cao</option><option value="png">PNG — không mất dữ liệu</option><option value="avif">AVIF — dung lượng thấp</option></select></label></div>
               <div className="control-group"><div className="range-label"><span>Chất lượng</span><b>{quality}%</b></div><input type="range" min="20" max="100" value={quality} onChange={event => setQuality(event.target.value)} /><small>Chất lượng thấp hơn thường tạo tệp nhẹ hơn. PNG có thể ít thay đổi.</small></div>
               {mode === 'resize' && <div className="control-group"><div className="dimensions"><label>Rộng (px)<input inputMode="numeric" value={width} onChange={event => resizeValue('width', event.target.value)} /></label><label>Cao (px)<input inputMode="numeric" value={height} onChange={event => resizeValue('height', event.target.value)} /></label></div><button className={`ratio-lock ${lockRatio ? 'active' : ''}`} type="button" onClick={() => setLockRatio(!lockRatio)}>{lockRatio ? '🔗 Đang khóa tỷ lệ' : 'Mở khóa tỷ lệ'}</button></div>}
+              {mode === 'edit' && <>
+                <div className="control-group adjustment-stack"><span>Màu sắc và hiệu ứng</span><RangeControl label="Độ sáng" value={brightness} setValue={setBrightness} min={20} max={180} suffix="%" /><RangeControl label="Tương phản" value={contrast} setValue={setContrast} min={20} max={180} suffix="%" /><RangeControl label="Độ bão hòa" value={saturation} setValue={setSaturation} min={0} max={200} suffix="%" /><RangeControl label="Sắc độ" value={hue} setValue={setHue} min={-180} max={180} suffix="°" /><RangeControl label="Làm mờ" value={blur} setValue={setBlur} min={0} max={8} step={0.2} suffix="px" /></div>
+                <div className="control-group"><span>Xoay và lật</span><div className="edit-actions"><button type="button" onClick={() => setRotation(value => (value + 270) % 360)}>↶ Xoay trái</button><button type="button" onClick={() => setRotation(value => (value + 90) % 360)}>↷ Xoay phải</button><button type="button" className={flop ? 'active' : ''} onClick={() => setFlop(!flop)}>↔ Lật ngang</button><button type="button" className={flip ? 'active' : ''} onClick={() => setFlip(!flip)}>↕ Lật dọc</button><button type="button" className={grayscale ? 'active' : ''} onClick={() => setGrayscale(!grayscale)}>◐ Trắng đen</button></div></div>
+              </>}
             </>}
+
+            {mode === 'pdf-edit' && <>
+              <div className="control-group"><span>Nội dung thêm</span><div className="option-cards"><button type="button" className={pdfEditType === 'text' ? 'active' : ''} onClick={() => setPdfEditType('text')}><b>Chữ / watermark</b><small>Hỗ trợ {`{page}`} và {`{pages}`}</small></button><button type="button" className={pdfEditType === 'page-numbers' ? 'active' : ''} onClick={() => setPdfEditType('page-numbers')}><b>Đánh số trang</b><small>Tự tạo Trang 1 / N</small></button></div></div>
+              {pdfEditType === 'text' && <div className="control-group"><label>Nội dung<input maxLength="120" value={pdfEditText} onChange={event => setPdfEditText(event.target.value)} placeholder="Ví dụ: Danh Phạm · Trang {page}" /></label></div>}
+              <div className="control-group"><label>Áp dụng cho trang<input value={pdfEditPages} onChange={event => setPdfEditPages(event.target.value)} placeholder="Để trống = tất cả · Ví dụ 1-3, 5" /></label></div>
+              <div className="control-group"><label>Vị trí<select value={pdfEditPosition} onChange={event => setPdfEditPosition(event.target.value)}><option value="top-left">Trên trái</option><option value="top-center">Trên giữa</option><option value="top-right">Trên phải</option><option value="center">Chính giữa</option><option value="bottom-left">Dưới trái</option><option value="bottom-center">Dưới giữa</option><option value="bottom-right">Dưới phải</option></select></label></div>
+              <div className="control-group adjustment-stack"><span>Kiểu hiển thị</span><RangeControl label="Cỡ chữ" value={pdfEditFontSize} setValue={setPdfEditFontSize} min={8} max={48} suffix=" pt" /><RangeControl label="Độ đậm" value={pdfEditOpacity} setValue={setPdfEditOpacity} min={10} max={100} suffix="%" /><label className="color-control">Màu chữ<input type="color" value={pdfEditColor} onChange={event => setPdfEditColor(event.target.value)} /></label></div>
+            </>}
+
+            {isPdfOffice && <div className="control-note office-note"><b>Chuyển đổi văn bản có thể chỉnh sửa</b><span>{mode === 'pdf-to-word' ? 'Mỗi dòng thành đoạn Word; giữ ngắt trang.' : mode === 'pdf-to-excel' ? 'Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.' : mode === 'pdf-to-powerpoint' ? 'Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.' : 'Xuất văn bản UTF-8, phân tách rõ từng trang.'}</span><em>{pdfTextPreview ? `Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString('vi-VN')} ký tự.` : 'Chưa tìm thấy chữ có thể chọn trong phần xem trước.'}</em></div>}
 
             {mode === 'pdf-compress' && <>
               <div className="control-group"><span>Kiểu nén</span><div className="option-cards"><button type="button" className={pdfCompression === 'target' ? 'active' : ''} onClick={() => setPdfCompression('target')}><b>Đạt dung lượng mục tiêu</b><small>Nén ảnh từng trang, tự điều chỉnh để bám sát số MB</small></button><button type="button" className={pdfCompression === 'preserve' ? 'active' : ''} onClick={() => setPdfCompression('preserve')}><b>Bảo toàn văn bản</b><small>Giữ nội dung có thể chọn, nhưng không cam kết số MB</small></button></div></div>
@@ -725,7 +820,7 @@ function ToolModal({ mode, close }) {
         </>}
       </>}
 
-      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : 'Tạo bản xem trước kết quả  →'}</button>
+      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : 'Tạo bản xem trước kết quả  →'}</button>
       {message && <p className={`result ${message.includes('hoàn tất') ? 'success' : ''}`}>{message}</p>}
 
       {result && <div className="result-workspace">
@@ -741,7 +836,6 @@ export default function App() {
   const [dark, setDark] = useState(() => localStorage.getItem('pdftools-theme') === 'dark')
   const [modal, setModal] = useState(null)
   const [query, setQuery] = useState('')
-  const [mail, setMail] = useState('')
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('pdftools-theme', dark ? 'dark' : 'light') }, [dark])
   useEffect(() => {
     if (navigator.connection?.saveData) return undefined
@@ -754,9 +848,8 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [])
   const count = useMemo(() => [...pdfTools, ...imageTools].filter(tool => tool.name.toLowerCase().includes(query.toLowerCase())).length, [query])
-  const subscribe = async event => { event.preventDefault(); const email = new FormData(event.currentTarget).get('email'); await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }).catch(() => null); setMail('Đăng ký thành công!') }
 
-  return <div className="app redesigned"><header className="header"><a className="brand" href="#home"><span>P</span>PDFTools</a><nav><a className="active" href="#home">Trang chủ</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#benefits">Vì sao chọn chúng tôi</a></nav><div className="header-actions"><button className="theme-toggle" aria-label="Đổi chế độ màu" onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="language">VI</button><a className="header-cta" href="#pdf">Dùng miễn phí <span>→</span></a></div></header><main id="home"><section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> Bộ công cụ tài liệu trực tuyến</div><h1>Làm việc với<br /><em>PDF &amp; hình ảnh</em><br />nhẹ nhàng hơn.</h1><p className="hero-text">Nén, chuyển đổi và xử lý tệp trong vài bước.<br />Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bạn muốn làm gì với tệp của mình?" /><small>{query && `${count} công cụ`}</small></label><div className="hero-trust"><span>✓ Không cần đăng ký</span><span>✓ Giao diện tiếng Việt</span><span>✓ Preview trước khi tải</span></div></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section><div className="content"><ToolSection title="Công cụ PDF" tools={pdfTools} id="pdf" open={setModal} query={query} /><ToolSection title="Công cụ Ảnh" tools={imageTools} id="images" open={setModal} query={query} /><section className="benefits" id="benefits"><Benefit icon="♢" title="Bảo mật tuyệt đối" text="File của bạn được xử lý an toàn và tự động xóa sau 1 giờ." /><Benefit icon="ϟ" title="Xử lý nhanh chóng" text="Công nghệ hiện đại giúp xử lý file trong tích tắc." /><Benefit icon="☁" title="Hỗ trợ mọi thiết bị" text="Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng." /><Benefit icon="✪" title="Hoàn toàn miễn phí" text="Nhiều công cụ miễn phí 100%, không giới hạn lượt sử dụng." /></section></div></main><footer><div className="footer-top"><div className="footer-brand"><a className="brand" href="#home"><span>P</span>PDFTools</a><p>Một nơi đơn giản để xử lý mọi tài liệu và hình ảnh của bạn.</p></div><Footer title="Sản phẩm" items={['PDF Tools', 'Image Tools', 'Công cụ khác']} /><Footer title="Công ty" items={['Giới thiệu', 'Blog', 'Liên hệ']} /><div className="newsletter"><p>NHẬN MẸO HAY MỖI TUẦN</p><h3>Không bỏ lỡ điều thú vị</h3><form onSubmit={subscribe}><input name="email" required type="email" placeholder="Email của bạn" /><button>→</button></form>{mail && <small>{mail}</small>}</div></div><div className="copyright"><span>© 2026 PDFTools · Làm việc thông minh hơn, mỗi ngày.</span><span className="footer-signature">Phát triển bởi <strong>Danh Phạm</strong><span className="version-badge" title={`Mã Git kỹ thuật: ${appRevision}`}>Phiên bản {appVersion}<i>•</i>Bản dựng #{appBuildNumber}</span></span></div></footer>{modal && <ToolModal mode={modal} close={() => setModal(null)} />}</div>
+  return <div className="app redesigned"><header className="header"><a className="brand" href="#home"><span>P</span>PDFTools</a><nav><a className="active" href="#home">Trang chủ</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#benefits">Vì sao chọn chúng tôi</a></nav><div className="header-actions"><button className="theme-toggle" aria-label="Đổi chế độ màu" onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="language">VI</button><a className="header-cta" href="#pdf">Dùng miễn phí <span>→</span></a></div></header><main id="home"><section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> Bộ công cụ tài liệu trực tuyến</div><h1>Làm việc với<br /><em>PDF &amp; hình ảnh</em><br />nhẹ nhàng hơn.</h1><p className="hero-text">Nén, chuyển đổi và xử lý tệp trong vài bước.<br />Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bạn muốn làm gì với tệp của mình?" /><small>{query && `${count} công cụ`}</small></label><div className="hero-trust"><span>✓ Không cần đăng ký</span><span>✓ Giao diện tiếng Việt</span><span>✓ Preview trước khi tải</span></div></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section><div className="content"><ToolSection title="Công cụ PDF" tools={pdfTools} id="pdf" open={setModal} query={query} /><ToolSection title="Công cụ Ảnh" tools={imageTools} id="images" open={setModal} query={query} /><section className="benefits" id="benefits"><Benefit icon="♢" title="Không lưu tệp lâu dài" text="Tệp chỉ được xử lý trong bộ nhớ hoặc ngay trên trình duyệt, không tạo hồ sơ lưu trữ trên máy chủ." /><Benefit icon="ϟ" title="Xử lý tối ưu" text="Mỗi luồng ảnh và PDF được tối ưu riêng, kèm trạng thái rõ ràng trong lúc chờ." /><Benefit icon="☁" title="Hỗ trợ mọi thiết bị" text="Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng." /><Benefit icon="✪" title="Dùng miễn phí" text="Các công cụ hiện tại được sử dụng miễn phí, không cần đăng ký tài khoản." /></section></div></main><footer><div className="footer-top"><div className="footer-brand"><a className="brand" href="#home"><span>P</span>PDFTools</a><p>Một nơi đơn giản để xử lý mọi tài liệu và hình ảnh của bạn.</p></div><Footer title="Sản phẩm" items={['PDF Tools', 'Image Tools', 'Công cụ khác']} /><Footer title="Công ty" items={['Giới thiệu', 'Blog', 'Liên hệ']} /><div className="newsletter"><p>CẬP NHẬT SẢN PHẨM</p><h3>Theo dõi mã nguồn và phiên bản mới</h3><a className="newsletter-link" href="https://github.com/phamcongdanh98/Web-tool-ALL" target="_blank" rel="noreferrer">Mở GitHub <span>↗</span></a></div></div><div className="copyright"><span>© 2026 PDFTools · Làm việc thông minh hơn, mỗi ngày.</span><span className="footer-signature">Phát triển bởi <strong>Danh Phạm</strong><span className="version-badge" title={`Mã Git kỹ thuật: ${appRevision}`}>Phiên bản {appVersion}<i>•</i>Bản dựng #{appBuildNumber}</span></span></div></footer>{modal && <ToolModal mode={modal} close={() => setModal(null)} />}</div>
 }
 
 function Benefit({ icon, title, text }) { return <div><i>{icon}</i><span><strong>{title}</strong><small>{text}</small></span></div> }

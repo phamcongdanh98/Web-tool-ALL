@@ -25,12 +25,12 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y ca-certificates curl git nginx iptables-persistent
 
-node_major='0'
-if [[ -x /usr/bin/node ]]; then
-  node_major="$(/usr/bin/node --version | sed -E 's/^v([0-9]+).*/\1/')"
+node_compatible='false'
+if [[ -x /usr/bin/node ]] && /usr/bin/node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 22 || (major === 22 && minor >= 12) ? 0 : 1)'; then
+  node_compatible='true'
 fi
 
-if [[ ! "$node_major" =~ ^[0-9]+$ ]] || ((node_major < 20)); then
+if [[ "$node_compatible" != 'true' ]]; then
   printf '2/6 Cài Node.js %s từ repository NodeSource...\n' "$NODE_MAJOR"
   nodesource_setup="$(mktemp)"
   trap 'rm -f "$nodesource_setup"' EXIT
@@ -44,8 +44,7 @@ else
 fi
 
 [[ -x /usr/bin/node && -x /usr/bin/npm ]] || fail 'Node và npm phải được cài system-wide trong /usr/bin để systemd sử dụng ổn định.'
-node_major="$(/usr/bin/node --version | sed -E 's/^v([0-9]+).*/\1/')"
-((node_major >= 20)) || fail 'PDFTools yêu cầu Node.js 20 trở lên.'
+/usr/bin/node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 22 || (major === 22 && minor >= 12) ? 0 : 1)' || fail 'PDFTools yêu cầu Node.js 22.12 trở lên.'
 
 printf '3/6 Chuẩn hóa quyền repository...\n'
 chown -R "${APP_USER}:${APP_USER}" "$APP_DIR"
