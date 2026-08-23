@@ -23,7 +23,16 @@ Nếu `command -v node` không trả về `/usr/bin/node`, hãy cài Node.js sys
 
 ## Cài lần đầu trên VPS
 
-Chạy trong terminal Remote SSH của VS Code:
+Sau khi repository đã được clone/pull tại `/var/www/pdftools`, cách nhanh nhất là chạy một lệnh trong terminal Remote SSH:
+
+```bash
+cd /var/www/pdftools
+sudo ./deploy/setup-ubuntu.sh
+```
+
+Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script cài `systemd`, sudoers, Nginx config, tạo release đầu tiên và kiểm tra cả API lẫn trang chủ.
+
+Các lệnh thủ công tương đương để chẩn đoán khi script tự động báo lỗi:
 
 ```bash
 cd /var/www/pdftools

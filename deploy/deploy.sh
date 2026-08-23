@@ -5,6 +5,8 @@ APP_DIR="${PDFTOOLS_APP_DIR:-/var/www/pdftools}"
 BRANCH="${PDFTOOLS_BRANCH:-main}"
 SERVICE="${PDFTOOLS_SERVICE:-pdftools}"
 PREFLIGHT_PORT="${PDFTOOLS_PREFLIGHT_PORT:-13001}"
+NODE_BIN='/usr/bin/node'
+NPM_BIN='/usr/bin/npm'
 DEPLOY_DIR="${APP_DIR}/.deploy"
 RELEASES_DIR="${DEPLOY_DIR}/releases"
 CURRENT_LINK="${DEPLOY_DIR}/current"
@@ -14,9 +16,10 @@ fail() {
   exit 1
 }
 
-for command_name in git npm node curl sudo tar; do
+for command_name in git curl sudo tar; do
   command -v "$command_name" >/dev/null 2>&1 || fail "Thiếu lệnh ${command_name}."
 done
+[[ -x "$NODE_BIN" && -x "$NPM_BIN" ]] || fail 'Thiếu Node/npm system-wide trong /usr/bin.'
 
 [[ -d "${APP_DIR}/.git" ]] || fail "Không tìm thấy Git repository tại ${APP_DIR}."
 cd "$APP_DIR"
@@ -39,11 +42,11 @@ git archive --format=tar HEAD | tar -xf - -C "$release_dir"
 
 printf '3/7 Cài dependency theo package-lock.json...\n'
 cd "$release_dir"
-npm ci --include=dev --no-audit --no-fund
+"$NPM_BIN" ci --include=dev --no-audit --no-fund
 
 printf '4/7 Build production và bỏ dependency chỉ dùng khi phát triển...\n'
-npm run build
-npm prune --omit=dev --no-audit --no-fund
+"$NPM_BIN" run build
+"$NPM_BIN" prune --omit=dev --no-audit --no-fund
 
 printf '5/7 Chạy kiểm tra production trước khi chuyển phiên bản...\n'
 preflight_log="$(mktemp)"
@@ -57,7 +60,7 @@ cleanup_preflight() {
 }
 trap cleanup_preflight EXIT
 
-NODE_ENV=production HOST=127.0.0.1 PORT="$PREFLIGHT_PORT" node server.js >"$preflight_log" 2>&1 &
+NODE_ENV=production HOST=127.0.0.1 PORT="$PREFLIGHT_PORT" "$NODE_BIN" server.js >"$preflight_log" 2>&1 &
 preflight_pid="$!"
 
 preflight_ok='false'

@@ -88,7 +88,7 @@ Sau mỗi lần Codex thay đổi code, hãy xem mục **Nhật ký thay đổi 
 
 GitHub là nguồn code chuẩn; VPS chỉ nhận và chạy commit đã push. Không sửa trực tiếp source production trên VPS.
 
-Sau khi cài dịch vụ một lần theo [hướng dẫn production](deploy/README.md), luồng cập nhật hằng ngày chỉ còn:
+Sau khi chạy một lần `sudo ./deploy/setup-ubuntu.sh` theo [hướng dẫn production](deploy/README.md), luồng cập nhật hằng ngày chỉ còn:
 
 ```bash
 # Trên máy phát triển
@@ -162,6 +162,7 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - SSH alias `orace` do người dùng quản lý ngoài repository; private key, IP và nội dung SSH config không được lưu trong Git.
 - Hoàn thiện production runtime: Express phục vụ `dist`, cache asset có hash, SPA fallback không cache, lắng nghe loopback và đóng tiến trình an toàn khi nhận SIGTERM/SIGINT.
 - Thêm hệ thống deploy trong `deploy/`: release độc lập, preflight trước restart, health check, rollback tự động, giữ ba release gần nhất, cấu hình `systemd`, Nginx và quyền restart giới hạn.
+- Thêm `deploy/setup-ubuntu.sh` để cài production lần đầu trên Ubuntu bằng một lệnh, bao gồm dependency hệ thống, Node.js khi cần, cấu hình dịch vụ và release đầu tiên.
 - Thêm `npm run deploy:vps`: chỉ triển khai khi working tree sạch và commit local trùng `origin/main`; SSH host mặc định là alias `orace` và không chứa IP/key trong code.
 - Kiểm thử deploy/runtime: `npm ci`, `npm run build`, `bash -n` cho hai script, kiểm tra guard khi Git bẩn; chạy production sau `npm prune --omit=dev`, xác nhận `/api/health`, trang SPA, cache header asset và graceful shutdown.
 - `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
