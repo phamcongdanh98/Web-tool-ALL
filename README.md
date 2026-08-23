@@ -88,6 +88,14 @@ Luồng chuẩn:
 Sửa code → Kiểm tra → Commit → Push GitHub → CI xanh → Deploy VPS → Mở domain
 ```
 
+Trước tiên, xem trạng thái đồng bộ bằng một lệnh:
+
+```bash
+npm run status:vps
+```
+
+Lệnh này chỉ đọc dữ liệu và hiển thị trực quan Mac, GitHub, VPS, release đang chạy cùng trạng thái website. Nếu VPS cũ hơn GitHub, lệnh sẽ nhắc chạy deploy.
+
 Chạy lần lượt trong Terminal trên Mac:
 
 ```bash
@@ -100,6 +108,7 @@ npm run deploy:vps
 
 | Bước | Lệnh | Giải thích |
 | --- | --- | --- |
+| 🔎 Trạng thái | `npm run status:vps` | So sánh phiên bản giữa Mac, GitHub, VPS và domain. |
 | 🧪 Kiểm tra | `npm run verify` | Build và thử production, ảnh, PDF trước khi phát hành. |
 | 📦 Chuẩn bị | `git add .` | Đưa toàn bộ file đã sửa vào commit sắp tạo. |
 | 🏷️ Tạo phiên bản | `git commit -m "..."` | Tạo commit mới; footer tự tăng số **Bản dựng**. |
@@ -188,6 +197,7 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - `npm run deploy:vps` hiện kiểm tra thêm public HTTPS sau khi VPS healthy nội bộ.
 - Thêm footer nhận diện `Danh Phạm`; phiên bản semantic lấy từ `package.json`, số bản dựng dễ đọc tự tăng theo tổng số commit, còn mã Git kỹ thuật chỉ hiện trong tooltip.
 - Làm README trực quan hơn bằng badge màu, icon, callout và bảng giải thích ngắn gọn cho từng câu lệnh.
+- Thêm `npm run status:vps` để kiểm tra trực quan Mac ↔ GitHub ↔ VPS ↔ domain bằng một lệnh read-only.
 - Viết lại hướng dẫn README theo luồng local → GitHub → VPS, giải thích ngắn gọn từng lệnh và bổ sung cách nhận biết dev server hoặc lỗi cổng bị chiếm.
 - Kiểm thử deploy/runtime: `npm ci`, `npm run verify`, syntax toàn bộ shell script, guard Git; production smoke xác nhận `/api/health`, trang SPA, cache header asset, graceful shutdown và API thật cho nén/cắt ảnh, nén/ghép/tách PDF.
 - `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.

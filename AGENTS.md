@@ -19,10 +19,12 @@ npm run dev
 npm run build
 npm run verify
 npm run audit:prod
+npm run status:vps
 ```
 
 `npm run dev` phải khởi chạy cả Express lẫn Vite. Không đổi sang chỉ chạy Vite nếu các công cụ API vẫn cần hoạt động.
 `npm run verify` là cổng chất lượng chuẩn trước khi commit/push: kiểm tra cú pháp, shell script, production build, smoke test Express và E2E API xử lý ảnh/PDF thật.
+`npm run status:vps` là lệnh read-only để so sánh commit/bản dựng giữa Mac, GitHub, repository VPS, release đang chạy và public health.
 
 ## Quy ước thay đổi
 
