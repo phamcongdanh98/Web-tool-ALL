@@ -2,6 +2,8 @@
 Description=PDFTools Vietnamese web application
 Wants=network-online.target
 After=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -19,8 +21,20 @@ TimeoutStopSec=20s
 KillSignal=SIGTERM
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
 ProtectHome=true
-ProtectSystem=full
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+UMask=0027
+LimitNOFILE=65535
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=pdftools

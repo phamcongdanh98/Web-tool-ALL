@@ -30,7 +30,7 @@ cd /var/www/pdftools
 sudo ./deploy/setup-ubuntu.sh
 ```
 
-Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, tạo release đầu tiên và kiểm tra cả API lẫn trang chủ. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
+Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, tạo release đầu tiên và kiểm tra cả API lẫn trang chủ. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
 
 Các lệnh thủ công tương đương để chẩn đoán khi script tự động báo lỗi:
 
@@ -57,15 +57,28 @@ Lần đầu không chạy `systemctl start pdftools` thủ công; `deploy.sh` s
 
 Biến môi trường production là tùy chọn. Khi cần, tạo `/etc/pdftools.env` bằng `sudoedit`, dựa trên `pdftools.env.example`, đặt quyền đọc phù hợp và tuyệt đối không commit giá trị thật.
 
+## Domain và HTTPS lần đầu
+
+1. Trỏ DNS về Public IPv4 của VPS và xác nhận HTTP cổng 80 hoạt động.
+2. Mở inbound TCP 443 trong Security List/NSG của nhà cung cấp.
+3. Chạy:
+
+```bash
+cd /var/www/pdftools
+sudo ./deploy/configure-domain.sh ten-mien-cua-ban email-cua-ban
+```
+
+Script backup Nginx, đặt `server_name`, mở/lưu host firewall 443, cài Certbot qua Snap, cấp chứng chỉ, ép HTTPS và thử auto-renew. Token của nhà cung cấp DNS không được truyền vào hoặc lưu trong repository.
+
 ## Deploy hằng ngày
 
-Trên máy phát triển, sau khi đã commit và push `main`:
+Trên máy phát triển, chạy verify, commit/push và chờ job GitHub Actions **Verify Node 22** xanh. Sau đó:
 
 ```bash
 npm run deploy:vps
 ```
 
-Lệnh local sẽ kiểm tra working tree sạch và `HEAD` trùng `origin/main`, rồi gọi SSH. Phía VPS tiếp tục kiểm tra repository sạch, chỉ pull fast-forward, tạo release độc lập, chạy `npm ci`, build, preflight API/trang chủ, chuyển release, restart và health check.
+Lệnh local kiểm tra working tree sạch và `HEAD` trùng `origin/main`, rồi gọi SSH. Phía VPS khóa deploy, kiểm tra dung lượng, tạo release độc lập, retry `npm ci`, build, preflight, chuyển release nguyên tử, restart và health/rollback. Khi VPS healthy, máy phát triển kiểm tra tiếp public HTTPS. Có thể đổi URL kiểm tra bằng `PDFTOOLS_PUBLIC_HEALTH_URL`.
 
 Nếu máy khác dùng SSH alias khác:
 
@@ -79,8 +92,9 @@ PDFTOOLS_SSH_HOST=ten-alias-khac npm run deploy:vps
 ssh orace 'systemctl status pdftools --no-pager'
 ssh orace 'journalctl -u pdftools -n 100 --no-pager'
 ssh orace 'curl -fsS http://127.0.0.1:3001/api/health'
+ssh orace 'tail -n 20 /var/www/pdftools/.deploy/deployments.log'
 ```
 
 Nginx chỉ proxy vào loopback nên Node không bị mở trực tiếp ra Internet. Khi đã có domain, cấu hình HTTPS ở Nginx và thay `server_name _` bằng domain thật.
 
-Production hiện dùng `congcuweb.duckdns.org` với HTTPS do Certbot quản lý. `npm run deploy:vps` không sửa Nginx hoặc chứng chỉ nên có thể dùng cho mọi lần cập nhật code. Không chạy lại `setup-ubuntu.sh` trên VPS đang hoạt động trừ khi thực sự muốn cài lại hạ tầng; luôn sao lưu và kiểm tra file Nginx do Certbot chỉnh sửa trước khi làm việc đó.
+Production hiện dùng `congcuweb.duckdns.org` với HTTPS do Certbot quản lý. `npm run deploy:vps` không sửa Nginx hoặc chứng chỉ nên dùng cho mọi lần cập nhật code. Chỉ chạy lại `setup-ubuntu.sh` khi có commit thay đổi hạ tầng; script merge tuning có quản lý vào site hiện có nhưng vẫn cần kiểm tra `nginx -t`, service và public HTTPS sau đó.

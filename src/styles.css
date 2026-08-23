@@ -379,7 +379,10 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
 .newsletter input { min-width: 0; width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px 0 0 10px; outline: 0; color: var(--text); background: var(--surface-soft); font-size: 10px; }
 .newsletter button { width: 42px; border: 0; border-radius: 0 10px 10px 0; color: #fff; background: var(--primary); }
 .newsletter small { display: block; margin-top: 7px; color: var(--success); font-size: 9px; }
-.copyright { max-width: 1320px; margin: 37px auto 0; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); text-align: center; font-size: 9px; }
+.copyright { max-width: 1320px; display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 37px auto 0; padding-top: 20px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; }
+.footer-signature { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; }
+.footer-signature strong { color: var(--text); font-weight: 700; }
+.version-badge { display: inline-flex; align-items: center; min-height: 24px; margin-left: 7px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 999px; color: var(--primary); background: var(--primary-soft); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 8px; font-weight: 700; letter-spacing: .15px; white-space: nowrap; }
 
 .modal-shade { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 18px; background: rgba(8, 11, 31, .7); backdrop-filter: blur(9px); }
 .tool-modal { position: relative; width: min(550px, 100%); max-height: calc(100vh - 36px); overflow: auto; padding: 31px; border: 1px solid var(--line); border-radius: 24px; color: var(--text); background: var(--surface); box-shadow: 0 30px 90px rgba(4, 7, 25, .5); }
@@ -652,6 +655,9 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
   .benefits > div:last-child { border-bottom: 0; }
   .footer-top { grid-template-columns: 1fr 1fr; gap: 27px 20px; }
   .footer-brand, .newsletter { grid-column: span 2; }
+  .copyright { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .footer-signature { flex-wrap: wrap; justify-content: flex-start; }
+  .version-badge { margin-left: 0; }
   .tool-modal { padding: 27px 19px; }
   .editor-preview { min-height: 310px; padding: 9px; }
   .media-preview { min-height: 290px; }

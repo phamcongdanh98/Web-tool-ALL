@@ -55,11 +55,43 @@ install -m 0644 "${APP_DIR}/deploy/pdftools.service" /etc/systemd/system/pdftool
 install -m 0440 "${APP_DIR}/deploy/pdftools-sudoers" /etc/sudoers.d/pdftools-deploy
 visudo -cf /etc/sudoers.d/pdftools-deploy
 
-install -m 0644 "${APP_DIR}/deploy/nginx.conf" /etc/nginx/sites-available/pdftools
+if [[ -f /etc/nginx/sites-available/pdftools ]]; then
+  printf '%s\n' 'Giữ domain/chứng chỉ Certbot và chỉ bổ sung tuning Nginx còn thiếu.'
+else
+  install -m 0644 "${APP_DIR}/deploy/nginx.conf" /etc/nginx/sites-available/pdftools
+fi
+
+nginx_site='/etc/nginx/sites-available/pdftools'
+nginx_backup="${nginx_site}.before-setup-$(date -u +%Y%m%d%H%M%S)"
+cp -a "$nginx_site" "$nginx_backup"
+
+if ! grep -Fq 'client_body_timeout 300s;' "$nginx_site"; then
+  sed -i '/client_max_body_size 30M;/a\    client_body_timeout 300s;' "$nginx_site"
+fi
+if ! grep -Fq 'gzip on;' "$nginx_site"; then
+  sed -i '/client_body_timeout 300s;/a\
+\    gzip on;\
+\    gzip_vary on;\
+\    gzip_min_length 1024;\
+\    gzip_types text/css application/javascript application/json application/wasm image/svg+xml;' "$nginx_site"
+fi
+if ! grep -Fq 'Permissions-Policy "camera=(), microphone=(), geolocation=()" always;' "$nginx_site"; then
+  sed -i '/add_header Referrer-Policy/a\    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;' "$nginx_site"
+fi
+if ! grep -Fq 'proxy_set_header Connection "";' "$nginx_site"; then
+  sed -i '/proxy_set_header X-Forwarded-Proto/a\        proxy_set_header Connection "";' "$nginx_site"
+fi
+
 if [[ -L /etc/nginx/sites-enabled/default ]]; then
   unlink /etc/nginx/sites-enabled/default
 fi
 ln -sfn /etc/nginx/sites-available/pdftools /etc/nginx/sites-enabled/pdftools
+
+if ! nginx -t; then
+  cp -a "$nginx_backup" "$nginx_site"
+  nginx -t >/dev/null 2>&1 || true
+  fail "Nginx mới không hợp lệ; đã khôi phục ${nginx_backup}."
+fi
 
 printf '5/6 Kiểm tra và kích hoạt dịch vụ...\n'
 if ! iptables -C INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null; then
@@ -74,8 +106,11 @@ netfilter-persistent save
 
 systemctl daemon-reload
 systemctl enable pdftools nginx
-nginx -t
-systemctl restart nginx
+if systemctl is-active --quiet nginx; then
+  systemctl reload nginx
+else
+  systemctl start nginx
+fi
 
 printf '6/6 Tạo release đầu tiên và kiểm tra health...\n'
 sudo -H -u "$APP_USER" "${APP_DIR}/deploy/deploy.sh"

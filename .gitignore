@@ -6,8 +6,12 @@ dist
 # Local environment and editor settings
 .env
 .env.local
+.env.deploy.local
 .vscode/
 .DS_Store
+
+# Test output
+coverage/
 
 # Logs
 *.log

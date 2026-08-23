@@ -12,6 +12,7 @@
 - Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
 - Dark mode, tìm kiếm công cụ và giao diện responsive.
+- Footer hiển thị người phát triển `Danh Phạm`, phiên bản ứng dụng và mã bản dựng tự đổi theo từng Git commit.
 
 Các mục PDF sang Word/Excel/PowerPoint, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao hiện đang hiển thị là “đang hoàn thiện”; không nên coi chúng là đã triển khai.
 
@@ -58,6 +59,15 @@ Lệnh này chạy đồng thời:
 npm run build
 ```
 
+Trước khi commit hoặc deploy, chạy cổng chất lượng đầy đủ:
+
+```bash
+npm run verify
+npm run audit:prod
+```
+
+GitHub Actions cũng chạy các kiểm tra này tự động trên mọi push/PR vào `main`.
+
 ## Dùng Codex trên nhiều máy
 
 Mỗi máy chỉ cần cài Codex, đăng nhập cùng tài khoản ChatGPT, sau đó clone repository và chạy `codex` ngay trong thư mục dự án:
@@ -93,23 +103,25 @@ Sau khi chạy một lần `sudo ./deploy/setup-ubuntu.sh` theo [hướng dẫn 
 ```bash
 # Trên máy phát triển
 git pull --ff-only
+npm ci
+npm run verify
 git add .
 git commit -m "mô tả thay đổi"
 git push origin main
 
-# Kiểm tra Git rồi triển khai commit mới qua SSH alias orace
+# Chờ CI xanh, sau đó kiểm tra Git và deploy qua SSH alias orace
 npm run deploy:vps
 ```
 
-Lệnh này dừng ngay nếu còn file chưa commit hoặc `HEAD` chưa trùng `origin/main`. Trên VPS, `deploy/deploy.sh` chỉ pull fast-forward, tạo release độc lập, cài sạch bằng `npm ci`, build, chạy thử API và trang chủ, rồi mới chuyển phiên bản và restart. Nếu health check thất bại sau restart, release trước được khôi phục tự động.
+Lệnh này dừng ngay nếu còn file chưa commit hoặc `HEAD` chưa trùng `origin/main`. Trên VPS, `deploy/deploy.sh` khóa chống chạy đồng thời, kiểm tra dung lượng, pull fast-forward đúng commit, tạo release độc lập, cài sạch bằng `npm ci` có retry, build và preflight trước khi chuyển phiên bản. Nếu restart/health thất bại, release trước được khôi phục và kiểm tra lại. Sau cùng máy phát triển kiểm tra public HTTPS thật.
 
 Kiến trúc production đã được chuẩn bị trong thư mục `deploy/`:
 
-- Express phục vụ cả frontend đã build và API trên `127.0.0.1:3001`; Nginx làm reverse proxy tại cổng 80.
-- `systemd` giữ Express luôn chạy, khởi động sau reboot và gửi log vào journal.
+- Express phục vụ cả frontend đã build và API trên `127.0.0.1:3001`; Nginx làm reverse proxy tại cổng 80/443.
+- `systemd` sandbox Express bằng filesystem chỉ đọc, bỏ capability, giữ tiến trình sau reboot và gửi log vào journal.
 - Mỗi release nằm riêng trong `.deploy/releases`; symlink `.deploy/current` giúp chuyển phiên bản nhanh và có điểm rollback.
 - Nginx đặt giới hạn upload lớn hơn giới hạn 25 MB của ứng dụng, ví dụ `client_max_body_size 30M`.
-- HTTPS được cấu hình ở Nginx sau khi có domain.
+- Domain/HTTPS có script riêng `deploy/configure-domain.sh`; Certbot quản lý redirect và gia hạn.
 - VS Code Remote SSH dùng để xem log, terminal và chẩn đoán; không dùng để sửa trực tiếp bản production nếu thay đổi chưa đi qua Git.
 
 ### Kết nối VPS bằng VS Code Remote SSH
@@ -146,6 +158,8 @@ src/styles.css    Hệ thống giao diện và responsive layout
 server.js         Express API xử lý ảnh/PDF
 vite.config.js    Vite và proxy /api sang Express
 deploy/           Script release, systemd, Nginx và hướng dẫn VPS
+scripts/          Smoke/E2E production dùng cho local và CI
+.github/workflows CI tự động trên push và pull request
 .env.example      Biến môi trường mẫu
 AGENTS.md         Hướng dẫn dành cho Codex
 ```
@@ -167,10 +181,15 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Cập nhật script setup để tự chèn rule TCP 80 trước rule `REJECT` và lưu bằng `netfilter-persistent`; cổng Express 3001 vẫn chỉ lắng nghe loopback.
 - Đã trỏ `congcuweb.duckdns.org` về VPS, cấu hình Nginx/Certbot và xác nhận website truy cập ổn định qua HTTPS. Deploy code hằng ngày không thay đổi cấu hình domain hoặc chứng chỉ.
 - Thêm `npm run deploy:vps`: chỉ triển khai khi working tree sạch và commit local trùng `origin/main`; SSH host mặc định là alias `orace` và không chứa IP/key trong code.
-- Kiểm thử deploy/runtime: `npm ci`, `npm run build`, `bash -n` cho hai script, kiểm tra guard khi Git bẩn; chạy production sau `npm prune --omit=dev`, xác nhận `/api/health`, trang SPA, cache header asset và graceful shutdown.
+- Tối ưu pipeline: thêm `npm run verify`, smoke/E2E production thật, audit production dependency và GitHub Actions CI trên Node.js 22.
+- Tăng an toàn deploy bằng khóa `flock`, kiểm tra dung lượng, đối chiếu chính xác `origin/main`, retry npm nhiều lớp, dọn release lỗi, xác nhận rollback và log lịch sử release.
+- Tăng hardening `systemd`, tối ưu Nginx/gzip, merge tuning mà không ghi đè domain/chứng chỉ Certbot khi chạy lại setup và thêm script cấu hình domain/HTTPS có backup/rollback.
+- `npm run deploy:vps` hiện kiểm tra thêm public HTTPS sau khi VPS healthy nội bộ.
+- Thêm footer nhận diện `Danh Phạm`; phiên bản semantic lấy từ `package.json`, còn mã bản dựng được gắn tự động theo từng commit và truyền chính xác vào mỗi release VPS.
+- Kiểm thử deploy/runtime: `npm ci`, `npm run verify`, syntax toàn bộ shell script, guard Git; production smoke xác nhận `/api/health`, trang SPA, cache header asset, graceful shutdown và API thật cho nén/cắt ảnh, nén/ghép/tách PDF.
 - `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
 - Bổ sung `.DS_Store` vào `.gitignore` để tránh đồng bộ tệp hệ thống macOS sang máy khác.
-- Trạng thái tại thời điểm ghi chú: release production đang chạy commit `c2b747da2a1d`; cải tiến firewall và ghi chú domain/HTTPS đang ở máy cục bộ, chưa commit và chưa push.
+- Trạng thái tại thời điểm ghi chú: release production đang chạy commit `0400c493e595`; bộ tối ưu CI/deploy/hạ tầng và quy trình AGENTS đang ở máy cục bộ, chưa commit và chưa push.
 
 ## Lưu ý về xóa phông AI
 
