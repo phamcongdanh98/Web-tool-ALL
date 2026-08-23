@@ -16,139 +16,105 @@
 
 Các mục PDF sang Word/Excel/PowerPoint, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao hiện đang hiển thị là “đang hoàn thiện”; không nên coi chúng là đã triển khai.
 
-## Chạy trên máy mới
+## Hướng dẫn nhanh
 
-### 1. Cài đặt yêu cầu
+### 1. Chạy website trên máy Mac
 
-- Node.js 20 LTS hoặc mới hơn.
-- Git.
-- Tài khoản GitHub có quyền với repository này nếu repository là private.
+Mở Terminal trong VS Code, đi vào thư mục dự án rồi khởi động:
 
-### 2. Clone và cài dependencies
+```bash
+cd "/Users/danhpham/Documents/ChatGPT/Tool Web All"
+npm run dev
+```
+
+Khi Terminal hiện hai dòng dưới đây và chưa trả lại dấu nhắc `%`, website đang chạy:
+
+```text
+Local: http://localhost:5175/
+ToolHub listening on http://127.0.0.1:3001
+```
+
+- Mở giao diện: [http://localhost:5175](http://localhost:5175).
+- Nhấn `Control + C` để dừng.
+- Giữ tab Terminal mở nếu muốn localhost tiếp tục chạy.
+
+Nếu thấy `EADDRINUSE` hoặc `Port 5175 is in use`, một dev server khác đang chạy. Không chạy thêm lần nữa; mở localhost hiện tại hoặc tìm PID bằng:
+
+```bash
+lsof -nP -iTCP:5175 -sTCP:LISTEN
+lsof -nP -iTCP:3001 -sTCP:LISTEN
+```
+
+### 2. Cài trên máy mới
+
+Cần Node.js 20+ và Git. Sau đó chạy một lần:
 
 ```bash
 git clone https://github.com/phamcongdanh98/Web-tool-ALL.git
 cd Web-tool-ALL
 npm ci
-```
-
-### 3. Cấu hình (tùy chọn)
-
-Ứng dụng chạy không cần MongoDB. Nếu muốn dùng database sau này, sao chép file mẫu và đặt chuỗi kết nối:
-
-```bash
-cp .env.example .env
-```
-
-Sửa `MONGODB_URI` trong `.env`. Không commit file `.env`.
-
-### 4. Chạy dự án
-
-```bash
 npm run dev
 ```
 
-Lệnh này chạy đồng thời:
+`npm ci` cài đúng dependency trong `package-lock.json`. Ứng dụng chạy được mà không cần database; `.env` chỉ cần khi cấu hình thêm dịch vụ bên ngoài và không được commit.
 
-- React/Vite client tại `http://localhost:5175`.
-- Express API tại `http://localhost:3001`.
+### 3. Đưa code mới lên domain
 
-Để tạo production build:
+Luồng chuẩn:
 
-```bash
-npm run build
+```text
+Sửa code → Kiểm tra → Commit → Push GitHub → CI xanh → Deploy VPS → Mở domain
 ```
 
-Trước khi commit hoặc deploy, chạy cổng chất lượng đầy đủ:
+Chạy lần lượt trong Terminal trên Mac:
 
 ```bash
-npm run verify
-npm run audit:prod
-```
-
-GitHub Actions cũng chạy các kiểm tra này tự động trên mọi push/PR vào `main`.
-
-## Dùng Codex trên nhiều máy
-
-Mỗi máy chỉ cần cài Codex, đăng nhập cùng tài khoản ChatGPT, sau đó clone repository và chạy `codex` ngay trong thư mục dự án:
-
-```bash
-cd Web-tool-ALL
-codex
-```
-
-Codex sẽ đọc `AGENTS.md` trong repository để hiểu cấu trúc, lệnh kiểm tra và các quy ước của dự án. Để đồng bộ giữa các máy:
-
-```bash
-# Trước khi bắt đầu trên máy mới
-git pull --ff-only
-npm ci
-
-# Sau khi hoàn thành thay đổi
-git add .
-git commit -m "mô tả thay đổi"
-git push
-```
-
-Tránh làm việc đồng thời trên cùng một nhánh ở nhiều máy. Khi cần làm song song, tạo nhánh riêng trên mỗi máy rồi mở pull request để gộp.
-
-Sau mỗi lần Codex thay đổi code, hãy xem mục **Nhật ký thay đổi gần đây** bên dưới và trạng thái Git được báo ở cuối công việc. Chỉ coi hai máy đã đồng bộ sau khi thay đổi được commit và push lên GitHub.
-
-## Quy trình triển khai VPS khuyến nghị
-
-GitHub là nguồn code chuẩn; VPS chỉ nhận và chạy commit đã push. Không sửa trực tiếp source production trên VPS.
-
-Sau khi chạy một lần `sudo ./deploy/setup-ubuntu.sh` theo [hướng dẫn production](deploy/README.md), luồng cập nhật hằng ngày chỉ còn:
-
-```bash
-# Trên máy phát triển
-git pull --ff-only
-npm ci
 npm run verify
 git add .
 git commit -m "mô tả thay đổi"
 git push origin main
-
-# Chờ CI xanh, sau đó kiểm tra Git và deploy qua SSH alias orace
 npm run deploy:vps
 ```
 
-Lệnh này dừng ngay nếu còn file chưa commit hoặc `HEAD` chưa trùng `origin/main`. Trên VPS, `deploy/deploy.sh` khóa chống chạy đồng thời, kiểm tra dung lượng, pull fast-forward đúng commit, tạo release độc lập, cài sạch bằng `npm ci` có retry, build và preflight trước khi chuyển phiên bản. Nếu restart/health thất bại, release trước được khôi phục và kiểm tra lại. Sau cùng máy phát triển kiểm tra public HTTPS thật.
+| Lệnh | Ý nghĩa |
+| --- | --- |
+| `npm run verify` | Build và thử production, ảnh, PDF trước khi phát hành. |
+| `git add .` | Chọn toàn bộ thay đổi cho commit. |
+| `git commit -m "..."` | Tạo phiên bản Git mới; footer tự nhận mã commit này. |
+| `git push origin main` | Đẩy phiên bản mới lên GitHub. |
+| `npm run deploy:vps` | Đưa đúng commit lên VPS, kiểm tra health và domain; lỗi thì rollback. |
 
-Kiến trúc production đã được chuẩn bị trong thư mục `deploy/`:
+Sau `git push`, nên chờ job **Verify Node 22** trong GitHub Actions màu xanh rồi mới deploy. Khi hoàn tất, mở [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org) và xem mã commit ở footer.
 
-- Express phục vụ cả frontend đã build và API trên `127.0.0.1:3001`; Nginx làm reverse proxy tại cổng 80/443.
-- `systemd` sandbox Express bằng filesystem chỉ đọc, bỏ capability, giữ tiến trình sau reboot và gửi log vào journal.
-- Mỗi release nằm riêng trong `.deploy/releases`; symlink `.deploy/current` giúp chuyển phiên bản nhanh và có điểm rollback.
-- Nginx đặt giới hạn upload lớn hơn giới hạn 25 MB của ứng dụng, ví dụ `client_max_body_size 30M`.
-- Domain/HTTPS có script riêng `deploy/configure-domain.sh`; Certbot quản lý redirect và gia hạn.
-- VS Code Remote SSH dùng để xem log, terminal và chẩn đoán; không dùng để sửa trực tiếp bản production nếu thay đổi chưa đi qua Git.
-
-### Kết nối VPS bằng VS Code Remote SSH
-
-Máy Mac đã có host SSH tên `orace` trong `~/.ssh/config`. Không đưa private key hoặc nội dung file cấu hình này vào repository.
-
-1. Trên trang quản trị VPS, cho phép inbound TCP cổng SSH từ IP mạng hiện tại của máy Mac. Cổng mặc định là `22`; nếu VPS dùng cổng khác thì cập nhật trường `Port` trong SSH config.
-2. Nếu VPS chưa chạy SSH, mở web console của nhà cung cấp và chạy `sudo systemctl enable --now ssh`. Có thể kiểm tra bằng `sudo ss -ltnp | grep ':22'`.
-3. Trên Mac, mở Terminal và chạy `ssh orace`. Chỉ tiếp tục với VS Code sau khi lệnh này đăng nhập thành công.
-4. Mở VS Code, nhấn `Shift + Command + P`, chọn **Remote-SSH: Connect to Host...**, rồi chọn `orace`.
-5. Lần đầu kết nối, kiểm tra fingerprint máy chủ trước khi chấp nhận và chọn nền tảng **Linux**. Chờ VS Code Server cài đặt hoàn tất.
-6. Trong cửa sổ VS Code mới, chọn **File → Open Folder...** và mở `/var/www/pdftools`.
-7. Mở **Terminal → New Terminal**. Terminal này chạy trên Ubuntu; kiểm tra bằng `whoami`, `pwd`, `git --version`, `node --version` và `npm --version`.
-8. Nếu repository chưa có trên VPS, chạy:
+Chỉ khi thay đổi file Nginx hoặc `systemd` mới chạy thêm một lần:
 
 ```bash
-sudo mkdir -p /var/www/pdftools
-sudo chown ubuntu:ubuntu /var/www/pdftools
-git clone https://github.com/phamcongdanh98/Web-tool-ALL.git /var/www/pdftools
-cd /var/www/pdftools
+ssh orace 'cd /var/www/pdftools && sudo ./deploy/setup-ubuntu.sh'
 ```
 
-Sau khi clone, làm phần cài lần đầu trong [`deploy/README.md`](deploy/README.md); script deploy sẽ tự cài dependency và build trong release riêng.
+Không chạy lệnh setup này cho các lần chỉ sửa giao diện hoặc chức năng.
 
-Nếu Terminal báo timeout trước khi hỏi xác nhận key, lỗi thuộc cổng SSH, firewall hoặc dịch vụ SSH trên VPS; chưa liên quan đến private key. Nếu báo `Permission denied (publickey)`, kiểm tra public key đã được thêm vào `~/.ssh/authorized_keys` của user `ubuntu` hay chưa.
+### 4. Làm việc trên hai máy
 
-Codex CLI chạy trực tiếp trên repository cục bộ, có thể đọc/sửa/chạy lệnh trong dự án. Bạn có thể cài và đăng nhập theo [hướng dẫn Codex chính thức](https://learn.chatgpt.com/docs/codex/cli).
+Trước khi bắt đầu trên máy vừa chuyển sang:
+
+```bash
+git status
+git pull --ff-only
+npm ci
+```
+
+Không sửa đồng thời trên cùng một nhánh ở hai máy. Chỉ coi hai máy đã đồng bộ sau khi commit được push lên GitHub.
+
+### 5. Kiểm tra VPS khi có lỗi
+
+```bash
+ssh orace 'systemctl status pdftools --no-pager'
+ssh orace 'journalctl -u pdftools -n 100 --no-pager'
+curl https://congcuweb.duckdns.org/api/health
+```
+
+Hướng dẫn cài VPS, domain, HTTPS và rollback chi tiết nằm trong [`deploy/README.md`](deploy/README.md).
 
 ## Cấu trúc chính
 
@@ -186,10 +152,11 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Tăng hardening `systemd`, tối ưu Nginx/gzip, merge tuning mà không ghi đè domain/chứng chỉ Certbot khi chạy lại setup và thêm script cấu hình domain/HTTPS có backup/rollback.
 - `npm run deploy:vps` hiện kiểm tra thêm public HTTPS sau khi VPS healthy nội bộ.
 - Thêm footer nhận diện `Danh Phạm`; phiên bản semantic lấy từ `package.json`, còn mã bản dựng được gắn tự động theo từng commit và truyền chính xác vào mỗi release VPS.
+- Viết lại hướng dẫn README theo luồng local → GitHub → VPS, giải thích ngắn gọn từng lệnh và bổ sung cách nhận biết dev server hoặc lỗi cổng bị chiếm.
 - Kiểm thử deploy/runtime: `npm ci`, `npm run verify`, syntax toàn bộ shell script, guard Git; production smoke xác nhận `/api/health`, trang SPA, cache header asset, graceful shutdown và API thật cho nén/cắt ảnh, nén/ghép/tách PDF.
 - `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
 - Bổ sung `.DS_Store` vào `.gitignore` để tránh đồng bộ tệp hệ thống macOS sang máy khác.
-- Trạng thái tại thời điểm ghi chú: release production đang chạy commit `0400c493e595`; bộ tối ưu CI/deploy/hạ tầng và quy trình AGENTS đang ở máy cục bộ, chưa commit và chưa push.
+- Trạng thái tại thời điểm ghi chú: release production đang chạy commit `591e56a4aa99`; phần viết lại hướng dẫn README đang ở máy cục bộ, chưa commit và chưa push.
 
 ## Lưu ý về xóa phông AI
 
