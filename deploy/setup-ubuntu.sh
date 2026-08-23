@@ -54,6 +54,8 @@ printf '4/6 Cài systemd, sudoers và Nginx config...\n'
 install -m 0644 "${APP_DIR}/deploy/pdftools.service" /etc/systemd/system/pdftools.service
 install -m 0440 "${APP_DIR}/deploy/pdftools-sudoers" /etc/sudoers.d/pdftools-deploy
 visudo -cf /etc/sudoers.d/pdftools-deploy
+install -d -m 0755 /etc/nginx/snippets
+install -m 0644 "${APP_DIR}/deploy/nginx-assets.conf" /etc/nginx/snippets/pdftools-assets.conf
 
 if [[ -f /etc/nginx/sites-available/pdftools ]]; then
   printf '%s\n' 'Giữ domain/chứng chỉ Certbot và chỉ bổ sung tuning Nginx còn thiếu.'
@@ -65,6 +67,25 @@ nginx_site='/etc/nginx/sites-available/pdftools'
 nginx_backup="${nginx_site}.before-setup-$(date -u +%Y%m%d%H%M%S)"
 cp -a "$nginx_site" "$nginx_backup"
 
+if ! grep -Fq 'include /etc/nginx/snippets/pdftools-assets.conf;' "$nginx_site"; then
+  nginx_site_next="$(mktemp)"
+  awk '
+    !inserted && $1 == "server_name" {
+      print
+      print "    include /etc/nginx/snippets/pdftools-assets.conf;"
+      inserted = 1
+      next
+    }
+    { print }
+    END { if (!inserted) exit 1 }
+  ' "$nginx_site" >"$nginx_site_next" || {
+    rm -f "$nginx_site_next"
+    fail 'Không tìm thấy server_name để chèn cấu hình asset Nginx.'
+  }
+  install -m 0644 "$nginx_site_next" "$nginx_site"
+  rm -f "$nginx_site_next"
+fi
+
 if ! grep -Fq 'client_body_timeout 300s;' "$nginx_site"; then
   sed -i '/client_max_body_size 30M;/a\    client_body_timeout 300s;' "$nginx_site"
 fi
@@ -74,6 +95,12 @@ if ! grep -Fq 'gzip on;' "$nginx_site"; then
 \    gzip_vary on;\
 \    gzip_min_length 1024;\
 \    gzip_types text/css application/javascript application/json application/wasm image/svg+xml;' "$nginx_site"
+fi
+if ! grep -Fq 'gzip_comp_level 5;' "$nginx_site"; then
+  sed -i '/gzip_min_length 1024;/a\    gzip_comp_level 5;' "$nginx_site"
+fi
+if ! grep -Fq 'gzip_proxied any;' "$nginx_site"; then
+  sed -i '/gzip_comp_level 5;/a\    gzip_proxied any;' "$nginx_site"
 fi
 if ! grep -Fq 'Permissions-Policy "camera=(), microphone=(), geolocation=()" always;' "$nginx_site"; then
   sed -i '/add_header Referrer-Policy/a\    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;' "$nginx_site"

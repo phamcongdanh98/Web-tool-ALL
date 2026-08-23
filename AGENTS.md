@@ -31,6 +31,8 @@ npm run status:vps
 - Chỉ tuyên bố một công cụ “hoạt động” sau khi đã kiểm thử đường đi thật: chọn tệp → xử lý → tải tệp kết quả.
 - Các công cụ PDF sang Office, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao chưa được triển khai; giữ nhãn “đang hoàn thiện” cho đến khi có backend đúng nghĩa.
 - Xóa phông dùng `@imgly/background-removal` ở phía client. Chỉ nhận JPG, PNG và WebP. Lần đầu chạy phải tải model AI; giữ hiển thị tiến độ cho người dùng.
+- Preview PDF dùng chiến lược hai lớp: thử viewer native trước, tự fallback sang PDF.js nếu viewer không phản hồi. PDF.js và worker được lazy-load/prewarm; không đổi lại sang tải đồng bộ trong bundle đầu trang.
+- `npm run build` phải tiếp tục sinh `.br`/`.gz` qua `scripts/precompress-assets.mjs`. Express phục vụ Brotli/Gzip theo `Accept-Encoding`; Nginx phục vụ `/assets/` trực tiếp bằng `deploy/nginx-assets.conf` và `gzip_static`. Smoke test phải giữ kiểm tra `Content-Encoding` cùng `Vary: Accept-Encoding`.
 - Không commit `.env`, `node_modules`, `dist` hoặc cấu hình IDE cục bộ.
 - Không bao giờ commit private key, nội dung `~/.ssh`, địa chỉ máy chủ riêng hoặc thông tin đăng nhập. Chỉ ghi hướng dẫn chung trong repository; cấu hình kết nối cụ thể phải nằm ngoài dự án trên từng máy.
 - Sau mỗi thay đổi code hoặc cấu hình runtime đáng kể, chạy `npm run verify`. Chỉ thay đổi tài liệu thuần túy mới có thể dùng kiểm tra hẹp hơn như `git diff --check`.
@@ -52,6 +54,7 @@ npm run status:vps
 - `deploy/setup-ubuntu.sh` chỉ mở public TCP 80 ở host firewall và lưu bằng `netfilter-persistent`; không mở trực tiếp cổng Express 3001. Firewall/Security List phía nhà cung cấp vẫn được cấu hình ngoài repository.
 - Sau khi commit và push `main`, deploy từ máy phát triển bằng `npm run deploy:vps`. Script phải giữ các guard Git, preflight, health check và rollback; nếu bước chuẩn bị lỗi thì không restart phiên bản đang chạy.
 - `deploy/setup-ubuntu.sh` dùng khi cài VPS lần đầu hoặc khi chủ động cập nhật hạ tầng. Script phải có tính lặp lại an toàn, giữ domain/chứng chỉ Certbot, chỉ merge tuning được quản lý sau khi backup và kiểm tra `nginx -t`. Deploy code hằng ngày không chạy setup hạ tầng.
+- Sau commit làm thay đổi `deploy/nginx-assets.conf`, `deploy/nginx.conf` hoặc logic merge Nginx, phải deploy code trước rồi chạy `sudo ./deploy/setup-ubuntu.sh` một lần trên VPS. Xác nhận asset trả `Content-Encoding: gzip`/`br`, cache immutable và public HTTPS trước khi tuyên bố tối ưu đã lên production.
 - Khi sửa shell script, tối thiểu chạy `npm run check:shell` và `git diff --check`. Các lệnh Linux-only như `apt-get`, `systemctl`, `nginx -t`, `iptables` phải được xác nhận trên Ubuntu trước khi tuyên bố VPS đã triển khai thành công.
 
 ## Git

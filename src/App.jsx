@@ -44,17 +44,42 @@ const formatBytes = (bytes = 0) => {
 }
 
 let pdfJsPromise
+let pdfWorkerUrl
+let pdfWarmPromise
 let pdfPageId = 0
 const thumbnailPdfCache = new Map()
 const loadPdfJs = async () => {
-  if (!pdfJsPromise) pdfJsPromise = Promise.all([
-    import('pdfjs-dist'),
-    import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
-  ]).then(([pdfjs, worker]) => {
-    pdfjs.GlobalWorkerOptions.workerSrc = worker.default
-    return pdfjs
-  })
+  if (!pdfJsPromise) {
+    pdfJsPromise = Promise.all([
+      import('pdfjs-dist'),
+      import('pdfjs-dist/build/pdf.worker.min.mjs?url'),
+    ]).then(([pdfjs, worker]) => {
+      pdfWorkerUrl = worker.default
+      pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
+      return pdfjs
+    }).catch(error => {
+      pdfJsPromise = null
+      throw error
+    })
+  }
   return pdfJsPromise
+}
+
+const warmPdfTools = () => {
+  if (!pdfWarmPromise) {
+    pdfWarmPromise = Promise.all([loadPdfJs(), import('pdf-lib')]).then(async ([pdfjs]) => {
+      if (pdfWorkerUrl) {
+        const response = await fetch(pdfWorkerUrl, { cache: 'force-cache' })
+        if (!response.ok) throw new Error(`Không tải được PDF worker (${response.status}).`)
+        await response.arrayBuffer()
+      }
+      return pdfjs
+    }).catch(error => {
+      pdfWarmPromise = null
+      throw error
+    })
+  }
+  return pdfWarmPromise
 }
 
 const loadThumbnailPdf = async url => {
@@ -201,7 +226,8 @@ const compressPdfToTarget = async (file, targetMb, reportProgress) => {
 
 function ToolCard({ tool, open }) {
   const isReady = tool.mode !== 'soon'
-  return <button className="tool-card" onClick={() => open(tool.mode)}>
+  const prepare = () => { if (tool.mode.startsWith('pdf-')) warmPdfTools().catch(() => null) }
+  return <button className="tool-card" onPointerEnter={prepare} onFocus={prepare} onTouchStart={prepare} onClick={() => { prepare(); open(tool.mode) }}>
     <span className={`tool-status ${isReady ? 'ready' : 'soon'}`}>{isReady ? 'Sẵn sàng' : 'Đang hoàn thiện'}</span>
     <span className={`tool-icon ${tool.color}`}>{tool.icon}</span>
     <strong>{tool.name}</strong>
@@ -226,14 +252,23 @@ function PdfCanvasPreview({ info }) {
   const canvasRef = useRef(null)
   const [pageNumber, setPageNumber] = useState(1)
   const [rendering, setRendering] = useState(true)
+  const [renderMode, setRenderMode] = useState('native')
   const [error, setError] = useState('')
+  const previewUrl = `${info.url}#page=${pageNumber}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`
 
   useEffect(() => { setPageNumber(1) }, [info.url])
   useEffect(() => {
+    setRendering(true)
+    setRenderMode('native')
+    setError('')
+    const fallbackTimer = setTimeout(() => setRenderMode(mode => mode === 'native' ? 'canvas' : mode), 1200)
+    return () => clearTimeout(fallbackTimer)
+  }, [previewUrl])
+  useEffect(() => {
+    if (renderMode !== 'canvas') return undefined
     let cancelled = false
     let loadingTask
     const renderPage = async () => {
-      setRendering(true); setError('')
       try {
         const pdfjs = await loadPdfJs()
         loadingTask = pdfjs.getDocument({ url: info.url })
@@ -248,16 +283,30 @@ function PdfCanvasPreview({ info }) {
         canvas.style.aspectRatio = `${viewport.width} / ${viewport.height}`
         const context = canvas.getContext('2d')
         await page.render({ canvasContext: context, viewport, transform: ratio === 1 ? null : [ratio, 0, 0, ratio, 0, 0] }).promise
-      } catch (renderError) {
-        if (!cancelled) setError('Không thể hiển thị trang PDF này trong preview.')
-      } finally { if (!cancelled) setRendering(false) }
+      } finally {
+        if (!cancelled) setRendering(false)
+      }
     }
-    renderPage()
+    renderPage().catch(() => {
+      if (!cancelled) {
+        setRendering(false)
+        setError('Không thể hiển thị trang PDF này trong preview.')
+      }
+    })
     return () => { cancelled = true; loadingTask?.destroy?.() }
-  }, [info.url, pageNumber])
+  }, [info.url, pageNumber, renderMode])
 
   return <div className="pdf-canvas-preview">
-    <div className="pdf-page-canvas">{rendering && <span>Đang dựng trang PDF…</span>}{error && <span>{error}</span>}<canvas ref={canvasRef} /></div>
+    <div className="pdf-page-canvas">
+      {rendering && <span>{renderMode === 'canvas' ? 'Đang dựng trang PDF…' : 'Đang mở bản xem trước…'}</span>}
+      {error && <span>{error}</span>}
+      <iframe className={renderMode === 'canvas' ? 'preview-hidden' : ''} key={previewUrl} src={previewUrl} title={`Xem trước trang ${pageNumber}`} onLoad={() => {
+        if (renderMode !== 'native') return
+        setRenderMode('viewer')
+        setRendering(false)
+      }} />
+      <canvas className={renderMode === 'canvas' ? '' : 'preview-hidden'} ref={canvasRef} />
+    </div>
     <div className="pdf-page-controls"><button type="button" disabled={pageNumber <= 1} onClick={() => setPageNumber(page => page - 1)}>←</button><b>Trang {pageNumber} / {info.pages}</b><button type="button" disabled={pageNumber >= info.pages} onClick={() => setPageNumber(page => page + 1)}>→</button></div>
   </div>
 }
@@ -694,6 +743,16 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [mail, setMail] = useState('')
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('pdftools-theme', dark ? 'dark' : 'light') }, [dark])
+  useEffect(() => {
+    if (navigator.connection?.saveData) return undefined
+    const warm = () => { warmPdfTools().catch(() => null) }
+    if ('requestIdleCallback' in globalThis) {
+      const idleId = globalThis.requestIdleCallback(warm, { timeout: 4000 })
+      return () => globalThis.cancelIdleCallback(idleId)
+    }
+    const timer = setTimeout(warm, 2500)
+    return () => clearTimeout(timer)
+  }, [])
   const count = useMemo(() => [...pdfTools, ...imageTools].filter(tool => tool.name.toLowerCase().includes(query.toLowerCase())).length, [query])
   const subscribe = async event => { event.preventDefault(); const email = new FormData(event.currentTarget).get('email'); await fetch('/api/newsletter', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) }).catch(() => null); setMail('Đăng ký thành công!') }
 

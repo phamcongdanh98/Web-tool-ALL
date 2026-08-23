@@ -5,6 +5,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SSH_HOST="${PDFTOOLS_SSH_HOST:-orace}"
 REMOTE_APP_DIR="${PDFTOOLS_APP_DIR:-/var/www/pdftools}"
 PUBLIC_HEALTH_URL="${PDFTOOLS_PUBLIC_HEALTH_URL:-https://congcuweb.duckdns.org/api/health}"
+PUBLIC_SITE_URL="${PDFTOOLS_PUBLIC_SITE_URL:-${PUBLIC_HEALTH_URL%/api/health}}"
 
 fail() {
   printf '❌ Không kiểm tra được trạng thái: %s\n' "$1" >&2
@@ -55,10 +56,23 @@ else
   reset=''
 fi
 
+asset_encoding=''
 if curl --fail --silent --show-error --max-time 15 "$PUBLIC_HEALTH_URL" >/dev/null; then
   website_state="${green}✅ Online${reset}"
+  public_html="$(curl --fail --silent --show-error --max-time 15 "${PUBLIC_SITE_URL}/" || true)"
+  public_asset="$(printf '%s' "$public_html" | sed -n 's/.*src="\([^"]*\/assets\/[^"]*\.js\)".*/\1/p' | sed -n '1p')"
+  if [[ -n "$public_asset" ]]; then
+    asset_headers="$(curl --fail --silent --show-error --head --max-time 15 -H 'Accept-Encoding: br, gzip' "${PUBLIC_SITE_URL}${public_asset}" || true)"
+    asset_encoding="$(printf '%s' "$asset_headers" | sed -n 's/^[Cc]ontent-[Ee]ncoding:[[:space:]]*\([^[:space:]]*\).*/\1/p' | sed -n '1p')"
+  fi
 else
   website_state="${red}❌ Không phản hồi${reset}"
+fi
+
+if [[ "$asset_encoding" == 'br' || "$asset_encoding" == 'gzip' ]]; then
+  asset_state="${green}✅ ${asset_encoding}${reset}"
+else
+  asset_state="${yellow}⚠️  Chưa nén${reset}"
 fi
 
 printf '\n%s🔎 TRẠNG THÁI PDFTOOLS%s\n\n' "$bold" "$reset"
@@ -67,6 +81,7 @@ printf '☁️  GitHub    Phiên bản %s · Bản dựng #%s      (%s)\n' "$app
 printf '🖥️  VPS repo  Phiên bản %s · Bản dựng #%s      (%s)\n' "$app_version" "$vps_build" "${vps_revision:0:7}"
 printf '🚀 Đang chạy Phiên bản %s · Bản dựng #%s      (%s)\n' "$app_version" "$running_build" "${running_revision:0:7}"
 printf '🌐 Website   %s\n\n' "$website_state"
+printf '📦 Asset web %s\n\n' "$asset_state"
 
 if [[ "$dirty" == 'true' ]]; then
   printf '%s⚠️  Mac có file chưa commit.%s\n' "$yellow" "$reset"
@@ -88,6 +103,8 @@ elif [[ "$local_revision" != "$github_revision" ]]; then
   printf '\n➡️  Hãy đồng bộ Mac với GitHub trước khi deploy.\n'
 elif [[ "$vps_revision" != "$github_revision" || "$running_revision" != "${github_revision:0:12}" ]]; then
   printf '\n➡️  Website cần cập nhật. Chạy: npm run deploy:vps\n'
+elif [[ -z "$asset_encoding" ]]; then
+  printf '\n⚡ Code đã đồng bộ nhưng asset public chưa được nén. Chạy setup Nginx một lần.\n'
 else
   printf '\n🎉 Mọi nơi đã đồng bộ, không cần làm gì thêm.\n'
 fi

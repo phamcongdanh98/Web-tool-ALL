@@ -175,11 +175,41 @@ app.post('/api/tools/pdf/split', upload.single('file'), async (req, res, next) =
 
 if (process.env.NODE_ENV === 'production') {
   const staticDirectory = path.resolve(process.env.STATIC_DIR || path.join(__dirname, 'dist'))
+  const assetsDirectory = path.join(staticDirectory, 'assets')
   const indexFile = path.join(staticDirectory, 'index.html')
 
   if (!existsSync(indexFile)) {
     throw new Error(`Không tìm thấy bản build production tại ${indexFile}. Hãy chạy npm run build trước.`)
   }
+
+  const assetContentTypes = new Map([
+    ['.css', 'text/css; charset=UTF-8'],
+    ['.js', 'text/javascript; charset=UTF-8'],
+    ['.json', 'application/json; charset=UTF-8'],
+    ['.mjs', 'text/javascript; charset=UTF-8'],
+    ['.svg', 'image/svg+xml'],
+    ['.wasm', 'application/wasm'],
+  ])
+
+  app.get('/assets/*', (req, res, next) => {
+    const relativePath = req.path.slice('/assets/'.length)
+    const originalPath = path.resolve(assetsDirectory, relativePath)
+    if (!originalPath.startsWith(`${assetsDirectory}${path.sep}`)) return next()
+
+    const acceptedEncoding = req.get('Accept-Encoding') || ''
+    const suffix = acceptedEncoding.includes('br') && existsSync(`${originalPath}.br`)
+      ? '.br'
+      : acceptedEncoding.includes('gzip') && existsSync(`${originalPath}.gz`) ? '.gz' : ''
+    if (!suffix) return next()
+
+    res.set({
+      'Cache-Control': 'public, max-age=31536000, immutable',
+      'Content-Encoding': suffix === '.br' ? 'br' : 'gzip',
+      'Content-Type': assetContentTypes.get(path.extname(originalPath)) || 'application/octet-stream',
+      Vary: 'Accept-Encoding',
+    })
+    res.sendFile(`${originalPath}${suffix}`, error => error ? next(error) : undefined)
+  })
 
   app.use(express.static(staticDirectory, {
     etag: true,

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Workflow"
+  short_description: "Tạo AGENTS.md theo đúng repository"
+  default_prompt: "Use $project-workflow to inspect this repository and create a tailored AGENTS.md."

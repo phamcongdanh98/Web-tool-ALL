@@ -15,7 +15,7 @@
 - Nén, đổi định dạng, đổi kích thước và cắt ảnh, với preview trước/sau và thống kê dung lượng thực tế.
 - Cắt ảnh bằng khung kéo-thả, di chuyển và thu phóng trực tiếp; hỗ trợ tỷ lệ tự do, 1:1, 4:3 và 16:9.
 - Xóa phông bằng AI chạy trong trình duyệt (JPG, PNG, WebP). Chế độ Nhanh dùng mô hình ~40 MB; Chất lượng cao dùng ~80 MB. Mô hình được tải và lưu cache khi dùng lần đầu.
-- Preview PDF bằng PDF.js, có điều hướng từng trang.
+- Preview PDF hai lớp: ưu tiên trình xem có sẵn của browser, tự chuyển sang PDF.js nếu browser không hỗ trợ; có điều hướng từng trang.
 - Nén PDF theo dung lượng MB thực tế, tự cân chỉnh nhiều lượt để kết quả nằm sát phía dưới mục tiêu; có chế độ bảo toàn văn bản riêng.
 - Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
@@ -94,7 +94,7 @@ Trước tiên, xem trạng thái đồng bộ bằng một lệnh:
 npm run status:vps
 ```
 
-Lệnh này chỉ đọc dữ liệu và hiển thị trực quan Mac, GitHub, VPS, release đang chạy cùng trạng thái website. Nếu VPS cũ hơn GitHub, lệnh sẽ nhắc chạy deploy.
+Lệnh này chỉ đọc dữ liệu và hiển thị trực quan Mac, GitHub, VPS, release đang chạy, trạng thái website cùng trạng thái nén asset Brotli/Gzip. Nếu VPS cũ hơn GitHub hoặc Nginx chưa nén asset, lệnh sẽ nhắc bước cần làm.
 
 Chạy lần lượt trong Terminal trên Mac:
 
@@ -125,6 +125,9 @@ ssh orace 'cd /var/www/pdftools && sudo ./deploy/setup-ubuntu.sh'
 ```
 
 Không chạy lệnh setup này cho các lần chỉ sửa giao diện hoặc chức năng.
+
+> [!WARNING]
+> Bản tối ưu tốc độ PDF ngày 2026-08-23 có thay đổi Nginx. Sau khi commit/push và chạy `npm run deploy:vps`, cần chạy lệnh setup ở trên **một lần** để Nginx phục vụ asset nén trực tiếp. Các lần deploy code sau đó không cần chạy lại setup.
 
 ### 🔄 4. Làm việc trên hai máy
 
@@ -178,6 +181,13 @@ AGENTS.md         Hướng dẫn dành cho Codex
 
 ### 2026-08-23
 
+- Khắc phục preview PDF tải rất lâu trên VPS: preview ưu tiên trình xem native và tự fallback sang PDF.js sau khoảng 1,2 giây nếu browser nhúng không hỗ trợ.
+- Tải nền PDF.js/PDF worker khi browser rảnh hoặc người dùng trỏ vào công cụ PDF, tránh bắt đầu tải thư viện nặng sau khi đã chọn tệp.
+- Production build tự sinh Brotli/Gzip cho asset; Express chọn đúng biến thể theo `Accept-Encoding`, còn Nginx phục vụ `/assets/` trực tiếp với cache immutable và `gzip_static`.
+- Kích thước truyền PDF worker giảm từ **1.262.398 B** xuống **347.417 B Brotli** hoặc **373.514 B Gzip**; module PDF.js giảm từ **479.344 B** xuống **132.692 B Brotli** hoặc **142.286 B Gzip**.
+- Smoke test nay bắt buộc kiểm tra `Content-Encoding: br` và `Vary: Accept-Encoding`; đã chạy `npm run verify`, kiểm thử upload PDF 2 trang/preview/chuyển trang trong browser và `npm run audit:prod` (0 lỗ hổng).
+- `npm run status:vps` hiển thị thêm dòng `Asset web` để nhận biết ngay production đã bật Brotli/Gzip hay chưa.
+- Không thêm dependency mới. Máy khác chỉ cần `git pull --ff-only`; VPS cần deploy code rồi chạy `sudo ./deploy/setup-ubuntu.sh` một lần vì Nginx thay đổi.
 - Thêm nén PDF theo dung lượng mục tiêu thực tế; thử nghiệm PDF 6,75 MB xuống 3,86 MB với mục tiêu 4 MB.
 - Thiết kế lại ghép và tách PDF bằng thumbnail trực quan; thứ tự, trang bị xóa và góc xoay được áp dụng thật vào kết quả backend.
 - Thêm preview PDF bằng PDF.js và cải thiện khu vực chọn tệp để hỗ trợ kéo-thả, chọn tệp và chèn thêm PDF.
@@ -202,7 +212,7 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Kiểm thử deploy/runtime: `npm ci`, `npm run verify`, syntax toàn bộ shell script, guard Git; production smoke xác nhận `/api/health`, trang SPA, cache header asset, graceful shutdown và API thật cho nén/cắt ảnh, nén/ghép/tách PDF.
 - `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
 - Bổ sung `.DS_Store` vào `.gitignore` để tránh đồng bộ tệp hệ thống macOS sang máy khác.
-- Trạng thái tại thời điểm ghi chú: production đang chạy **Phiên bản 1.0.0 · Bản dựng #9**; giao diện phiên bản thân thiện mới đang ở máy cục bộ, chưa commit, chưa push và chưa deploy.
+- Trạng thái tại thời điểm ghi chú: production đang chạy **Phiên bản 1.0.0 · Bản dựng #12** (`b03bd8951b0d`); tối ưu tốc độ PDF hiện chỉ ở máy cục bộ, **chưa commit, chưa push và chưa deploy**.
 
 ## 🤖 Lưu ý về xóa phông AI
 

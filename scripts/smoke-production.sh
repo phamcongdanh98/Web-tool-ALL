@@ -61,7 +61,10 @@ asset_path="$(sed -n 's/.*src="\([^"]*\/assets\/[^"]*\.js\)".*/\1/p' dist/index.
 asset_headers="$(curl --fail --silent --show-error --head --max-time 10 "${BASE_URL}${asset_path}")"
 printf '%s' "$asset_headers" | grep -qi '^cache-control:.*immutable' || fail 'Asset đã hash chưa có cache immutable.'
 printf '%s' "$asset_headers" | grep -qi '^x-powered-by:' && fail 'Express vẫn lộ header X-Powered-By.'
-asset_body="$(curl --fail --silent --show-error --max-time 20 "${BASE_URL}${asset_path}")"
+compressed_headers="$(curl --fail --silent --show-error --head --max-time 10 -H 'Accept-Encoding: br, gzip' "${BASE_URL}${asset_path}")"
+printf '%s' "$compressed_headers" | grep -qi '^content-encoding: br' || fail 'Production chưa phục vụ asset Brotli.'
+printf '%s' "$compressed_headers" | grep -qi '^vary:.*accept-encoding' || fail 'Asset nén chưa có Vary: Accept-Encoding.'
+asset_body="$(curl --compressed --fail --silent --show-error --max-time 20 "${BASE_URL}${asset_path}")"
 printf '%s' "$asset_body" | grep -Fq 'Danh Phạm' || fail 'Bản build chưa hiển thị tên tác giả Danh Phạm.'
 printf '%s' "$asset_body" | grep -Fq 'Phiên bản' || fail 'Bản build chưa hiển thị phiên bản thân thiện.'
 printf '%s' "$asset_body" | grep -Fq 'Bản dựng #' || fail 'Bản build chưa nhúng số bản dựng theo commit.'

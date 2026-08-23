@@ -30,7 +30,7 @@ cd /var/www/pdftools
 sudo ./deploy/setup-ubuntu.sh
 ```
 
-Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, tạo release đầu tiên và kiểm tra cả API lẫn trang chủ. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
+Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, cấu hình `/assets/` có cache lâu và Gzip build sẵn, tạo release đầu tiên rồi kiểm tra cả API lẫn trang chủ. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
 
 Các lệnh thủ công tương đương để chẩn đoán khi script tự động báo lỗi:
 
@@ -41,6 +41,8 @@ sudo install -m 0644 deploy/pdftools.service /etc/systemd/system/pdftools.servic
 sudo install -m 0440 deploy/pdftools-sudoers /etc/sudoers.d/pdftools-deploy
 sudo visudo -cf /etc/sudoers.d/pdftools-deploy
 
+sudo install -d -m 0755 /etc/nginx/snippets
+sudo install -m 0644 deploy/nginx-assets.conf /etc/nginx/snippets/pdftools-assets.conf
 sudo install -m 0644 deploy/nginx.conf /etc/nginx/sites-available/pdftools
 if [ -L /etc/nginx/sites-enabled/default ]; then sudo unlink /etc/nginx/sites-enabled/default; fi
 sudo ln -sfn /etc/nginx/sites-available/pdftools /etc/nginx/sites-enabled/pdftools
@@ -97,4 +99,12 @@ ssh orace 'tail -n 20 /var/www/pdftools/.deploy/deployments.log'
 
 Nginx chỉ proxy vào loopback nên Node không bị mở trực tiếp ra Internet. Khi đã có domain, cấu hình HTTPS ở Nginx và thay `server_name _` bằng domain thật.
 
-Production hiện dùng `congcuweb.duckdns.org` với HTTPS do Certbot quản lý. `npm run deploy:vps` không sửa Nginx hoặc chứng chỉ nên dùng cho mọi lần cập nhật code. Chỉ chạy lại `setup-ubuntu.sh` khi có commit thay đổi hạ tầng; script merge tuning có quản lý vào site hiện có nhưng vẫn cần kiểm tra `nginx -t`, service và public HTTPS sau đó.
+Production hiện dùng `congcuweb.duckdns.org` với HTTPS do Certbot quản lý. `npm run deploy:vps` không sửa Nginx hoặc chứng chỉ nên dùng cho mọi lần cập nhật code. Chỉ chạy lại `setup-ubuntu.sh` khi có commit thay đổi hạ tầng; script merge tuning có quản lý vào site hiện có nhưng vẫn cần kiểm tra `nginx -t`, service, header nén của `/assets/` và public HTTPS sau đó.
+
+Kiểm tra asset lớn đã được nén sau khi cập nhật hạ tầng:
+
+```bash
+curl -sSI -H 'Accept-Encoding: gzip' https://congcuweb.duckdns.org/assets/ten-asset.mjs
+```
+
+Kết quả đúng phải có `Content-Encoding: gzip`, `Vary: Accept-Encoding` và `Cache-Control` chứa `immutable`. Lấy tên asset thật từ `dist/assets/` của release đang chạy; không dùng nguyên chữ `ten-asset.mjs`.
