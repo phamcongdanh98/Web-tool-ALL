@@ -144,14 +144,13 @@ app.post('/api/tools/pdf/compress', upload.single('file'), async (req, res, next
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp PDF.' })
     const source = await PDFDocument.load(req.file.buffer, { ignoreEncryption: true, updateMetadata: false })
-    let output = source
-    if (req.body.level === 'strong') {
-      output = await PDFDocument.create()
-      const pages = await output.copyPages(source, source.getPageIndices())
-      pages.forEach(page => output.addPage(page))
-    }
-    const buffer = Buffer.from(await output.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 50 }))
-    download(res, buffer, safeName(req.file.originalname, req.body.level === 'strong' ? '-strong-optimized.pdf' : '-optimized.pdf'), 'application/pdf')
+    const optimized = Buffer.from(await source.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 50 }))
+    const buffer = optimized.length < req.file.buffer.length ? optimized : req.file.buffer
+    res.set({
+      'X-Compression-Mode': 'lossless',
+      'X-Compression-Saved-Bytes': String(req.file.buffer.length - buffer.length),
+    })
+    download(res, buffer, safeName(req.file.originalname, '-lossless.pdf'), 'application/pdf')
   } catch (error) { next(error) }
 })
 

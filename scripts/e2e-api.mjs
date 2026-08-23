@@ -96,9 +96,10 @@ assert.equal(mergedPdf.getPage(0).getRotation().angle, 90)
 
 const compressForm = new FormData()
 compressForm.append('file', new Blob([merged.body], { type: 'application/pdf' }), 'merged.pdf')
-compressForm.append('level', 'strong')
 const compressedPdf = await request('/api/tools/pdf/compress', compressForm)
 assert.equal((await PDFDocument.load(compressedPdf.body)).getPageCount(), 2)
+assert.ok(compressedPdf.body.length <= merged.body.length, 'Nén không mất dữ liệu không được làm tệp lớn hơn.')
+assert.equal(compressedPdf.response.headers.get('x-compression-mode'), 'lossless')
 
 const splitForm = new FormData()
 splitForm.append('file', new Blob([merged.body], { type: 'application/pdf' }), 'merged.pdf')
@@ -108,6 +109,15 @@ assert.match(split.response.headers.get('content-type') || '', /^application\/zi
 assert.equal(split.body.subarray(0, 2).toString('ascii'), 'PK', 'Kết quả tách PDF không phải ZIP hợp lệ.')
 
 const textPdf = await makeTextPdf()
+const preserveForm = new FormData()
+preserveForm.append('file', new Blob([textPdf], { type: 'application/pdf' }), 'selectable-text.pdf')
+const preservedPdf = await request('/api/tools/pdf/compress', preserveForm)
+assert.ok(preservedPdf.body.length <= textPdf.length, 'Tối ưu PDF chữ không được làm tệp lớn hơn.')
+const preservedTextForm = new FormData()
+preservedTextForm.append('file', new Blob([preservedPdf.body], { type: 'application/pdf' }), 'selectable-text-lossless.pdf')
+const preservedText = await request('/api/tools/pdf/to-text', preservedTextForm)
+assert.match(preservedText.body.toString('utf8'), /PDFTools editable office test/, 'Chế độ không mất dữ liệu phải giữ chữ có thể trích xuất.')
+
 const pdfEditForm = new FormData()
 pdfEditForm.append('file', new Blob([textPdf], { type: 'application/pdf' }), 'office.pdf')
 pdfEditForm.append('editType', 'text')

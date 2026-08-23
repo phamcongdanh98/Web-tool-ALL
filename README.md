@@ -16,7 +16,8 @@
 - Cắt ảnh bằng khung kéo-thả, di chuyển và thu phóng trực tiếp; hỗ trợ tỷ lệ tự do, 1:1, 4:3 và 16:9.
 - Xóa phông bằng AI chạy trong trình duyệt (JPG, PNG, WebP). Chế độ Nhanh dùng mô hình ~40 MB; Chất lượng cao dùng ~80 MB. Mô hình được tải và lưu cache khi dùng lần đầu.
 - Preview PDF hai lớp: ưu tiên trình xem có sẵn của browser, tự chuyển sang PDF.js nếu browser không hỗ trợ; có điều hướng từng trang.
-- Nén PDF theo dung lượng MB thực tế, tự cân chỉnh nhiều lượt để kết quả nằm sát phía dưới mục tiêu; có chế độ bảo toàn văn bản riêng.
+- Nén PDF theo dung lượng MB thực tế, tự cân chỉnh độ phân giải và chất lượng nhiều lượt để kết quả nằm sát phía dưới mục tiêu. Có hồ sơ **Tài liệu/chữ** và **Ảnh/màu**, hiển thị DPI thực tế sau nén.
+- Chế độ **Không mất dữ liệu** giữ chữ có thể chọn/copy, liên kết và biểu mẫu. Chế độ này chỉ tối ưu cấu trúc PDF nên tệp đã nén tốt có thể giảm 0% — khi đó giao diện giải thích rõ thay vì báo thành công chung chung.
 - Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
 - Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; hỗ trợ tự đánh số `Trang N / Tổng`.
@@ -187,6 +188,15 @@ AGENTS.md         Hướng dẫn dành cho Codex
 
 ### 2026-08-23
 
+- Chuẩn bị phiên bản **1.1.1**: viết lại nén PDF đặt dung lượng theo hướng ưu tiên độ phân giải, phân bổ dung lượng theo độ phức tạp từng trang và chỉ giảm DPI khi chất lượng mã hóa thấp nhất vẫn vượt mục tiêu.
+- Thêm hai hồ sơ nén **Tài liệu/chữ** và **Ảnh/màu**; kết quả hiện DPI, chất lượng JPEG và số trang PNG để người dùng đánh giá độ nét thay vì chỉ nhìn dung lượng.
+- Kiểm thử browser ở **2560×1440** với PDF tài liệu 4 trang: mục tiêu 1,5 MB cho kết quả 1,43 MB, **147 DPI**, JPEG 89% và giảm 58%. Thuật toán cũ trên cùng tình huống chỉ ước tính khoảng 96 DPI.
+- Đổi “Bảo toàn văn bản” thành **Không mất dữ liệu** và giải thích đúng giới hạn: giữ chữ/link/form nhưng có thể giảm 0%. Backend luôn chọn tệp nhỏ hơn giữa bản tối ưu và bản gốc, nên chế độ này không làm tăng dung lượng.
+- Bổ sung E2E kiểm tra bản không mất dữ liệu không lớn hơn tệp gốc và vẫn trích xuất được chữ sau xử lý.
+- Chuẩn hóa typography cho màn hình 27 inch 2K: dùng font hệ thống sắc nét trên macOS/Windows, bỏ tải Google Fonts, tăng cỡ chữ điều hướng, thẻ công cụ, modal, nút, chú thích và footer lên mức đọc được; modal công cụ rộng tối đa 1280 px.
+- Đã chạy `npm run verify`, production smoke/E2E, kiểm tra browser ở 2560×1440 và 390×844; `npm run audit:prod` báo **0 lỗ hổng**.
+- Không thêm dependency. Máy khác chỉ cần `git pull --ff-only`; chưa cần chạy lại `npm ci` nếu đang ở dependency của 1.1.0.
+- Phiên bản 1.1.1 hiện là thay đổi cục bộ: **chưa commit, chưa push và chưa deploy**.
 - Phát hành mốc code **1.1.0**: hoàn thiện chỉnh ảnh, thêm chữ/watermark/đánh số PDF và chuyển PDF sang Word, Excel, PowerPoint, TXT.
 - Bổ sung preview chữ trước khi chuyển Office, preview kết quả theo loại tệp, metadata số trang/ký tự và thông báo riêng cho PDF scan cần OCR.
 - Loại bỏ form nhận email giả chỉ báo thành công nhưng không lưu dữ liệu; footer nay liên kết tới GitHub để theo dõi phiên bản thật.
@@ -195,7 +205,7 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Chuẩn hóa runtime thành Node.js 22.12+ để đồng nhất dependency Excel, GitHub Actions và VPS; VPS hiện tại dùng Node 22 nên không cần cài lại.
 - Mở rộng E2E qua đường API thật: chỉnh ảnh, chỉnh PDF, kiểm tra nội dung bên trong DOCX/XLSX/PPTX/TXT và lỗi 422 cho PDF không có chữ. DOCX/XLSX/PPTX cũng đã được kiểm tra ZIP; LibreOffice mở/chuyển được cả ba định dạng.
 - Đã chạy production smoke/E2E, build, kiểm tra desktop/mobile bằng browser và `npm audit --omit=dev` (**0 lỗ hổng**).
-- Phiên bản 1.1.0 hiện là thay đổi cục bộ: **chưa commit, chưa push và chưa deploy**. Trước khi phát hành, chạy `npm run verify`, commit/push, chờ CI rồi `npm run deploy:vps`.
+- Phiên bản 1.1.0 đã được commit và đồng bộ lên `origin/main` tại commit `2f92abc`; bản 1.1.1 ở trên chưa được phát hành.
 - Khắc phục preview PDF tải rất lâu trên VPS: preview ưu tiên trình xem native và tự fallback sang PDF.js sau khoảng 1,2 giây nếu browser nhúng không hỗ trợ.
 - Tải nền PDF.js/PDF worker khi browser rảnh hoặc người dùng trỏ vào công cụ PDF, tránh bắt đầu tải thư viện nặng sau khi đã chọn tệp.
 - Production build tự sinh Brotli/Gzip cho asset; Express chọn đúng biến thể theo `Accept-Encoding`, còn Nginx phục vụ `/assets/` trực tiếp với cache immutable và `gzip_static`.

@@ -140,13 +140,24 @@ const canvasToJpeg = (canvas, quality) => new Promise((resolve, reject) => {
   canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Không thể mã hóa trang PDF thành ảnh.')), 'image/jpeg', quality)
 })
 
-const encodeCanvasNearBudget = async (canvas, budget) => {
-  const minimumQuality = 0.2
-  const maximumQuality = 0.94
+const canvasToPng = canvas => new Promise((resolve, reject) => {
+  canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Không thể mã hóa trang PDF thành ảnh PNG.')), 'image/png')
+})
+
+const compressionPreset = profile => profile === 'photo'
+  ? { bytesPerPixel: 0.31, minimumQuality: 0.5, maximumQuality: 0.94, minimumScale: 0.9, maximumScale: 3.5 }
+  : { bytesPerPixel: 0.18, minimumQuality: 0.34, maximumQuality: 0.9, minimumScale: 1.15, maximumScale: 4 }
+
+const encodeCanvasNearBudget = async (canvas, budget, preset, allowPng) => {
+  const { minimumQuality, maximumQuality } = preset
+  if (allowPng) {
+    const png = await canvasToPng(canvas)
+    if (png.size <= budget) return { blob: png, quality: 1, format: 'png' }
+  }
   const minimum = await canvasToJpeg(canvas, minimumQuality)
-  if (minimum.size > budget) return { blob: minimum, quality: minimumQuality }
+  if (minimum.size > budget) return { blob: minimum, quality: minimumQuality, format: 'jpeg' }
   const maximum = await canvasToJpeg(canvas, maximumQuality)
-  if (maximum.size <= budget) return { blob: maximum, quality: maximumQuality }
+  if (maximum.size <= budget) return { blob: maximum, quality: maximumQuality, format: 'jpeg' }
 
   let best = minimum
   let bestQuality = minimumQuality
@@ -161,17 +172,18 @@ const encodeCanvasNearBudget = async (canvas, budget) => {
       low = quality
     } else high = quality
   }
-  return { blob: best, quality: bestQuality }
+  return { blob: best, quality: bestQuality, format: 'jpeg' }
 }
 
-const renderPageNearBudget = async (page, budget) => {
+const renderPageNearBudget = async (page, budget, profile, hasSelectableText) => {
   const base = page.getViewport({ scale: 1 })
   const basePixels = Math.max(1, base.width * base.height)
-  const maximumScale = Math.min(3.25, 3600 / Math.max(base.width, base.height))
-  let scale = clamp(Math.sqrt(budget / (basePixels * 0.42)), 0.45, maximumScale)
+  const preset = compressionPreset(profile)
+  const maximumScale = Math.min(preset.maximumScale, 4200 / Math.max(base.width, base.height), Math.sqrt(10_000_000 / basePixels))
+  let scale = clamp(Math.sqrt(budget / (basePixels * preset.bytesPerPixel)), preset.minimumScale, maximumScale)
   let chosen
 
-  for (let resolutionAttempt = 0; resolutionAttempt < 3; resolutionAttempt++) {
+  for (let resolutionAttempt = 0; resolutionAttempt < 4; resolutionAttempt++) {
     const viewport = page.getViewport({ scale })
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(1, Math.floor(viewport.width))
@@ -179,22 +191,26 @@ const renderPageNearBudget = async (page, budget) => {
     const context = canvas.getContext('2d', { alpha: false })
     context.fillStyle = '#fff'
     context.fillRect(0, 0, canvas.width, canvas.height)
+    context.imageSmoothingEnabled = true
+    context.imageSmoothingQuality = 'high'
     await page.render({ canvasContext: context, viewport, background: '#fff' }).promise
-    chosen = await encodeCanvasNearBudget(canvas, budget)
+    chosen = await encodeCanvasNearBudget(canvas, budget, preset, profile === 'document' && hasSelectableText)
     canvas.width = 1
     canvas.height = 1
 
-    const isTooLarge = chosen.blob.size > budget * 1.01 && scale > 0.46
-    const hasRoomForMoreDetail = chosen.blob.size < budget * 0.84 && chosen.quality >= 0.93 && scale < maximumScale * 0.99
+    const isTooLarge = chosen.blob.size > budget * 1.01 && scale > preset.minimumScale * 0.72
+    const isHighestEncodingQuality = chosen.format === 'png' || chosen.quality >= preset.maximumQuality - 0.01
+    const hasRoomForMoreDetail = chosen.blob.size < budget * 0.88 && isHighestEncodingQuality && scale < maximumScale * 0.99
     if (!isTooLarge && !hasRoomForMoreDetail) break
     const correction = Math.sqrt(budget / Math.max(chosen.blob.size, 1))
-    scale = clamp(scale * correction * (isTooLarge ? 0.94 : 0.97), 0.45, maximumScale)
+    const nextScale = scale * correction * (isTooLarge ? 0.96 : 0.98)
+    scale = clamp(nextScale, preset.minimumScale * 0.7, maximumScale)
   }
 
-  return { ...chosen, width: base.width, height: base.height, scale }
+  return { ...chosen, width: base.width, height: base.height, scale, dpi: Math.round(scale * 72) }
 }
 
-const compressPdfToTarget = async (file, targetMb, reportProgress) => {
+const compressPdfToTarget = async (file, targetMb, profile, reportProgress) => {
   const targetBytes = Math.floor(Number(targetMb) * 1024 * 1024)
   if (!Number.isFinite(targetBytes) || targetBytes <= 0) throw new Error('Dung lượng mục tiêu không hợp lệ.')
   if (targetBytes >= file.size) throw new Error('Mục tiêu phải nhỏ hơn dung lượng tệp gốc.')
@@ -215,9 +231,9 @@ const compressPdfToTarget = async (file, targetMb, reportProgress) => {
   for (let pageNumber = 1; pageNumber <= source.numPages; pageNumber++) {
     const page = await source.getPage(pageNumber)
     const viewport = page.getViewport({ scale: 1 })
-    pageFacts.push({ page, area: viewport.width * viewport.height })
+    const textContent = await page.getTextContent({ disableNormalization: true }).catch(() => ({ items: [] }))
+    pageFacts.push({ page, weight: viewport.width * viewport.height, hasSelectableText: textContent.items.some(item => item.str?.trim()) })
   }
-  const totalArea = pageFacts.reduce((sum, fact) => sum + fact.area, 0)
   const pdfOverhead = 18 * 1024 + source.numPages * 1800
   let budgetScale = 1
   let closestUnderTarget = null
@@ -225,21 +241,27 @@ const compressPdfToTarget = async (file, targetMb, reportProgress) => {
   try {
     for (let pass = 1; pass <= 4; pass++) {
       const imageBudget = Math.max(source.numPages * 10 * 1024, idealBytes * budgetScale - pdfOverhead)
+      const totalWeight = pageFacts.reduce((sum, fact) => sum + fact.weight, 0)
       const output = await PDFDocument.create()
+      const pageDetails = []
       for (let index = 0; index < pageFacts.length; index++) {
         reportProgress(`Lượt tối ưu ${pass}/4 · đang xử lý trang ${index + 1}/${source.numPages}…`)
         const fact = pageFacts[index]
-        const pageBudget = Math.max(10 * 1024, imageBudget * fact.area / totalArea)
-        const encoded = await renderPageNearBudget(fact.page, pageBudget)
-        const jpg = await output.embedJpg(await encoded.blob.arrayBuffer())
+        const pageBudget = Math.max(10 * 1024, imageBudget * fact.weight / totalWeight)
+        const encoded = await renderPageNearBudget(fact.page, pageBudget, profile, fact.hasSelectableText)
+        const embeddedImage = encoded.format === 'png'
+          ? await output.embedPng(await encoded.blob.arrayBuffer())
+          : await output.embedJpg(await encoded.blob.arrayBuffer())
         const outputPage = output.addPage([encoded.width, encoded.height])
-        outputPage.drawImage(jpg, { x: 0, y: 0, width: encoded.width, height: encoded.height })
+        outputPage.drawImage(embeddedImage, { x: 0, y: 0, width: encoded.width, height: encoded.height })
+        pageDetails.push({ bytes: encoded.blob.size, dpi: encoded.dpi, quality: encoded.quality, format: encoded.format })
       }
       const bytes = await output.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 30 })
-      if (bytes.length <= targetBytes && (!closestUnderTarget || bytes.length > closestUnderTarget.length)) closestUnderTarget = bytes
+      if (bytes.length <= targetBytes && (!closestUnderTarget || bytes.length > closestUnderTarget.bytes.length)) closestUnderTarget = { bytes, pageDetails }
       const targetGap = Math.abs(bytes.length - idealBytes) / idealBytes
       if (bytes.length <= targetBytes && targetGap <= 0.035) break
 
+      pageFacts.forEach((fact, index) => { fact.weight = Math.max(12 * 1024, pageDetails[index].bytes) })
       const reference = bytes.length > targetBytes ? targetBytes * 0.985 : idealBytes
       budgetScale = clamp(budgetScale * reference / Math.max(bytes.length, 1) * 0.99, 0.22, 2.8)
     }
@@ -249,7 +271,18 @@ const compressPdfToTarget = async (file, targetMb, reportProgress) => {
   }
 
   if (!closestUnderTarget) throw new Error('Không thể đạt mức dung lượng này mà vẫn giữ trang có thể đọc. Hãy tăng mục tiêu một chút.')
-  return new Blob([closestUnderTarget], { type: 'application/pdf' })
+  const dpis = closestUnderTarget.pageDetails.map(detail => detail.dpi)
+  const qualities = closestUnderTarget.pageDetails.filter(detail => detail.format === 'jpeg').map(detail => detail.quality)
+  return {
+    blob: new Blob([closestUnderTarget.bytes], { type: 'application/pdf' }),
+    compression: {
+      profile,
+      minimumDpi: Math.min(...dpis),
+      maximumDpi: Math.max(...dpis),
+      averageQuality: qualities.length ? Math.round(qualities.reduce((sum, quality) => sum + quality, 0) / qualities.length * 100) : 100,
+      losslessPages: closestUnderTarget.pageDetails.filter(detail => detail.format === 'png').length,
+    },
+  }
 }
 
 function ToolCard({ tool, open }) {
@@ -571,6 +604,7 @@ function ToolModal({ mode, close }) {
   const [flop, setFlop] = useState(false)
   const [grayscale, setGrayscale] = useState(false)
   const [pdfCompression, setPdfCompression] = useState('target')
+  const [pdfContentProfile, setPdfContentProfile] = useState('document')
   const [targetMb, setTargetMb] = useState('4')
   const [pdfEditType, setPdfEditType] = useState('text')
   const [pdfEditText, setPdfEditText] = useState('Danh Phạm')
@@ -705,7 +739,9 @@ function ToolModal({ mode, close }) {
         catch (gpuError) { if (!globalThis.navigator?.gpu) throw gpuError; setMessage('GPU không khả dụng, đang chuyển sang CPU…'); blob = await run('cpu') }
         name = `${files[0].name.replace(/\.[^/.]+$/, '')}-no-background.png`
       } else if (mode === 'pdf-compress' && pdfCompression === 'target') {
-        blob = await compressPdfToTarget(files[0], targetMb, setMessage)
+        const compressed = await compressPdfToTarget(files[0], targetMb, pdfContentProfile, setMessage)
+        blob = compressed.blob
+        outputMetadata = { compression: compressed.compression }
         name = `${files[0].name.replace(/\.[^/.]+$/, '')}-under-${String(targetMb).replace('.', '-')}-mb.pdf`
       } else {
         const form = new FormData()
@@ -738,6 +774,8 @@ function ToolModal({ mode, close }) {
         outputMetadata = {
           pages: Number(response.headers.get('x-extracted-pages')) || undefined,
           characters: Number(response.headers.get('x-extracted-characters')) || undefined,
+          savedBytes: Number(response.headers.get('x-compression-saved-bytes')) || 0,
+          compressionMode: response.headers.get('x-compression-mode') || undefined,
         }
       }
       const output = await analyze(blob, name)
@@ -745,7 +783,13 @@ function ToolModal({ mode, close }) {
       if (mode === 'pdf-compress' && pdfCompression === 'target') {
         const targetBytes = Number(targetMb) * 1024 * 1024
         const proximity = Math.max(0, (targetBytes - blob.size) / targetBytes * 100)
-        setMessage(`Xử lý hoàn tất — tệp thấp hơn mục tiêu ${proximity.toFixed(1)}%. Hãy xem preview trước khi tải.`)
+        const { minimumDpi, maximumDpi } = outputMetadata.compression
+        const dpiLabel = minimumDpi === maximumDpi ? `${minimumDpi} DPI` : `${minimumDpi}–${maximumDpi} DPI`
+        setMessage(`Xử lý hoàn tất — thấp hơn mục tiêu ${proximity.toFixed(1)}%, độ nét ${dpiLabel}. Hãy xem preview trước khi tải.`)
+      } else if (mode === 'pdf-compress' && pdfCompression === 'preserve') {
+        setMessage(outputMetadata.savedBytes > 0
+          ? `Tối ưu không mất dữ liệu hoàn tất — giữ nguyên chữ, liên kết và biểu mẫu; giảm ${formatBytes(outputMetadata.savedBytes)}.`
+          : 'Tối ưu không mất dữ liệu hoàn tất — PDF gốc đã có cấu trúc tốt nên không thể giảm thêm mà vẫn giữ nguyên chữ, liên kết và biểu mẫu. Muốn giảm rõ rệt, hãy chọn “Đạt dung lượng mục tiêu”.')
       } else if (isPdfOffice) setMessage(`Chuyển đổi hoàn tất — đã trích xuất ${Number(outputMetadata.characters || 0).toLocaleString('vi-VN')} ký tự từ ${outputMetadata.pages || 0} trang.`)
       else setMessage('Xử lý hoàn tất — hãy xem preview và tải xuống khi đã hài lòng.')
     } catch (error) { setMessage(error.message || 'Không thể xử lý tệp này. Hãy thử lại.') }
@@ -807,12 +851,15 @@ function ToolModal({ mode, close }) {
             {isPdfOffice && <div className="control-note office-note"><b>Chuyển đổi văn bản có thể chỉnh sửa</b><span>{mode === 'pdf-to-word' ? 'Mỗi dòng thành đoạn Word; giữ ngắt trang.' : mode === 'pdf-to-excel' ? 'Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.' : mode === 'pdf-to-powerpoint' ? 'Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.' : 'Xuất văn bản UTF-8, phân tách rõ từng trang.'}</span><em>{pdfTextPreview ? `Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString('vi-VN')} ký tự.` : 'Chưa tìm thấy chữ có thể chọn trong phần xem trước.'}</em></div>}
 
             {mode === 'pdf-compress' && <>
-              <div className="control-group"><span>Kiểu nén</span><div className="option-cards"><button type="button" className={pdfCompression === 'target' ? 'active' : ''} onClick={() => setPdfCompression('target')}><b>Đạt dung lượng mục tiêu</b><small>Nén ảnh từng trang, tự điều chỉnh để bám sát số MB</small></button><button type="button" className={pdfCompression === 'preserve' ? 'active' : ''} onClick={() => setPdfCompression('preserve')}><b>Bảo toàn văn bản</b><small>Giữ nội dung có thể chọn, nhưng không cam kết số MB</small></button></div></div>
-              {pdfCompression === 'target' ? <div className="control-group target-size-control">
-                <label>Dung lượng tối đa<input type="number" min="0.1" max={files[0] ? Math.max(0.1, files[0].size / 1024 / 1024 - 0.01).toFixed(2) : undefined} step="0.1" value={targetMb} onChange={event => setTargetMb(event.target.value)} /></label><b>MB</b>
-                <div className="target-summary"><span>Mục tiêu tối ưu</span><strong>{Number(targetMb) > 0 ? `${(Number(targetMb) * 0.95).toFixed(2)}–${(Number(targetMb) * 0.99).toFixed(2)} MB` : '—'}</strong><small>{targetRatio > 0 ? `Khoảng ${targetRatio}% tệp gốc · luôn ưu tiên không vượt ${targetMb || 0} MB` : 'Nhập dung lượng cần đạt'}</small></div>
-                <p>Chế độ này làm phẳng mỗi trang thành ảnh JPEG: hình thức được giữ, nhưng văn bản, liên kết và biểu mẫu sẽ không còn chỉnh sửa hoặc chọn được.</p>
-              </div> : <div className="control-note"><b>Bảo toàn nội dung</b><span>Tối ưu cấu trúc PDF mà không biến trang thành ảnh. Kết quả phụ thuộc dữ liệu gốc và có thể giảm ít nếu ảnh/font đã được nén.</span></div>}
+              <div className="control-group"><span>Kiểu nén</span><div className="option-cards"><button type="button" className={pdfCompression === 'target' ? 'active' : ''} onClick={() => setPdfCompression('target')}><b>Đạt dung lượng mục tiêu</b><small>Nén từng trang, tự cân bằng độ nét để bám sát số MB</small></button><button type="button" className={pdfCompression === 'preserve' ? 'active' : ''} onClick={() => setPdfCompression('preserve')}><b>Không mất dữ liệu</b><small>Giữ chữ, liên kết và biểu mẫu; có thể giảm 0%</small></button></div></div>
+              {pdfCompression === 'target' ? <>
+                <div className="control-group"><span>Nội dung PDF</span><div className="option-cards"><button type="button" className={pdfContentProfile === 'document' ? 'active' : ''} onClick={() => setPdfContentProfile('document')}><b>Tài liệu / chữ</b><small>Ưu tiên DPI cao để chữ nhỏ và nét mảnh rõ hơn</small></button><button type="button" className={pdfContentProfile === 'photo' ? 'active' : ''} onClick={() => setPdfContentProfile('photo')}><b>Ảnh / màu sắc</b><small>Ưu tiên chuyển sắc và giảm vỡ màu ở ảnh chụp</small></button></div></div>
+                <div className="control-group target-size-control">
+                  <label>Dung lượng tối đa<input type="number" min="0.1" max={files[0] ? Math.max(0.1, files[0].size / 1024 / 1024 - 0.01).toFixed(2) : undefined} step="0.1" value={targetMb} onChange={event => setTargetMb(event.target.value)} /></label><b>MB</b>
+                  <div className="target-summary"><span>Mục tiêu tối ưu</span><strong>{Number(targetMb) > 0 ? `${(Number(targetMb) * 0.95).toFixed(2)}–${(Number(targetMb) * 0.99).toFixed(2)} MB` : '—'}</strong><small>{targetRatio > 0 ? `Khoảng ${targetRatio}% tệp gốc · luôn ưu tiên không vượt ${targetMb || 0} MB` : 'Nhập dung lượng cần đạt'}</small></div>
+                  <p>Chế độ này làm phẳng mỗi trang thành ảnh PNG/JPEG: hình thức được giữ, nhưng chữ, liên kết và biểu mẫu sẽ không còn chọn hoặc chỉnh sửa được.</p>
+                </div>
+              </> : <div className="control-note"><b>Tối ưu không mất dữ liệu là gì?</b><span>Không biến trang thành ảnh: chữ vẫn chọn/copy được, liên kết và biểu mẫu được giữ nguyên. Chế độ này chỉ tối ưu cấu trúc PDF, nên tệp đã nén tốt có thể giảm 0% — đây không phải lỗi.</span></div>}
             </>}
 
           </div>
@@ -820,13 +867,13 @@ function ToolModal({ mode, close }) {
         </>}
       </>}
 
-      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : 'Tạo bản xem trước kết quả  →'}</button>
+      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : mode === 'pdf-compress' && pdfCompression === 'preserve' ? 'Tối ưu không mất dữ liệu  →' : 'Tạo bản xem trước kết quả  →'}</button>
       {message && <p className={`result ${message.includes('hoàn tất') ? 'success' : ''}`}>{message}</p>}
 
       {result && <div className="result-workspace">
         <div className="result-heading"><div><span>KẾT QUẢ</span><h3>{result.name}</h3></div><a className="primary download-result" href={result.url} download={result.name}>Tải xuống <b>↓</b></a></div>
         <div className="result-comparison"><MediaPreview info={fileInfo[0]} title="Trước xử lý" /><MediaPreview info={result} title="Sau xử lý" checkerboard={mode === 'remove-background'} /></div>
-        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(files[0]?.size)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}</div>
+        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(files[0]?.size)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}</div>
       </div>}
     </form>
   </div>
