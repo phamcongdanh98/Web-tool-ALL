@@ -28,6 +28,17 @@ npm run build
 - Xóa phông dùng `@imgly/background-removal` ở phía client. Chỉ nhận JPG, PNG và WebP. Lần đầu chạy phải tải model AI; giữ hiển thị tiến độ cho người dùng.
 - Không commit `.env`, `node_modules`, `dist` hoặc cấu hình IDE cục bộ.
 - Sau mỗi thay đổi UI/API đáng kể, chạy `npm run build`.
+- Sau mỗi công việc làm thay đổi code, cấu hình hoặc dependency, cập nhật mục **Nhật ký thay đổi gần đây** trong `README.md`. Ghi ngắn gọn ngày, nội dung đã làm, kiểm thử đã chạy và lưu ý cần thiết khi mở dự án trên máy khác.
+
+## Đồng bộ khi dùng hai máy
+
+- Luôn chạy `git status` trước khi bắt đầu để tránh ghi đè thay đổi chưa commit từ máy khác.
+- Trước khi sửa code, chạy `git pull --ff-only`. Nếu pull bị chặn vì thay đổi cục bộ, dừng lại và báo rõ; không tự xóa hoặc reset thay đổi.
+- Nếu `package.json` hoặc lockfile thay đổi, ghi rõ trong `README.md` và nhắc chạy `npm ci` trên máy còn lại.
+- Kết thúc mỗi công việc phải nói rõ trạng thái: **chưa commit**, **đã commit nhưng chưa push**, hoặc **đã push**, kèm commit hash khi có.
+- Không được nói hai máy đã đồng bộ nếu commit mới nhất chưa được push lên remote.
+- Khi chuyển sang máy còn lại: pull trước, chạy `npm ci` nếu dependency thay đổi, rồi chạy lại build hoặc kiểm thử liên quan.
+- Không làm đồng thời trên cùng nhánh ở hai máy. Nếu cần làm song song, dùng nhánh riêng có tiền tố `codex/` và gộp qua pull request.
 
 ## Git
 
@@ -35,3 +46,4 @@ npm run build
 - Trước khi bắt đầu: `git pull --ff-only`.
 - Kiểm tra thay đổi bằng `git status` trước khi commit.
 - Dùng commit message ngắn, mô tả được thay đổi, ví dụ: `fix: repair PDF split output`.
+- Chỉ commit hoặc push khi người dùng yêu cầu; nếu chưa được yêu cầu, giữ thay đổi cục bộ và báo rõ để tránh hiểu nhầm trên máy còn lại.

@@ -8,8 +8,9 @@
 - Cắt ảnh bằng khung kéo-thả, di chuyển và thu phóng trực tiếp; hỗ trợ tỷ lệ tự do, 1:1, 4:3 và 16:9.
 - Xóa phông bằng AI chạy trong trình duyệt (JPG, PNG, WebP). Chế độ Nhanh dùng mô hình ~40 MB; Chất lượng cao dùng ~80 MB. Mô hình được tải và lưu cache khi dùng lần đầu.
 - Preview PDF bằng PDF.js, có điều hướng từng trang.
-- Nén PDF với hai mức tối ưu, mục tiêu dung lượng tham khảo và so sánh dung lượng thực tế trước/sau.
-- Ghép PDF có sắp xếp thứ tự tệp bằng kéo-thả; tách PDF hỗ trợ cú pháp chọn trang như `1-3, 5, 8-10`.
+- Nén PDF theo dung lượng MB thực tế, tự cân chỉnh nhiều lượt để kết quả nằm sát phía dưới mục tiêu; có chế độ bảo toàn văn bản riêng.
+- Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
+- Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
 - Dark mode, tìm kiếm công cụ và giao diện responsive.
 
 Các mục PDF sang Word/Excel/PowerPoint, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao hiện đang hiển thị là “đang hoàn thiện”; không nên coi chúng là đã triển khai.
@@ -48,7 +49,7 @@ npm run dev
 
 Lệnh này chạy đồng thời:
 
-- React/Vite client (thường tại `http://localhost:5173`).
+- React/Vite client tại `http://localhost:5175`.
 - Express API tại `http://localhost:3001`.
 
 Để tạo production build:
@@ -81,6 +82,8 @@ git push
 
 Tránh làm việc đồng thời trên cùng một nhánh ở nhiều máy. Khi cần làm song song, tạo nhánh riêng trên mỗi máy rồi mở pull request để gộp.
 
+Sau mỗi lần Codex thay đổi code, hãy xem mục **Nhật ký thay đổi gần đây** bên dưới và trạng thái Git được báo ở cuối công việc. Chỉ coi hai máy đã đồng bộ sau khi thay đổi được commit và push lên GitHub.
+
 Codex CLI chạy trực tiếp trên repository cục bộ, có thể đọc/sửa/chạy lệnh trong dự án. Bạn có thể cài và đăng nhập theo [hướng dẫn Codex chính thức](https://learn.chatgpt.com/docs/codex/cli).
 
 ## Cấu trúc chính
@@ -93,6 +96,17 @@ vite.config.js    Vite và proxy /api sang Express
 .env.example      Biến môi trường mẫu
 AGENTS.md         Hướng dẫn dành cho Codex
 ```
+
+## Nhật ký thay đổi gần đây
+
+### 2026-08-23
+
+- Thêm nén PDF theo dung lượng mục tiêu thực tế; thử nghiệm PDF 6,75 MB xuống 3,86 MB với mục tiêu 4 MB.
+- Thiết kế lại ghép và tách PDF bằng thumbnail trực quan; thứ tự, trang bị xóa và góc xoay được áp dụng thật vào kết quả backend.
+- Thêm preview PDF bằng PDF.js và cải thiện khu vực chọn tệp để hỗ trợ kéo-thả, chọn tệp và chèn thêm PDF.
+- Kiểm thử: `npm run build`; ghép 4 trang có đổi thứ tự và xoay; tách trang 1 và 3 thành ZIP; kiểm tra preview và liên kết tải kết quả.
+- Dependency mới: `pdfjs-dist`. Khi cập nhật trên máy còn lại, cần chạy `git pull --ff-only` rồi `npm ci`.
+- Trạng thái tại thời điểm ghi chú: thay đổi đang ở máy cục bộ, chưa commit và chưa push.
 
 ## Lưu ý về xóa phông AI
 
