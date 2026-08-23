@@ -4,9 +4,12 @@
 
 ## Tính năng đang hoạt động
 
-- Nén, đổi định dạng, đổi kích thước và cắt ảnh.
+- Nén, đổi định dạng, đổi kích thước và cắt ảnh, với preview trước/sau và thống kê dung lượng thực tế.
+- Cắt ảnh bằng khung kéo-thả, di chuyển và thu phóng trực tiếp; hỗ trợ tỷ lệ tự do, 1:1, 4:3 và 16:9.
 - Xóa phông bằng AI chạy trong trình duyệt (JPG, PNG, WebP). Chế độ Nhanh dùng mô hình ~40 MB; Chất lượng cao dùng ~80 MB. Mô hình được tải và lưu cache khi dùng lần đầu.
-- Nén PDF, ghép PDF và tách từng trang PDF thành ZIP.
+- Preview PDF bằng PDF.js, có điều hướng từng trang.
+- Nén PDF với hai mức tối ưu, mục tiêu dung lượng tham khảo và so sánh dung lượng thực tế trước/sau.
+- Ghép PDF có sắp xếp thứ tự tệp bằng kéo-thả; tách PDF hỗ trợ cú pháp chọn trang như `1-3, 5, 8-10`.
 - Dark mode, tìm kiếm công cụ và giao diện responsive.
 
 Các mục PDF sang Word/Excel/PowerPoint, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao hiện đang hiển thị là “đang hoàn thiện”; không nên coi chúng là đã triển khai.
