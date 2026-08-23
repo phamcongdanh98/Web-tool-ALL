@@ -1,0 +1,2 @@
+# Cho phép user triển khai chỉ được restart đúng dịch vụ PDFTools mà không cần nhập mật khẩu.
+ubuntu ALL=(root) NOPASSWD: /usr/bin/systemctl restart pdftools

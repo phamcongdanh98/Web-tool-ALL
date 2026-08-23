@@ -3,12 +3,17 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "concurrently -k -n API,WEB -c yellow,cyan \"npm:server\" \"npm:client\"",
     "client": "vite",
     "server": "node server.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server.js",
+    "deploy:vps": "bash deploy/remote.sh"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",

@@ -1,11 +1,13 @@
 # Dependencies and generated builds
 node_modules/
-dist/
+dist
+.deploy/
 
 # Local environment and editor settings
 .env
 .env.local
 .vscode/
+.DS_Store
 
 # Logs
 *.log

@@ -5,12 +5,18 @@ import multer from 'multer'
 import sharp from 'sharp'
 import { degrees, PDFDocument } from 'pdf-lib'
 import { createRequire } from 'module'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
 const { ZipArchive } = require('archiver')
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 dotenv.config()
 const app = express()
+app.disable('x-powered-by')
 app.use(cors())
 app.use(express.json())
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } })
@@ -167,10 +173,45 @@ app.post('/api/tools/pdf/split', upload.single('file'), async (req, res, next) =
   } catch (error) { next(error) }
 })
 
+if (process.env.NODE_ENV === 'production') {
+  const staticDirectory = path.resolve(process.env.STATIC_DIR || path.join(__dirname, 'dist'))
+  const indexFile = path.join(staticDirectory, 'index.html')
+
+  if (!existsSync(indexFile)) {
+    throw new Error(`Không tìm thấy bản build production tại ${indexFile}. Hãy chạy npm run build trước.`)
+  }
+
+  app.use(express.static(staticDirectory, {
+    etag: true,
+    setHeaders: (res, filePath) => {
+      const isVersionedAsset = filePath.includes(`${path.sep}assets${path.sep}`)
+      res.setHeader('Cache-Control', isVersionedAsset
+        ? 'public, max-age=31536000, immutable'
+        : 'no-cache')
+    },
+  }))
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next()
+    res.setHeader('Cache-Control', 'no-cache')
+    res.sendFile(indexFile, error => error ? next(error) : undefined)
+  })
+}
+
 app.use((error, _req, res, _next) => {
   console.error(error)
   res.status(500).json({ message: 'Không thể xử lý tệp này. Hãy kiểm tra lại định dạng hoặc thử tệp nhỏ hơn.' })
 })
 
 const port = process.env.PORT || 3001
-app.listen(port, () => console.log(`ToolHub API listening on ${port}`))
+const host = process.env.HOST || '127.0.0.1'
+const server = app.listen(port, host, () => console.log(`ToolHub listening on http://${host}:${port}`))
+
+const shutdown = signal => {
+  console.log(`${signal} received, closing ToolHub gracefully.`)
+  server.close(error => process.exit(error ? 1 : 0))
+  setTimeout(() => process.exit(1), 10_000).unref()
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+process.on('SIGINT', () => shutdown('SIGINT'))
