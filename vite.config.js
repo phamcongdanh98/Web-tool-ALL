@@ -13,14 +13,17 @@ const runGit = args => {
 }
 
 const explicitRevision = process.env.PDFTOOLS_BUILD_REVISION?.trim()
+const explicitBuildNumber = process.env.PDFTOOLS_BUILD_NUMBER?.trim()
 const revision = (explicitRevision || runGit(['rev-parse', '--short=12', 'HEAD']) || 'local').slice(0, 12)
 const dirtySuffix = !explicitRevision && runGit(['status', '--porcelain']) ? '-dev' : ''
+const buildNumber = explicitBuildNumber || runGit(['rev-list', '--count', 'HEAD']) || 'local'
 
 export default defineConfig({
   plugins: [react()],
   define: {
-    'import.meta.env.VITE_APP_VERSION': JSON.stringify(`v${packageInfo.version}`),
-    'import.meta.env.VITE_APP_REVISION': JSON.stringify(`${revision}${dirtySuffix}`),
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(packageInfo.version),
+    'import.meta.env.VITE_APP_BUILD_NUMBER': JSON.stringify(`${buildNumber}${dirtySuffix}`),
+    'import.meta.env.VITE_APP_REVISION': JSON.stringify(revision),
   },
   server: {
     port: 5175,

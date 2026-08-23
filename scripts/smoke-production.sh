@@ -63,7 +63,8 @@ printf '%s' "$asset_headers" | grep -qi '^cache-control:.*immutable' || fail 'As
 printf '%s' "$asset_headers" | grep -qi '^x-powered-by:' && fail 'Express vẫn lộ header X-Powered-By.'
 asset_body="$(curl --fail --silent --show-error --max-time 20 "${BASE_URL}${asset_path}")"
 printf '%s' "$asset_body" | grep -Fq 'Danh Phạm' || fail 'Bản build chưa hiển thị tên tác giả Danh Phạm.'
-printf '%s' "$asset_body" | grep -Fq 'Mã bản dựng tự đổi theo từng commit' || fail 'Bản build chưa nhúng thông tin phiên bản commit.'
+printf '%s' "$asset_body" | grep -Fq 'Phiên bản' || fail 'Bản build chưa hiển thị phiên bản thân thiện.'
+printf '%s' "$asset_body" | grep -Fq 'Bản dựng #' || fail 'Bản build chưa nhúng số bản dựng theo commit.'
 
 BASE_URL="$BASE_URL" node scripts/e2e-api.mjs
 

@@ -48,6 +48,7 @@ git merge --ff-only "origin/${BRANCH}"
   || fail 'HEAD trên VPS chưa trùng commit đã push lên GitHub.'
 
 revision="$(git rev-parse --short=12 HEAD)"
+build_number="$(git rev-list --count HEAD)"
 release_name="$(date -u +%Y%m%d%H%M%S)-${revision}"
 release_dir="${RELEASES_DIR}/${release_name}"
 release_switched='false'
@@ -93,7 +94,7 @@ done
 [[ "$install_ok" == 'true' ]] || fail 'npm ci thất bại sau ba lần; release hiện tại vẫn được giữ nguyên.'
 
 printf '4/7 Build production và bỏ dependency chỉ dùng khi phát triển...\n'
-PDFTOOLS_BUILD_REVISION="$revision" "$NPM_BIN" run build
+PDFTOOLS_BUILD_REVISION="$revision" PDFTOOLS_BUILD_NUMBER="$build_number" "$NPM_BIN" run build
 "$NPM_BIN" prune --omit=dev --no-audit --no-fund
 
 printf '5/7 Preflight release trước khi chuyển phiên bản...\n'

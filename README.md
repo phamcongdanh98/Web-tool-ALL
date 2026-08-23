@@ -2,7 +2,15 @@
 
 Ứng dụng web xử lý PDF và ảnh, xây dựng bằng React, Vite, Node.js và Express.
 
-## Tính năng đang hoạt động
+![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=111827)
+![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?style=flat-square&logo=node.js&logoColor=white)
+![Production](https://img.shields.io/badge/Production-Online-16A34A?style=flat-square&logo=nginx&logoColor=white)
+
+> [!TIP]
+> **Local:** [http://localhost:5175](http://localhost:5175) · **Website:** [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org)
+
+## ✨ Tính năng đang hoạt động
 
 - Nén, đổi định dạng, đổi kích thước và cắt ảnh, với preview trước/sau và thống kê dung lượng thực tế.
 - Cắt ảnh bằng khung kéo-thả, di chuyển và thu phóng trực tiếp; hỗ trợ tỷ lệ tự do, 1:1, 4:3 và 16:9.
@@ -12,13 +20,13 @@
 - Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
 - Dark mode, tìm kiếm công cụ và giao diện responsive.
-- Footer hiển thị người phát triển `Danh Phạm`, phiên bản ứng dụng và mã bản dựng tự đổi theo từng Git commit.
+- Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.0.0 · Bản dựng #11`; số bản dựng tự tăng theo Git commit.
 
 Các mục PDF sang Word/Excel/PowerPoint, chỉnh sửa nội dung PDF và chỉnh sửa ảnh nâng cao hiện đang hiển thị là “đang hoàn thiện”; không nên coi chúng là đã triển khai.
 
-## Hướng dẫn nhanh
+## 🚀 Hướng dẫn nhanh
 
-### 1. Chạy website trên máy Mac
+### 💻 1. Chạy website trên máy Mac
 
 Mở Terminal trong VS Code, đi vào thư mục dự án rồi khởi động:
 
@@ -27,6 +35,11 @@ cd "/Users/danhpham/Documents/ChatGPT/Tool Web All"
 npm run dev
 ```
 
+| Lệnh | Giải thích |
+| --- | --- |
+| `cd ".../Tool Web All"` | Đi vào đúng thư mục dự án trên Mac. Dấu ngoặc kép cần thiết vì đường dẫn có khoảng trắng. |
+| `npm run dev` | Khởi động đồng thời giao diện Vite và Express API. |
+
 Khi Terminal hiện hai dòng dưới đây và chưa trả lại dấu nhắc `%`, website đang chạy:
 
 ```text
@@ -34,9 +47,8 @@ Local: http://localhost:5175/
 ToolHub listening on http://127.0.0.1:3001
 ```
 
-- Mở giao diện: [http://localhost:5175](http://localhost:5175).
-- Nhấn `Control + C` để dừng.
-- Giữ tab Terminal mở nếu muốn localhost tiếp tục chạy.
+> [!IMPORTANT]
+> Mở [http://localhost:5175](http://localhost:5175), giữ tab Terminal hoạt động và nhấn `Control + C` khi muốn dừng.
 
 Nếu thấy `EADDRINUSE` hoặc `Port 5175 is in use`, một dev server khác đang chạy. Không chạy thêm lần nữa; mở localhost hiện tại hoặc tìm PID bằng:
 
@@ -45,7 +57,9 @@ lsof -nP -iTCP:5175 -sTCP:LISTEN
 lsof -nP -iTCP:3001 -sTCP:LISTEN
 ```
 
-### 2. Cài trên máy mới
+Hai lệnh `lsof` chỉ kiểm tra tiến trình nào đang dùng cổng giao diện `5175` và API `3001`; chúng không dừng hoặc thay đổi tiến trình.
+
+### 🧰 2. Cài trên máy mới
 
 Cần Node.js 20+ và Git. Sau đó chạy một lần:
 
@@ -56,9 +70,17 @@ npm ci
 npm run dev
 ```
 
-`npm ci` cài đúng dependency trong `package-lock.json`. Ứng dụng chạy được mà không cần database; `.env` chỉ cần khi cấu hình thêm dịch vụ bên ngoài và không được commit.
+| Lệnh | Giải thích |
+| --- | --- |
+| `git clone ...` | Tải repository từ GitHub về máy. |
+| `cd Web-tool-ALL` | Đi vào thư mục vừa clone. |
+| `npm ci` | Cài đúng phiên bản dependency trong `package-lock.json`. |
+| `npm run dev` | Chạy website local. |
 
-### 3. Đưa code mới lên domain
+> [!NOTE]
+> Ứng dụng chạy được mà không cần database. `.env` chỉ cần khi cấu hình dịch vụ bên ngoài và tuyệt đối không được commit.
+
+### 🌐 3. Đưa code mới lên domain
 
 Luồng chuẩn:
 
@@ -76,15 +98,16 @@ git push origin main
 npm run deploy:vps
 ```
 
-| Lệnh | Ý nghĩa |
-| --- | --- |
-| `npm run verify` | Build và thử production, ảnh, PDF trước khi phát hành. |
-| `git add .` | Chọn toàn bộ thay đổi cho commit. |
-| `git commit -m "..."` | Tạo phiên bản Git mới; footer tự nhận mã commit này. |
-| `git push origin main` | Đẩy phiên bản mới lên GitHub. |
-| `npm run deploy:vps` | Đưa đúng commit lên VPS, kiểm tra health và domain; lỗi thì rollback. |
+| Bước | Lệnh | Giải thích |
+| --- | --- | --- |
+| 🧪 Kiểm tra | `npm run verify` | Build và thử production, ảnh, PDF trước khi phát hành. |
+| 📦 Chuẩn bị | `git add .` | Đưa toàn bộ file đã sửa vào commit sắp tạo. |
+| 🏷️ Tạo phiên bản | `git commit -m "..."` | Tạo commit mới; footer tự tăng số **Bản dựng**. |
+| ☁️ Đồng bộ | `git push origin main` | Đẩy commit từ Mac lên nhánh `main` của GitHub. |
+| 🚀 Phát hành | `npm run deploy:vps` | Đưa đúng commit lên VPS, kiểm tra domain và rollback nếu lỗi. |
 
-Sau `git push`, nên chờ job **Verify Node 22** trong GitHub Actions màu xanh rồi mới deploy. Khi hoàn tất, mở [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org) và xem mã commit ở footer.
+> [!IMPORTANT]
+> Sau `git push`, chờ job **Verify Node 22** trong GitHub Actions chuyển màu xanh rồi mới chạy deploy. Khi hoàn tất, mở website và đối chiếu số **Bản dựng** ở footer.
 
 Chỉ khi thay đổi file Nginx hoặc `systemd` mới chạy thêm một lần:
 
@@ -94,7 +117,7 @@ ssh orace 'cd /var/www/pdftools && sudo ./deploy/setup-ubuntu.sh'
 
 Không chạy lệnh setup này cho các lần chỉ sửa giao diện hoặc chức năng.
 
-### 4. Làm việc trên hai máy
+### 🔄 4. Làm việc trên hai máy
 
 Trước khi bắt đầu trên máy vừa chuyển sang:
 
@@ -106,7 +129,13 @@ npm ci
 
 Không sửa đồng thời trên cùng một nhánh ở hai máy. Chỉ coi hai máy đã đồng bộ sau khi commit được push lên GitHub.
 
-### 5. Kiểm tra VPS khi có lỗi
+| Lệnh | Giải thích |
+| --- | --- |
+| `git status` | Xem máy hiện tại có file chưa commit hay không. |
+| `git pull --ff-only` | Nhận commit mới nhất từ GitHub mà không tự tạo merge commit. |
+| `npm ci` | Đồng bộ dependency theo lockfile mới nhất. |
+
+### 🩺 5. Kiểm tra VPS khi có lỗi
 
 ```bash
 ssh orace 'systemctl status pdftools --no-pager'
@@ -114,9 +143,15 @@ ssh orace 'journalctl -u pdftools -n 100 --no-pager'
 curl https://congcuweb.duckdns.org/api/health
 ```
 
+| Lệnh | Giải thích |
+| --- | --- |
+| `systemctl status` | Xem dịch vụ PDFTools đang chạy hay đã lỗi. |
+| `journalctl` | Xem 100 dòng log gần nhất để tìm nguyên nhân. |
+| `curl .../api/health` | Kiểm tra website public có trả trạng thái khỏe hay không. |
+
 Hướng dẫn cài VPS, domain, HTTPS và rollback chi tiết nằm trong [`deploy/README.md`](deploy/README.md).
 
-## Cấu trúc chính
+## 🗂️ Cấu trúc chính
 
 ```text
 src/App.jsx       Giao diện React và luồng xử lý tệp
@@ -130,7 +165,7 @@ scripts/          Smoke/E2E production dùng cho local và CI
 AGENTS.md         Hướng dẫn dành cho Codex
 ```
 
-## Nhật ký thay đổi gần đây
+## 📝 Nhật ký thay đổi gần đây
 
 ### 2026-08-23
 
@@ -151,13 +186,14 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Tăng an toàn deploy bằng khóa `flock`, kiểm tra dung lượng, đối chiếu chính xác `origin/main`, retry npm nhiều lớp, dọn release lỗi, xác nhận rollback và log lịch sử release.
 - Tăng hardening `systemd`, tối ưu Nginx/gzip, merge tuning mà không ghi đè domain/chứng chỉ Certbot khi chạy lại setup và thêm script cấu hình domain/HTTPS có backup/rollback.
 - `npm run deploy:vps` hiện kiểm tra thêm public HTTPS sau khi VPS healthy nội bộ.
-- Thêm footer nhận diện `Danh Phạm`; phiên bản semantic lấy từ `package.json`, còn mã bản dựng được gắn tự động theo từng commit và truyền chính xác vào mỗi release VPS.
+- Thêm footer nhận diện `Danh Phạm`; phiên bản semantic lấy từ `package.json`, số bản dựng dễ đọc tự tăng theo tổng số commit, còn mã Git kỹ thuật chỉ hiện trong tooltip.
+- Làm README trực quan hơn bằng badge màu, icon, callout và bảng giải thích ngắn gọn cho từng câu lệnh.
 - Viết lại hướng dẫn README theo luồng local → GitHub → VPS, giải thích ngắn gọn từng lệnh và bổ sung cách nhận biết dev server hoặc lỗi cổng bị chiếm.
 - Kiểm thử deploy/runtime: `npm ci`, `npm run verify`, syntax toàn bộ shell script, guard Git; production smoke xác nhận `/api/health`, trang SPA, cache header asset, graceful shutdown và API thật cho nén/cắt ảnh, nén/ghép/tách PDF.
 - `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
 - Bổ sung `.DS_Store` vào `.gitignore` để tránh đồng bộ tệp hệ thống macOS sang máy khác.
-- Trạng thái tại thời điểm ghi chú: release production đang chạy commit `591e56a4aa99`; phần viết lại hướng dẫn README đang ở máy cục bộ, chưa commit và chưa push.
+- Trạng thái tại thời điểm ghi chú: production đang chạy **Phiên bản 1.0.0 · Bản dựng #9**; giao diện phiên bản thân thiện mới đang ở máy cục bộ, chưa commit, chưa push và chưa deploy.
 
-## Lưu ý về xóa phông AI
+## 🤖 Lưu ý về xóa phông AI
 
 Ảnh được xử lý local trong browser, không gửi tệp lên Express API. Lần đầu người dùng phải có Internet để tải mô hình AI; sau đó browser cache model. Thư viện `@imgly/background-removal` có giấy phép AGPL, nên cần xem xét yêu cầu giấy phép trước khi phát hành sản phẩm thương mại.
