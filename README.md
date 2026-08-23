@@ -163,11 +163,14 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Hoàn thiện production runtime: Express phục vụ `dist`, cache asset có hash, SPA fallback không cache, lắng nghe loopback và đóng tiến trình an toàn khi nhận SIGTERM/SIGINT.
 - Thêm hệ thống deploy trong `deploy/`: release độc lập, preflight trước restart, health check, rollback tự động, giữ ba release gần nhất, cấu hình `systemd`, Nginx và quyền restart giới hạn.
 - Thêm `deploy/setup-ubuntu.sh` để cài production lần đầu trên Ubuntu bằng một lệnh, bao gồm dependency hệ thống, Node.js khi cần, cấu hình dịch vụ và release đầu tiên.
+- Đã triển khai thành công release `c2b747da2a1d` trên Ubuntu: health API và `systemd` hoạt động, Nginx trả HTTP 200 và website truy cập được từ mạng công cộng sau khi cho phép TCP 80 ở cả host `iptables` lẫn firewall của nhà cung cấp.
+- Cập nhật script setup để tự chèn rule TCP 80 trước rule `REJECT` và lưu bằng `netfilter-persistent`; cổng Express 3001 vẫn chỉ lắng nghe loopback.
+- Đã trỏ `congcuweb.duckdns.org` về VPS, cấu hình Nginx/Certbot và xác nhận website truy cập ổn định qua HTTPS. Deploy code hằng ngày không thay đổi cấu hình domain hoặc chứng chỉ.
 - Thêm `npm run deploy:vps`: chỉ triển khai khi working tree sạch và commit local trùng `origin/main`; SSH host mặc định là alias `orace` và không chứa IP/key trong code.
 - Kiểm thử deploy/runtime: `npm ci`, `npm run build`, `bash -n` cho hai script, kiểm tra guard khi Git bẩn; chạy production sau `npm prune --omit=dev`, xác nhận `/api/health`, trang SPA, cache header asset và graceful shutdown.
 - `package.json` yêu cầu Node.js 20+, có script `start` và `deploy:vps`; `package-lock.json` đã đồng bộ. Máy còn lại cần pull rồi chạy `npm ci`.
 - Bổ sung `.DS_Store` vào `.gitignore` để tránh đồng bộ tệp hệ thống macOS sang máy khác.
-- Trạng thái tại thời điểm ghi chú: thay đổi đang ở máy cục bộ, chưa commit và chưa push.
+- Trạng thái tại thời điểm ghi chú: release production đang chạy commit `c2b747da2a1d`; cải tiến firewall và ghi chú domain/HTTPS đang ở máy cục bộ, chưa commit và chưa push.
 
 ## Lưu ý về xóa phông AI
 

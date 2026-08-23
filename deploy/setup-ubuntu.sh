@@ -20,10 +20,10 @@ id "$APP_USER" >/dev/null 2>&1 || fail "Không tồn tại user ${APP_USER}."
 [[ -d "${APP_DIR}/.git" ]] || fail "Chưa có repository tại ${APP_DIR}."
 [[ -f "${APP_DIR}/deploy/pdftools.service" ]] || fail 'Thiếu file cấu hình deploy. Hãy pull main mới nhất trước.'
 
-printf '1/6 Cài Git, curl, chứng chỉ và Nginx...\n'
+printf '1/6 Cài Git, curl, chứng chỉ, Nginx và công cụ lưu firewall...\n'
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y ca-certificates curl git nginx
+apt-get install -y ca-certificates curl git nginx iptables-persistent
 
 node_major='0'
 if [[ -x /usr/bin/node ]]; then
@@ -62,6 +62,16 @@ fi
 ln -sfn /etc/nginx/sites-available/pdftools /etc/nginx/sites-enabled/pdftools
 
 printf '5/6 Kiểm tra và kích hoạt dịch vụ...\n'
+if ! iptables -C INPUT -p tcp --dport 80 -j ACCEPT 2>/dev/null; then
+  reject_position="$(iptables -L INPUT --line-numbers -n | awk '$2 == "REJECT" { print $1; exit }')"
+  if [[ "$reject_position" =~ ^[0-9]+$ ]]; then
+    iptables -I INPUT "$reject_position" -p tcp --dport 80 -j ACCEPT
+  else
+    iptables -A INPUT -p tcp --dport 80 -j ACCEPT
+  fi
+fi
+netfilter-persistent save
+
 systemctl daemon-reload
 systemctl enable pdftools nginx
 nginx -t
@@ -75,4 +85,4 @@ curl -fsS http://127.0.0.1/ >/dev/null
 printf '\nSetup Ubuntu thành công.\n'
 printf 'Node: %s | npm: %s\n' "$(/usr/bin/node --version)" "$(/usr/bin/npm --version)"
 printf 'Kiểm tra: systemctl status pdftools --no-pager\n'
-printf 'Nếu trình duyệt bên ngoài chưa truy cập được, hãy mở inbound TCP 80 trong firewall của nhà cung cấp VPS.\n'
+printf 'Host firewall đã mở TCP 80. Nếu bên ngoài chưa truy cập được, hãy mở cùng cổng trong firewall của nhà cung cấp VPS.\n'

@@ -30,7 +30,7 @@ cd /var/www/pdftools
 sudo ./deploy/setup-ubuntu.sh
 ```
 
-Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script cài `systemd`, sudoers, Nginx config, tạo release đầu tiên và kiểm tra cả API lẫn trang chủ.
+Script tự cài Git, curl và Nginx; nếu chưa có Node.js 20+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, tạo release đầu tiên và kiểm tra cả API lẫn trang chủ. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
 
 Các lệnh thủ công tương đương để chẩn đoán khi script tự động báo lỗi:
 
@@ -82,3 +82,5 @@ ssh orace 'curl -fsS http://127.0.0.1:3001/api/health'
 ```
 
 Nginx chỉ proxy vào loopback nên Node không bị mở trực tiếp ra Internet. Khi đã có domain, cấu hình HTTPS ở Nginx và thay `server_name _` bằng domain thật.
+
+Production hiện dùng `congcuweb.duckdns.org` với HTTPS do Certbot quản lý. `npm run deploy:vps` không sửa Nginx hoặc chứng chỉ nên có thể dùng cho mọi lần cập nhật code. Không chạy lại `setup-ubuntu.sh` trên VPS đang hoạt động trừ khi thực sự muốn cài lại hạ tầng; luôn sao lưu và kiểm tra file Nginx do Certbot chỉnh sửa trước khi làm việc đó.

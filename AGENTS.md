@@ -43,7 +43,9 @@ npm run build
 - Không làm đồng thời trên cùng nhánh ở hai máy. Nếu cần làm song song, dùng nhánh riêng có tiền tố `codex/` và gộp qua pull request.
 - GitHub là nguồn code chuẩn. VPS chỉ pull commit đã push để build và chạy; không sửa trực tiếp source production trên VPS nhằm tránh lệch code giữa hai máy và máy chủ.
 - Production dùng các file trong `deploy/`: Nginx proxy vào Express loopback, `systemd` chạy symlink `.deploy/current`, và `deploy/deploy.sh` tạo release độc lập. Không đổi lại sang chạy `vite preview` trong production.
+- `deploy/setup-ubuntu.sh` chỉ mở public TCP 80 ở host firewall và lưu bằng `netfilter-persistent`; không mở trực tiếp cổng Express 3001. Firewall/Security List phía nhà cung cấp vẫn được cấu hình ngoài repository.
 - Sau khi commit và push `main`, deploy từ máy phát triển bằng `npm run deploy:vps`. Script phải giữ các guard Git, preflight, health check và rollback; nếu bước chuẩn bị lỗi thì không restart phiên bản đang chạy.
+- `deploy/setup-ubuntu.sh` chỉ dùng khi cài VPS lần đầu hoặc chủ động sửa hạ tầng. Deploy hằng ngày không được ghi đè cấu hình Nginx/Certbot đang giữ domain và HTTPS.
 - Khi sửa shell script trong `deploy/`, tối thiểu chạy `bash -n deploy/setup-ubuntu.sh`, `bash -n deploy/deploy.sh`, `bash -n deploy/remote.sh` và `git diff --check`. Các lệnh Linux-only như `apt-get`, `systemctl`, `nginx -t` phải được xác nhận trên Ubuntu trước khi tuyên bố VPS đã triển khai thành công.
 
 ## Git
