@@ -8,6 +8,7 @@ const pdfTools = [
   { icon: '✎', name: 'Chỉnh sửa PDF', description: 'Thêm chữ, watermark và đánh số trang', color: 'coral', mode: 'pdf-edit' },
   { icon: '✳', name: 'Nén PDF', description: 'Đặt dung lượng MB và tự động nén sát mục tiêu', color: 'red', mode: 'pdf-compress' },
   { icon: '⊕', name: 'Ghép PDF', description: 'Sắp xếp và ghép nhiều tệp PDF thành một', color: 'blue', mode: 'pdf-merge' },
+  { icon: '↕', name: 'Sắp xếp PDF', description: 'Kéo thả, xoay, nhân bản, thêm hoặc xóa trang', color: 'indigo', mode: 'pdf-organize' },
   { icon: '◫', name: 'Tách PDF', description: 'Chọn trực tiếp thumbnail và tải kết quả dạng ZIP', color: 'purple', mode: 'pdf-split' },
   { icon: 'W', name: 'PDF sang Word', description: 'Trích xuất chữ thành DOCX có thể chỉnh sửa', color: 'blue', mode: 'pdf-to-word' },
   { icon: 'X', name: 'PDF sang Excel', description: 'Tách dòng và cột thành workbook XLSX', color: 'green', mode: 'pdf-to-excel' },
@@ -39,6 +40,7 @@ const footerContacts = [
 const labels = {
   'pdf-compress': 'Nén PDF',
   'pdf-merge': 'Ghép PDF',
+  'pdf-organize': 'Sắp xếp PDF',
   'pdf-split': 'Tách PDF',
   'pdf-edit': 'Chỉnh sửa PDF',
   'pdf-to-word': 'PDF sang Word',
@@ -56,6 +58,9 @@ const labels = {
 const imageModes = ['compress', 'convert', 'resize', 'crop', 'edit', 'remove-background']
 const pdfOfficeModes = ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-text']
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+const maximumFileBytes = 25 * 1024 * 1024
+const maximumUploadBytes = 50 * 1024 * 1024
+const maximumPdfPages = 500
 const formatBytes = (bytes = 0) => {
   if (!bytes) return '0 KB'
   const units = ['B', 'KB', 'MB', 'GB']
@@ -424,6 +429,7 @@ function PdfPageThumbnail({ item, info, number, selected, mode, onSelect, onDrop
   }, [info.url, item.pageIndex, item.rotation])
 
   const pageLabel = info.pages > 1 ? `${info.name} · trang ${item.pageIndex + 1}` : info.name
+  const canEditPages = mode === 'pdf-merge' || mode === 'pdf-organize'
   return <article className={`pdf-page-card ${selected ? 'selected' : ''}`} draggable onDragStart={() => onDragPage(item.id)} onDragOver={event => event.preventDefault()} onDrop={() => onDropPage(item.id)}>
     <button className="page-check" type="button" aria-label={`${selected ? 'Bỏ chọn' : 'Chọn'} trang ${number}`} aria-pressed={selected} onClick={() => onSelect(item.id)}>{selected ? '✓' : ''}</button>
     <button className="page-thumbnail" type="button" onClick={() => onSelect(item.id)}>
@@ -431,8 +437,8 @@ function PdfPageThumbnail({ item, info, number, selected, mode, onSelect, onDrop
       <span className="page-name" title={pageLabel}>{pageLabel}</span>
       <small>Trang {number}</small>
     </button>
-    {mode === 'pdf-merge' && <button className="page-delete" type="button" aria-label={`Xóa trang ${number}`} onClick={() => onDelete(item.id)}>×</button>}
-    {mode === 'pdf-merge' && <label className="page-insert"><input type="file" accept=".pdf,application/pdf" multiple aria-label={`Chèn PDF sau trang ${number}`} onChange={event => { onInsert(event.target.files, number); event.target.value = '' }} /><span>+</span></label>}
+    {canEditPages && <button className="page-delete" type="button" aria-label={`Xóa trang ${number}`} onClick={() => onDelete(item.id)}>×</button>}
+    {canEditPages && <label className="page-insert"><input type="file" accept=".pdf,application/pdf" multiple aria-label={`Chèn PDF sau trang ${number}`} onChange={event => { onInsert(event.target.files, number); event.target.value = '' }} /><span>+</span></label>}
   </article>
 }
 
@@ -441,6 +447,8 @@ function PdfPageBoard({ mode, pages, fileInfo, selectedPages, setSelectedPages, 
   const selectedCount = selectedPages.size
   const allSelected = pages.length > 0 && selectedCount === pages.length
   const isMerge = mode === 'pdf-merge'
+  const isOrganize = mode === 'pdf-organize'
+  const canEditPages = isMerge || isOrganize
 
   const selectAll = () => setSelectedPages(allSelected ? new Set() : new Set(pages.map(page => page.id)))
   const selectPreset = preset => {
@@ -472,6 +480,12 @@ function PdfPageBoard({ mode, pages, fileInfo, selectedPages, setSelectedPages, 
       return next
     })
   }
+  const duplicateSelected = () => {
+    if (!selectedCount) return
+    setPages(current => current.flatMap(page => selectedPages.has(page.id)
+      ? [page, { ...page, id: `pdf-page-${++pdfPageId}` }]
+      : [page]))
+  }
   const dropPage = targetId => {
     const sourceId = draggedPage.current
     if (!sourceId || sourceId === targetId) return
@@ -492,17 +506,17 @@ function PdfPageBoard({ mode, pages, fileInfo, selectedPages, setSelectedPages, 
       <label className="select-all-pages"><input type="checkbox" checked={allSelected} onChange={selectAll} /><span>{allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span></label>
       <span className="selection-count"><b>{selectedCount}</b> / {pages.length} trang được chọn</span>
       <div className="page-actions">
-        {isMerge && <label className="add-pages-button"><input type="file" accept=".pdf,application/pdf" multiple aria-label="Thêm PDF vào cuối" onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><span>＋ Thêm PDF</span></label>}
-        {!isMerge && <><button type="button" onClick={() => selectPreset('all')}>Tất cả</button><button type="button" onClick={() => selectPreset('odd')}>Trang lẻ</button><button type="button" onClick={() => selectPreset('even')}>Trang chẵn</button></>}
+        {canEditPages && <label className="add-pages-button"><input type="file" accept=".pdf,application/pdf" multiple aria-label="Thêm PDF vào cuối" onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><span>＋ Thêm PDF</span></label>}
+        {!canEditPages && <><button type="button" onClick={() => selectPreset('all')}>Tất cả</button><button type="button" onClick={() => selectPreset('odd')}>Trang lẻ</button><button type="button" onClick={() => selectPreset('even')}>Trang chẵn</button></>}
         <button type="button" disabled={!selectedCount} onClick={() => rotateSelected(-90)} aria-label="Xoay trái các trang đã chọn">↶ Xoay trái</button>
         <button type="button" disabled={!selectedCount} onClick={() => rotateSelected(90)} aria-label="Xoay phải các trang đã chọn">↷ Xoay phải</button>
-        {isMerge && <><button type="button" disabled={!selectedCount} onClick={() => moveSelected(-1)}>← Dịch trái</button><button type="button" disabled={!selectedCount} onClick={() => moveSelected(1)}>Dịch phải →</button><button className="danger" type="button" disabled={!selectedCount || selectedCount === pages.length} onClick={() => deletePages(selectedPages)}>Xóa</button></>}
+        {canEditPages && <><button type="button" disabled={!selectedCount} onClick={() => moveSelected(-1)}>← Dịch trái</button><button type="button" disabled={!selectedCount} onClick={() => moveSelected(1)}>Dịch phải →</button><button type="button" disabled={!selectedCount} onClick={duplicateSelected}>Nhân bản</button><button type="button" disabled={pages.length < 2} onClick={() => setPages(current => [...current].reverse())}>Đảo thứ tự</button><button className="danger" type="button" disabled={!selectedCount || selectedCount === pages.length} onClick={() => deletePages(selectedPages)}>Xóa</button></>}
       </div>
     </div>
-    <div className="page-board-tip"><span>{isMerge ? 'Giữ và kéo thumbnail để đổi thứ tự trang.' : 'Nhấp vào từng thumbnail để chọn trang cần tách.'}</span><b>{isMerge ? 'PDF kết quả theo thứ tự từ trái sang phải.' : 'Mỗi trang đã chọn sẽ được xuất thành một PDF trong tệp ZIP.'}</b></div>
+    <div className="page-board-tip"><span>{canEditPages ? 'Giữ và kéo thumbnail để đổi thứ tự trang.' : 'Nhấp vào từng thumbnail để chọn trang cần tách.'}</span><b>{canEditPages ? (isOrganize ? 'Có thể xoay, nhân bản, thêm hoặc xóa trang trước khi lưu.' : 'PDF kết quả theo thứ tự từ trái sang phải.') : 'Mỗi trang đã chọn sẽ được xuất thành một PDF trong tệp ZIP.'}</b></div>
     <div className="page-thumbnail-grid">
       {pages.map((item, index) => <PdfPageThumbnail key={item.id} item={item} info={fileInfo[item.fileIndex]} number={index + 1} selected={selectedPages.has(item.id)} mode={mode} onSelect={id => setSelectedPages(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next })} onDragPage={id => { draggedPage.current = id }} onDropPage={dropPage} onDelete={id => deletePages(new Set([id]))} onInsert={onAddFiles} />)}
-      {isMerge && <label className="add-pdf-tile"><input type="file" accept=".pdf,application/pdf" multiple aria-label="Thêm PDF vào cuối tài liệu" onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><i>＋</i><b>Thêm PDF</b><small>Chèn thêm trang vào tài liệu</small></label>}
+      {canEditPages && <label className="add-pdf-tile"><input type="file" accept=".pdf,application/pdf" multiple aria-label="Thêm PDF vào cuối tài liệu" onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><i>＋</i><b>Thêm PDF</b><small>Chèn thêm trang vào tài liệu</small></label>}
     </div>
   </section>
 }
@@ -643,9 +657,13 @@ function ToolModal({ mode, close }) {
   const urlPool = useRef(new Set())
   const isImage = imageModes.includes(mode)
   const isMerge = mode === 'pdf-merge'
+  const isOrganize = mode === 'pdf-organize'
+  const isPageComposer = isMerge || isOrganize
   const isPdf = mode?.startsWith('pdf-')
   const isPdfOffice = pdfOfficeModes.includes(mode)
-  const fileAccept = mode === 'remove-background' ? '.png,.jpg,.jpeg,.webp' : isImage ? 'image/*' : '.pdf,application/pdf'
+  const fileAccept = mode === 'remove-background'
+    ? '.png,.jpg,.jpeg,.webp'
+    : isImage ? '.png,.jpg,.jpeg,.webp,.avif,image/png,image/jpeg,image/webp,image/avif' : '.pdf,application/pdf'
 
   useEffect(() => () => urlPool.current.forEach(url => { releaseThumbnailPdf(url); URL.revokeObjectURL(url) }), [])
   useEffect(() => () => {
@@ -680,11 +698,14 @@ function ToolModal({ mode, close }) {
   const choose = async selected => {
     const picked = Array.from(selected || [])
     if (!picked.length) return
-    const nextFiles = isMerge ? picked : picked.slice(0, 1)
+    const nextFiles = isPageComposer ? picked : picked.slice(0, 1)
+    if (nextFiles.some(file => file.size > maximumFileBytes)) return setMessage('Mỗi tệp không được vượt quá 25 MB.')
+    if (nextFiles.reduce((sum, file) => sum + file.size, 0) > maximumUploadBytes) return setMessage('Tổng dung lượng mỗi lượt không được vượt quá 50 MB.')
     setLoading(true); setMessage('Đang đọc thông tin tệp…'); setResult(null)
     try {
       let extractedPreview = ''
       const nextInfo = await Promise.all(nextFiles.map(file => analyze(file)))
+      if (isPageComposer && nextInfo.reduce((sum, info) => sum + (info.pages || 0), 0) > maximumPdfPages) throw new Error(`Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.`)
       setFiles(nextFiles); setFileInfo(nextInfo); setCrop({ x: 10, y: 10, w: 80, h: 80 })
       setBrightness(100); setContrast(100); setSaturation(100); setHue(0); setBlur(0); setRotation(0); setFlip(false); setFlop(false); setGrayscale(false)
       if (isPdfOffice) {
@@ -693,7 +714,7 @@ function ToolModal({ mode, close }) {
         setPdfTextPreview(extractedPreview)
       } else setPdfTextPreview('')
       if (nextInfo[0]?.width) { setWidth(String(nextInfo[0].width)); setHeight(String(nextInfo[0].height)) }
-      if (mode === 'pdf-merge' || mode === 'pdf-split') {
+      if (isPageComposer || mode === 'pdf-split') {
         const nextPages = makePageItems(nextInfo)
         setPdfPages(nextPages)
         setSelectedPages(mode === 'pdf-split' ? new Set(nextPages.map(page => page.id)) : new Set())
@@ -711,11 +732,14 @@ function ToolModal({ mode, close }) {
   const addMergeFiles = async (selected, insertionIndex = pdfPages.length) => {
     const picked = Array.from(selected || [])
     if (!picked.length) return
+    if (picked.some(file => file.size > maximumFileBytes)) return setMessage('Mỗi tệp không được vượt quá 25 MB.')
+    if ([...files, ...picked].reduce((sum, file) => sum + file.size, 0) > maximumUploadBytes) return setMessage('Tổng dung lượng các PDF không được vượt quá 50 MB.')
     setLoading(true); setMessage('Đang thêm và dựng thumbnail PDF…'); setResult(null)
     try {
       const addedInfo = await Promise.all(picked.map(file => analyze(file)))
       const firstFileIndex = files.length
       const addedPages = makePageItems(addedInfo, firstFileIndex)
+      if (pdfPages.length + addedPages.length > maximumPdfPages) throw new Error(`Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.`)
       const insertion = clamp(insertionIndex, 0, pdfPages.length)
       setFiles(current => [...current, ...picked])
       setFileInfo(current => [...current, ...addedInfo])
@@ -739,7 +763,7 @@ function ToolModal({ mode, close }) {
   const submit = async event => {
     event.preventDefault()
     if (!files.length) return setMessage('Hãy chọn tệp trước khi xử lý.')
-    if (mode === 'pdf-merge' && !pdfPages.length) return setMessage('Tài liệu phải còn ít nhất một trang.')
+    if (isPageComposer && !pdfPages.length) return setMessage('Tài liệu phải còn ít nhất một trang.')
     if (mode === 'pdf-split' && !selectedPages.size) return setMessage('Hãy chọn ít nhất một trang cần tách.')
     if (mode === 'pdf-edit' && pdfEditType === 'text' && !pdfEditText.trim()) return setMessage('Hãy nhập nội dung cần thêm vào PDF.')
     setLoading(true); setMessage('Đang xử lý tệp…'); setResult(null)
@@ -764,9 +788,12 @@ function ToolModal({ mode, close }) {
         name = `${files[0].name.replace(/\.[^/.]+$/, '')}-under-${String(targetMb).replace('.', '-')}-mb.pdf`
       } else {
         const form = new FormData()
-        if (isMerge) files.forEach(file => form.append('files', file))
-        else form.append('file', files[0])
-        if (isMerge) form.append('pagePlan', JSON.stringify(pdfPages.map(page => ({ fileIndex: page.fileIndex, pageIndex: page.pageIndex, rotation: page.rotation }))))
+        if (isPageComposer) {
+          const activeFileIndexes = [...new Set(pdfPages.map(page => page.fileIndex))]
+          const fileIndexMap = new Map(activeFileIndexes.map((fileIndex, nextIndex) => [fileIndex, nextIndex]))
+          activeFileIndexes.forEach(fileIndex => form.append('files', files[fileIndex]))
+          form.append('pagePlan', JSON.stringify(pdfPages.map(page => ({ fileIndex: fileIndexMap.get(page.fileIndex), pageIndex: page.pageIndex, rotation: page.rotation }))))
+        } else form.append('file', files[0])
         if (isImage) {
           const info = fileInfo[0]
           const cropValues = mode === 'crop' && info ? {
@@ -818,7 +845,8 @@ function ToolModal({ mode, close }) {
   if (mode === 'soon') return <div className="modal-shade"><div className="tool-modal intro"><button className="close" onClick={close}>×</button><i>✦</i><h2>Tính năng đang hoàn thiện</h2><p>Công cụ này cần backend chuyên dụng để bảo toàn bố cục và nội dung. Chúng tôi chưa gắn nhãn hoạt động cho đến khi kiểm thử được toàn bộ luồng xử lý và tải xuống.</p><button className="primary" onClick={close}>Khám phá công cụ khác</button></div></div>
 
   const source = fileInfo[0]
-  const reduction = result && files[0] ? Math.round((1 - result.size / files[0].size) * 100) : null
+  const inputSize = files.reduce((sum, file) => sum + file.size, 0)
+  const reduction = result && inputSize ? Math.round((1 - result.size / inputSize) * 100) : null
   const targetBytes = Number(targetMb) * 1024 * 1024
   const targetRatio = files[0]?.size && Number.isFinite(targetBytes) ? Math.round(targetBytes / files[0].size * 100) : 0
   const imageEditStyle = mode === 'edit' ? {
@@ -830,17 +858,17 @@ function ToolModal({ mode, close }) {
     <form className={`tool-modal ${files.length ? 'tool-modal-wide' : ''}`} onSubmit={submit}>
       <button className="close" type="button" onClick={close}>×</button>
       <div className="modal-heading"><i>✦</i><div><p>CÔNG CỤ PDFTOOLS</p><h2>{labels[mode]}</h2></div></div>
-      <p className="modal-copy">{isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
+      <p className="modal-copy">{isOrganize ? 'Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.' : isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
 
       {!files.length ? <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files) }}>
-        <input ref={input} className="drop-file-input" aria-label="Chọn tệp từ máy tính" type="file" accept={fileAccept} multiple={isMerge} onChange={event => choose(event.target.files)} />
-        <span>⇧</span><b>Kéo thả {isMerge ? 'các tệp' : 'tệp'} vào đây</b><small>hoặc nhấp để chọn từ máy tính · tối đa 25 MB mỗi tệp</small>
+        <input ref={input} className="drop-file-input" aria-label="Chọn tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
+        <span>⇧</span><b>Kéo thả {isPageComposer ? 'các tệp' : 'tệp'} vào đây</b><small>hoặc nhấp để chọn từ máy tính · tối đa 25 MB mỗi tệp, 50 MB mỗi lượt{isPdf ? ' · 500 trang PDF' : ''}</small>
       </div> : <>
-        <input ref={input} className="file-input" aria-label="Đổi tệp từ máy tính" type="file" accept={fileAccept} multiple={isMerge} onChange={event => choose(event.target.files)} />
+        <input ref={input} className="file-input" aria-label="Đổi tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
         <div className="selected-file-bar"><div><i>{isPdf ? 'PDF' : 'IMG'}</i><span><b>{files.length > 1 ? `${files.length} tệp đã chọn` : files[0].name}</b><small>{files.length > 1 ? `${formatBytes(files.reduce((sum, file) => sum + file.size, 0))} tổng cộng` : formatBytes(files[0].size)}</small></span></div><button type="button" onClick={() => input.current?.click()}>Đổi tệp</button></div>
 
         {mode === 'pdf-split' && <FileFacts info={source} />}
-        {(isMerge || mode === 'pdf-split') ? <PdfPageBoard mode={mode} pages={pdfPages} fileInfo={fileInfo} selectedPages={selectedPages} setSelectedPages={setSelectedPages} setPages={setPdfPages} onAddFiles={addMergeFiles} /> : <>
+        {(isPageComposer || mode === 'pdf-split') ? <PdfPageBoard mode={mode} pages={pdfPages} fileInfo={fileInfo} selectedPages={selectedPages} setSelectedPages={setSelectedPages} setPages={setPdfPages} onAddFiles={addMergeFiles} /> : <>
           <FileFacts info={source} />
           <div className="editor-layout">
           <div className="editor-preview">
@@ -886,13 +914,13 @@ function ToolModal({ mode, close }) {
         </>}
       </>}
 
-      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : mode === 'pdf-compress' && pdfCompression === 'preserve' ? 'Tối ưu không mất dữ liệu  →' : 'Tạo bản xem trước kết quả  →'}</button>
+      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isOrganize ? `Lưu PDF gồm ${pdfPages.length} trang  →` : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : mode === 'pdf-compress' && pdfCompression === 'preserve' ? 'Tối ưu không mất dữ liệu  →' : 'Tạo bản xem trước kết quả  →'}</button>
       {message && <p className={`result ${message.includes('hoàn tất') ? 'success' : ''}`}>{message}</p>}
 
       {result && <div className="result-workspace">
         <div className="result-heading"><div><span>KẾT QUẢ</span><h3>{result.name}</h3></div><a className="primary download-result" href={result.url} download={result.name}>Tải xuống <b>↓</b></a></div>
         <div className="result-comparison"><MediaPreview info={fileInfo[0]} title="Trước xử lý" /><MediaPreview info={result} title="Sau xử lý" checkerboard={mode === 'remove-background'} /></div>
-        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(files[0]?.size)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}</div>
+        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}</div>
       </div>}
     </form>
   </div>

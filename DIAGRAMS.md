@@ -20,9 +20,10 @@ flowchart LR
     B --> B2["Xóa phông AI"]
     B --> B3["Preview PDF / khung cắt"]
 
-    A --> I["🖼️ Sharp · xử lý ảnh"]
-    A --> D["📄 pdf-lib · PDF / ZIP"]
-    A --> O["📝 DOCX / XLSX / PPTX / TXT"]
+    A --> G["🛡️ 50 MB · 500 trang · 2 tác vụ đồng thời"]
+    G --> I["🖼️ Sharp · xử lý ảnh"]
+    G --> D["📄 pdf-lib · PDF / ZIP"]
+    G --> O["📝 DOCX / XLSX / PPTX / TXT"]
 
     B1 --> X["✅ Preview kết quả"]
     B2 --> X
@@ -37,7 +38,7 @@ flowchart LR
     classDef result fill:#9a3412,stroke:#fb923c,color:#fff;
     class U,N,S edge;
     class R,P,C,B,B1,B2,B3 browser;
-    class E,A,I,D,O server;
+    class E,A,G,I,D,O server;
     class X,T result;
 ```
 
@@ -47,13 +48,14 @@ Tệp được xử lý trong bộ nhớ hoặc trong browser. Luồng hiện t�
 
 ```mermaid
 flowchart TB
-    ROOT["PDFTools · 14 công cụ"]
-    ROOT --> PDF["📄 8 công cụ PDF"]
+    ROOT["PDFTools · 15 công cụ"]
+    ROOT --> PDF["📄 9 công cụ PDF"]
     ROOT --> IMG["🖼️ 6 công cụ ảnh"]
 
     PDF --> PE["Chỉnh sửa PDF<br/>chữ · watermark · số trang"]
     PDF --> PC["Nén PDF<br/>đặt MB / không mất dữ liệu"]
     PDF --> PM["Ghép PDF<br/>kéo thứ tự · xoay · chèn"]
+    PDF --> PO["Sắp xếp PDF<br/>kéo-thả · nhân bản · xóa"]
     PDF --> PS["Tách PDF<br/>chọn thumbnail · xuất ZIP"]
     PDF --> PW["PDF sang Word"]
     PDF --> PX["PDF sang Excel"]
@@ -71,7 +73,7 @@ flowchart TB
     classDef pdf fill:#075985,stroke:#38bdf8,color:#fff;
     classDef image fill:#166534,stroke:#4ade80,color:#fff;
     class ROOT root;
-    class PDF,PE,PC,PM,PS,PW,PX,PP,PT pdf;
+    class PDF,PE,PC,PM,PO,PS,PW,PX,PP,PT pdf;
     class IMG,IR,IC,IZ,IK,IN,IE image;
 ```
 

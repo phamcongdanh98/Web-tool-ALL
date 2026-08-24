@@ -25,10 +25,58 @@ const safeName = (name, extension) => `${name.replace(/\.[^/.]+$/, '').replace(/
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value))
 const numberOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback
 const escapeXml = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;')
+const clientError = (statusCode, message) => Object.assign(new Error(message), { statusCode })
+const maxUploadBytes = Math.round(clamp(numberOr(process.env.MAX_UPLOAD_TOTAL_MB, 50), 1, 200) * 1024 * 1024)
+const maxConcurrentJobs = Math.trunc(clamp(numberOr(process.env.MAX_CONCURRENT_JOBS, 2), 1, 8))
+const maximumImagePixels = 30_000_000
+const maximumPdfPages = 500
+let activeJobs = 0
+
+const uploadedFiles = req => req.files || (req.file ? [req.file] : [])
+const enforceUploadedBytes = (req, res, next) => {
+  const total = uploadedFiles(req).reduce((sum, file) => sum + file.size, 0)
+  if (total > maxUploadBytes) return res.status(413).json({ message: `Tổng dung lượng tải lên vượt giới hạn ${Math.round(maxUploadBytes / 1024 / 1024)} MB.` })
+  next()
+}
+const assertPdfFile = file => {
+  if (!file?.buffer?.subarray(0, 1024).includes(Buffer.from('%PDF-'))) {
+    throw clientError(415, 'Tệp đã chọn không phải PDF hợp lệ.')
+  }
+}
+const assertImageFile = async file => {
+  try {
+    const metadata = await sharp(file.buffer, { animated: false, limitInputPixels: maximumImagePixels }).metadata()
+    if (!['jpeg', 'png', 'webp', 'avif'].includes(metadata.format)) throw new Error('unsupported image')
+  } catch {
+    throw clientError(415, 'Ảnh phải là JPG, PNG, WebP hoặc AVIF hợp lệ và không vượt 30 megapixel.')
+  }
+}
 const download = (res, buffer, filename, type) => {
   res.set({ 'Content-Type': type, 'Content-Disposition': `attachment; filename="${filename}"`, 'Content-Length': buffer.length })
   res.send(buffer)
 }
+
+app.use('/api/tools', (req, res, next) => {
+  const contentLength = Number(req.get('content-length'))
+  if (Number.isFinite(contentLength) && contentLength > maxUploadBytes) {
+    return res.status(413).json({ message: `Tổng request vượt giới hạn ${Math.round(maxUploadBytes / 1024 / 1024)} MB.` })
+  }
+  if (activeJobs >= maxConcurrentJobs) {
+    res.setHeader('Retry-After', '5')
+    return res.status(503).json({ message: 'Máy chủ đang xử lý nhiều tệp. Vui lòng đợi vài giây rồi thử lại.' })
+  }
+
+  activeJobs += 1
+  let released = false
+  const release = () => {
+    if (released) return
+    released = true
+    activeJobs = Math.max(0, activeJobs - 1)
+  }
+  res.once('finish', release)
+  res.once('close', release)
+  next()
+})
 
 const parsePageSelection = (selection, pageCount) => {
   if (!selection?.trim()) return Array.from({ length: pageCount }, (_, index) => index)
@@ -50,14 +98,19 @@ const parsePageSelection = (selection, pageCount) => {
   return [...selected].sort((a, b) => a - b)
 }
 
-app.get('/api/health', (_req, res) => res.json({ status: 'ok', database: Boolean(process.env.MONGODB_URI) }))
+app.get('/api/health', (_req, res) => res.json({
+  status: 'ok',
+  database: Boolean(process.env.MONGODB_URI),
+  processing: { active: activeJobs, limit: maxConcurrentJobs },
+}))
 
-app.post('/api/tools/image/:action', upload.single('file'), async (req, res, next) => {
+app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp ảnh.' })
+    await assertImageFile(req.file)
     const { action } = req.params
     const { format = 'jpeg', quality = '82', width, height, left, top, cropWidth, cropHeight } = req.body
-    let image = sharp(req.file.buffer, { animated: false }).rotate()
+    let image = sharp(req.file.buffer, { animated: false, limitInputPixels: maximumImagePixels }).rotate()
     const imageFormat = format === 'jpg' ? 'jpeg' : format
     if (!['jpeg', 'png', 'webp', 'avif'].includes(imageFormat)) return res.status(400).json({ message: 'Định dạng ảnh không được hỗ trợ.' })
 
@@ -117,9 +170,10 @@ app.post('/api/tools/image/:action', upload.single('file'), async (req, res, nex
   } catch (error) { next(error) }
 })
 
-app.post('/api/tools/pdf/merge', upload.array('files', 20), async (req, res, next) => {
+app.post(['/api/tools/pdf/merge', '/api/tools/pdf/organize'], upload.array('files', 20), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.files?.length) return res.status(400).json({ message: 'Hãy chọn ít nhất một tệp PDF.' })
+    req.files.forEach(assertPdfFile)
     const sources = await Promise.all(req.files.map(file => PDFDocument.load(file.buffer, { ignoreEncryption: true })))
     const output = await PDFDocument.create()
     let pagePlan
@@ -127,6 +181,7 @@ app.post('/api/tools/pdf/merge', upload.array('files', 20), async (req, res, nex
     catch { return res.status(400).json({ message: 'Thứ tự trang không hợp lệ.' }) }
     if (!Array.isArray(pagePlan)) pagePlan = sources.flatMap((pdf, fileIndex) => pdf.getPageIndices().map(pageIndex => ({ fileIndex, pageIndex, rotation: 0 })))
     if (!pagePlan.length) return res.status(400).json({ message: 'Tài liệu phải có ít nhất một trang.' })
+    if (pagePlan.length > maximumPdfPages) return res.status(413).json({ message: `Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.` })
     for (const item of pagePlan) {
       const source = sources[Number(item.fileIndex)]
       const pageIndex = Number(item.pageIndex)
@@ -136,13 +191,15 @@ app.post('/api/tools/pdf/merge', upload.array('files', 20), async (req, res, nex
       if (rotation) page.setRotation(degrees((page.getRotation().angle + rotation + 360) % 360))
       output.addPage(page)
     }
-    download(res, Buffer.from(await output.save({ useObjectStreams: true })), 'toolhub-merged.pdf', 'application/pdf')
+    const filename = req.path.endsWith('/organize') ? 'pdftools-organized.pdf' : 'pdftools-merged.pdf'
+    download(res, Buffer.from(await output.save({ useObjectStreams: true })), filename, 'application/pdf')
   } catch (error) { next(error) }
 })
 
-app.post('/api/tools/pdf/compress', upload.single('file'), async (req, res, next) => {
+app.post('/api/tools/pdf/compress', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp PDF.' })
+    assertPdfFile(req.file)
     const source = await PDFDocument.load(req.file.buffer, { ignoreEncryption: true, updateMetadata: false })
     const optimized = Buffer.from(await source.save({ useObjectStreams: true, addDefaultPage: false, objectsPerTick: 50 }))
     const buffer = optimized.length < req.file.buffer.length ? optimized : req.file.buffer
@@ -154,9 +211,10 @@ app.post('/api/tools/pdf/compress', upload.single('file'), async (req, res, next
   } catch (error) { next(error) }
 })
 
-app.post('/api/tools/pdf/edit', upload.single('file'), async (req, res, next) => {
+app.post('/api/tools/pdf/edit', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp PDF.' })
+    assertPdfFile(req.file)
     const source = await PDFDocument.load(req.file.buffer, { ignoreEncryption: true, updateMetadata: false })
     const pageCount = source.getPageCount()
     const editType = req.body.editType === 'page-numbers' ? 'page-numbers' : 'text'
@@ -198,9 +256,10 @@ app.post('/api/tools/pdf/edit', upload.single('file'), async (req, res, next) =>
   } catch (error) { next(error) }
 })
 
-app.post('/api/tools/pdf/to-:format', upload.single('file'), async (req, res, next) => {
+app.post('/api/tools/pdf/to-:format', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp PDF.' })
+    assertPdfFile(req.file)
     const result = await convertPdfText(req.file.buffer, req.params.format)
     res.set({
       'X-Extracted-Pages': String(result.pages),
@@ -210,9 +269,10 @@ app.post('/api/tools/pdf/to-:format', upload.single('file'), async (req, res, ne
   } catch (error) { next(error) }
 })
 
-app.post('/api/tools/pdf/split', upload.single('file'), async (req, res, next) => {
+app.post('/api/tools/pdf/split', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp PDF.' })
+    assertPdfFile(req.file)
     const source = await PDFDocument.load(req.file.buffer, { ignoreEncryption: true })
     let pages
     let pagePlan
@@ -220,6 +280,7 @@ app.post('/api/tools/pdf/split', upload.single('file'), async (req, res, next) =
       pagePlan = req.body.pagePlan ? JSON.parse(req.body.pagePlan) : null
       pages = Array.isArray(pagePlan) ? pagePlan.map(item => Number(item.pageIndex)) : parsePageSelection(req.body.pages, source.getPageCount())
       if (!pages.length || pages.some(page => !Number.isInteger(page) || page < 0 || page >= source.getPageCount())) throw new Error('Danh sách trang cần tách không hợp lệ.')
+      if (pages.length > maximumPdfPages) return res.status(413).json({ message: `Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.` })
     }
     catch (error) { return res.status(400).json({ message: error.message }) }
     res.set({ 'Content-Type': 'application/zip', 'Content-Disposition': 'attachment; filename="toolhub-split-pages.zip"' })

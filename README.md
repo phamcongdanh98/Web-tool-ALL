@@ -19,6 +19,7 @@
 - Nén PDF theo dung lượng MB thực tế, tự cân chỉnh độ phân giải và chất lượng nhiều lượt để kết quả nằm sát phía dưới mục tiêu. Có hồ sơ **Tài liệu/chữ** và **Ảnh/màu**, hiển thị DPI thực tế sau nén.
 - Chế độ **Không mất dữ liệu** giữ chữ có thể chọn/copy, liên kết và biểu mẫu. Chế độ này chỉ tối ưu cấu trúc PDF nên tệp đã nén tốt có thể giảm 0% — khi đó giao diện giải thích rõ thay vì báo thành công chung chung.
 - Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
+- Sắp xếp PDF độc lập: kéo-thả trang, xoay, nhân bản, đảo thứ tự, thêm hoặc xóa trang rồi preview kết quả.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
 - Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; hỗ trợ tự đánh số `Trang N / Tổng`.
 - Chuyển phần chữ có thể chọn trong PDF sang **Word, Excel, PowerPoint hoặc TXT**, có preview nội dung trước khi chuyển. Word giữ ngắt trang, Excel tạo một sheet mỗi trang, PowerPoint tạo slide với chữ có thể sửa.
@@ -34,7 +35,7 @@
 ## 🚀 Hướng dẫn nhanh
 
 > [!TIP]
-> Xem [DIAGRAMS.md](DIAGRAMS.md) để hiểu trực quan kiến trúc, 14 chức năng, luồng xử lý tệp và production/bảo trì.
+> Xem [DIAGRAMS.md](DIAGRAMS.md) để hiểu trực quan kiến trúc, 15 chức năng, luồng xử lý tệp và production/bảo trì. Các ý tưởng đã đánh giá nằm trong [ROADMAP.md](ROADMAP.md).
 
 ### 💻 1. Chạy website trên máy Mac
 
@@ -289,6 +290,7 @@ scripts/          Smoke/E2E production dùng cho local và CI
 .env.example      Biến môi trường mẫu
 AGENTS.md         Hướng dẫn dành cho Codex
 DIAGRAMS.md       Sơ đồ kiến trúc, chức năng, luồng sử dụng và production
+ROADMAP.md        Ý tưởng đã phân loại theo giá trị, rủi ro và điều kiện hạ tầng
 ```
 
 ## 💬 Liên hệ
@@ -301,7 +303,11 @@ DIAGRAMS.md       Sơ đồ kiến trúc, chức năng, luồng sử dụng và 
 
 ### 2026-08-24
 
-- Sửa `setup-ubuntu.sh` để tự chờ tối đa 10 phút khi `unattended-upgrades` giữ khóa `apt/dpkg`, thay vì thoát ngay; không xóa lock hoặc kill tiến trình cập nhật và có regression check trong smoke test. Bản sửa này đã qua `npm run verify` nhưng hiện chưa commit, chưa push và chưa deploy.
+- Thêm **Sắp xếp PDF**: thumbnail kéo-thả, xoay, nhân bản, đảo thứ tự, thêm/xóa trang và preview PDF kết quả; API/E2E kiểm tra đúng thứ tự, số trang và rotation.
+- Bảo vệ VPS nhỏ bằng giới hạn tổng request 50 MB, 500 trang PDF, tối đa 2 tác vụ xử lý đồng thời, kiểm tra nội dung PDF/ảnh thật và chặn ảnh vượt 30 megapixel. Thêm biến `MAX_UPLOAD_TOTAL_MB`/`MAX_CONCURRENT_JOBS` trong `.env.example` và đồng bộ `client_max_body_size 50M` ở Nginx.
+- Thêm `ROADMAP.md` phân loại đề xuất thành làm ngay, ưu tiên tiếp theo, cần hạ tầng trước và chưa cần; OCR/Office/qpdf/AI không được gắn nhãn “dễ” hoặc “sẵn sàng” khi chưa có isolation, timeout và kiểm thử semantic.
+- Đã kiểm tra browser production local ở 1280×720: card/modal Sắp xếp PDF rõ ràng và không tràn ngang. `npm run verify` đã qua build, smoke cùng E2E Organize/upload/concurrency validation; `npm run audit:prod` báo 0 lỗ hổng.
+- Sửa `setup-ubuntu.sh` để tự chờ tối đa 10 phút khi `unattended-upgrades` giữ khóa `apt/dpkg`, thay vì thoát ngay; không xóa lock hoặc kill tiến trình cập nhật và có regression check trong smoke test. Bản sửa đã commit/push tại `e4b3b61`; chưa xác nhận VPS đã chạy setup từ commit này.
 - Thiết kế bộ nhận diện PDFTools mới: biểu tượng chồng tài liệu kết hợp tia sáng, dùng tông tím indigo và cyan đồng bộ với giao diện sản phẩm.
 - Thay ký tự `P` cũ ở header/footer bằng logo thật; bổ sung wordmark SVG để tái sử dụng cho tài liệu hoặc màn hình giới thiệu.
 - Thêm favicon SVG và PNG 32 px, Apple Touch Icon 180 px, icon PWA 192/512 px cùng `site.webmanifest`; khai báo đầy đủ trong `index.html` để browser và thiết bị nhận đúng biểu tượng.
@@ -315,6 +321,7 @@ DIAGRAMS.md       Sơ đồ kiến trúc, chức năng, luồng sử dụng và 
 - Thay cột liên kết mẫu ở footer bằng Facebook, Zalo và Telegram thật của Danh Phạm; giữ số điện thoại hiển thị để người dùng có thể tìm thủ công khi deep link bị giới hạn.
 - Đã render kiểm tra logo/icon, xác nhận kích thước và MIME qua localhost; `npm run verify` đã qua toàn bộ production build, smoke test và E2E ảnh/PDF/Office.
 - `npm run verify` đã qua production build, smoke test và E2E ảnh/PDF/Office; kiểm tra footer trên browser không tràn ngang và đủ ba liên kết ngoài. Không thêm dependency. Sơ đồ, bảo trì thủ công và liên hệ đã push tại `79bf4d3`; máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn vì `package.json` có thêm script.
+- Các thay đổi Sắp xếp PDF, resource guard, Nginx 50 MB và roadmap trong lượt này hiện **chưa commit, chưa push và chưa deploy**; HEAD/GitHub hiện là `e4b3b61`.
 
 ### 2026-08-23
 

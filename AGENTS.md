@@ -13,6 +13,7 @@
 - `lib/pptx.js`: sinh PowerPoint OOXML bằng `jszip`; mỗi dòng PDF là một text shape có thể chỉnh sửa.
 - `vite.config.js`: Vite proxy `/api` đến Express ở cổng 3001.
 - `DIAGRAMS.md`: nguồn sơ đồ kiến trúc, bản đồ chức năng, luồng người dùng và production.
+- `ROADMAP.md`: quyết định ưu tiên tính năng, điều kiện hạ tầng và những hạng mục chưa nên triển khai.
 
 ## Lệnh cần dùng
 
@@ -52,6 +53,8 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - `npm run build` phải tiếp tục sinh `.br`/`.gz` qua `scripts/precompress-assets.mjs`. Express phục vụ Brotli/Gzip theo `Accept-Encoding`; Nginx phục vụ `/assets/` trực tiếp bằng `deploy/nginx-assets.conf` và `gzip_static`. Smoke test phải giữ kiểm tra `Content-Encoding` cùng `Vary: Accept-Encoding`.
 - Giao diện bảo trì production là `deploy/maintenance.html`, phải độc lập, không tải asset/CDN/API và tự thử lại. Nginx dùng `deploy/nginx-maintenance.conf` để trả trang này với HTTP 503 + `Retry-After` khi Express lỗi 502/503/504; không bật bảo trì trong lúc build vì release cũ vẫn phục vụ bình thường. Sau khi sửa trang/snippet, kiểm tra HTML ở desktop/mobile và chạy `nginx -t` trên Ubuntu trước khi reload.
 - Mỗi thay đổi thêm/xóa/đổi tên chức năng hoặc đổi nơi xử lý browser/API, preview, output, kiến trúc hay deploy phải cập nhật `DIAGRAMS.md` trong cùng công việc. Đối chiếu tên/số lượng công cụ với `pdfTools`/`imageTools`; không để sơ đồ mô tả chức năng chưa hoạt động.
+- API file mặc định giới hạn tổng request 50 MB, 500 trang PDF, tối đa 2 tác vụ đồng thời và ảnh 30 megapixel. Khi đổi các trần này phải cập nhật `.env.example`, UI, `DIAGRAMS.md`, E2E và đánh giá lại RAM VPS; giới hạn từng file của Multer không thay thế giới hạn tổng.
+- Ý tưởng mới phải được phân loại trong `ROADMAP.md`. Không gắn card “Sẵn sàng” cho OCR, Office/binary hệ thống, AI hoặc thao tác PDF nhạy cảm trước khi có isolation, timeout/cleanup, giới hạn concurrency và kiểm thử output semantic.
 - Không commit `.env`, `node_modules`, `dist` hoặc cấu hình IDE cục bộ.
 - Không bao giờ commit private key, nội dung `~/.ssh`, địa chỉ máy chủ riêng hoặc thông tin đăng nhập. Chỉ ghi hướng dẫn chung trong repository; cấu hình kết nối cụ thể phải nằm ngoài dự án trên từng máy.
 - Sau mỗi thay đổi code hoặc cấu hình runtime đáng kể, chạy `npm run verify`. Chỉ thay đổi tài liệu thuần túy mới có thể dùng kiểm tra hẹp hơn như `git diff --check`.

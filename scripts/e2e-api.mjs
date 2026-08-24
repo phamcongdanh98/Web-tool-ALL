@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import ExcelJS from '@excel.js/exceljs'
+import http from 'node:http'
 import JSZip from 'jszip'
 import sharp from 'sharp'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
@@ -19,6 +20,36 @@ const requestError = async (path, form, expectedStatus) => {
   const body = await response.json()
   assert.equal(response.status, expectedStatus, `${path} cần trả HTTP ${expectedStatus}.`)
   return body
+}
+
+const requestWithHeadersOnly = (path, headers) => new Promise((resolve, reject) => {
+  const url = new URL(`${baseUrl}${path}`)
+  const req = http.request({ hostname: url.hostname, port: url.port, path: url.pathname, method: 'POST', headers }, response => {
+    const chunks = []
+    response.on('data', chunk => chunks.push(chunk))
+    response.on('end', () => resolve({ status: response.statusCode, body: Buffer.concat(chunks) }))
+  })
+  req.on('error', reject)
+  req.end()
+})
+
+const openHeldUpload = path => {
+  const url = new URL(`${baseUrl}${path}`)
+  const req = http.request({
+    agent: false,
+    hostname: url.hostname,
+    port: url.port,
+    path: url.pathname,
+    method: 'POST',
+    headers: {
+      'Content-Type': 'multipart/form-data; boundary=pdftools-held-upload',
+      'Content-Length': '1024',
+      Connection: 'close',
+    },
+  })
+  req.on('error', () => {})
+  req.flushHeaders()
+  return req
 }
 
 const makePdf = async (width, height) => {
@@ -55,6 +86,11 @@ imageForm.append('quality', '70')
 const compressedImage = await request('/api/tools/image/compress', imageForm)
 assert.match(compressedImage.response.headers.get('content-type') || '', /^image\/jpeg/)
 assert.equal((await sharp(compressedImage.body).metadata()).format, 'jpeg')
+
+const invalidImageForm = new FormData()
+invalidImageForm.append('file', new Blob(['not-an-image'], { type: 'image/png' }), 'fake.png')
+const invalidImage = await requestError('/api/tools/image/compress', invalidImageForm, 415)
+assert.match(invalidImage.message, /JPG|PNG|WebP|AVIF/)
 
 const cropForm = new FormData()
 cropForm.append('file', new Blob([imageInput], { type: 'image/png' }), 'smoke.png')
@@ -93,6 +129,62 @@ assert.match(merged.response.headers.get('content-type') || '', /^application\/p
 const mergedPdf = await PDFDocument.load(merged.body)
 assert.equal(mergedPdf.getPageCount(), 2)
 assert.equal(mergedPdf.getPage(0).getRotation().angle, 90)
+
+const organizeForm = new FormData()
+organizeForm.append('files', new Blob([firstPdf], { type: 'application/pdf' }), 'first.pdf')
+organizeForm.append('files', new Blob([secondPdf], { type: 'application/pdf' }), 'second.pdf')
+organizeForm.append('pagePlan', JSON.stringify([
+  { fileIndex: 0, pageIndex: 0, rotation: 180 },
+  { fileIndex: 0, pageIndex: 0, rotation: 0 },
+  { fileIndex: 1, pageIndex: 0, rotation: 270 },
+]))
+const organized = await request('/api/tools/pdf/organize', organizeForm)
+assert.match(organized.response.headers.get('content-disposition') || '', /pdftools-organized\.pdf/)
+const organizedPdf = await PDFDocument.load(organized.body)
+assert.equal(organizedPdf.getPageCount(), 3, 'Sắp xếp PDF phải hỗ trợ đổi thứ tự và nhân bản trang.')
+assert.equal(organizedPdf.getPage(0).getRotation().angle, 180)
+assert.equal(organizedPdf.getPage(2).getRotation().angle, 270)
+
+const tooManyPagesForm = new FormData()
+tooManyPagesForm.append('files', new Blob([firstPdf], { type: 'application/pdf' }), 'first.pdf')
+tooManyPagesForm.append('pagePlan', JSON.stringify(Array.from({ length: 501 }, () => ({ fileIndex: 0, pageIndex: 0, rotation: 0 }))))
+const tooManyPages = await requestError('/api/tools/pdf/organize', tooManyPagesForm, 413)
+assert.match(tooManyPages.message, /500 trang/)
+
+const invalidPdfForm = new FormData()
+invalidPdfForm.append('file', new Blob(['not-a-pdf'], { type: 'application/pdf' }), 'fake.pdf')
+const invalidPdf = await requestError('/api/tools/pdf/compress', invalidPdfForm, 415)
+assert.match(invalidPdf.message, /không phải PDF hợp lệ/)
+
+const oversized = await requestWithHeadersOnly('/api/tools/pdf/compress', {
+  'Content-Type': 'application/octet-stream',
+  'Content-Length': String(51 * 1024 * 1024),
+})
+assert.equal(oversized.status, 413, 'Request vượt tổng 50 MB phải bị chặn trước khi đọc upload.')
+assert.match(JSON.parse(oversized.body.toString('utf8')).message, /50 MB/)
+
+const concurrencyLimit = await fetch(`${baseUrl}/api/health`).then(response => response.json()).then(health => health.processing.limit)
+const heldUploads = Array.from({ length: concurrencyLimit }, () => openHeldUpload('/api/tools/pdf/compress'))
+try {
+  let activeJobCount = 0
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const health = await fetch(`${baseUrl}/api/health`).then(response => response.json())
+    activeJobCount = health.processing?.active || 0
+    if (activeJobCount === concurrencyLimit) break
+    await new Promise(resolve => setTimeout(resolve, 25))
+  }
+  assert.equal(activeJobCount, concurrencyLimit, 'Các upload giữ chỗ phải chiếm đủ processing slot trước khi thử overload.')
+  const busyForm = new FormData()
+  busyForm.append('file', new Blob([firstPdf], { type: 'application/pdf' }), 'busy.pdf')
+  const busyResponse = await fetch(`${baseUrl}/api/tools/pdf/compress`, { method: 'POST', body: busyForm })
+  const busyBytes = Buffer.from(await busyResponse.arrayBuffer())
+  assert.equal(busyResponse.status, 503, 'Tác vụ vượt giới hạn phải bị chặn khi VPS đã dùng hết processing slot.')
+  assert.equal(busyResponse.headers.get('retry-after'), '5')
+  const busyBody = JSON.parse(busyBytes.toString('utf8'))
+  assert.match(busyBody.message, /đợi vài giây/)
+} finally {
+  heldUploads.forEach(request => request.destroy())
+}
 
 const compressForm = new FormData()
 compressForm.append('file', new Blob([merged.body], { type: 'application/pdf' }), 'merged.pdf')
@@ -168,4 +260,4 @@ blankForm.append('file', new Blob([firstPdf], { type: 'application/pdf' }), 'bla
 const blankError = await requestError('/api/tools/pdf/to-word', blankForm, 422)
 assert.match(blankError.message, /OCR/)
 
-console.log('E2E API thành công: ảnh, PDF, chỉnh sửa và chuyển Word/Excel/PowerPoint/TXT đều trả nội dung hợp lệ.')
+console.log('E2E API thành công: ảnh, PDF, sắp xếp trang, giới hạn upload và chuyển Word/Excel/PowerPoint/TXT đều hợp lệ.')
