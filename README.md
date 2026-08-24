@@ -21,8 +21,8 @@
 - Ghép PDF bằng bảng thumbnail: chọn, kéo đổi thứ tự, xoay, xóa và chèn thêm PDF tại vị trí mong muốn.
 - Sắp xếp PDF độc lập: kéo-thả trang, xoay, nhân bản, đảo thứ tự, thêm hoặc xóa trang rồi preview kết quả.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
-- Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; hỗ trợ tự đánh số `Trang N / Tổng`.
-- Chuyển phần chữ có thể chọn trong PDF sang **Word, Excel, PowerPoint hoặc TXT**, có preview nội dung trước khi chuyển. Word giữ ngắt trang, Excel tạo một sheet mỗi trang, PowerPoint tạo slide với chữ có thể sửa.
+- Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; có thể kéo chữ trực tiếp trên preview hoặc dùng tọa độ phần trăm, đồng thời hỗ trợ tự đánh số `Trang N / Tổng`.
+- Chuyển phần chữ có thể chọn trong PDF sang **Word, Excel, PowerPoint hoặc TXT**, có kiểm tra nhanh PDF scan, PDF hỗn hợp và dấu hiệu được xuất từ Microsoft Word. Word tái dựng khổ giấy, ngắt trang, lề, khoảng cách, căn dòng, tab, cỡ chữ và đậm/nghiêng khi PDF còn đủ dữ liệu.
 - Chỉnh ảnh trực quan: độ sáng, tương phản, bão hòa, sắc độ, làm mờ, trắng-đen, xoay và lật; preview dùng cùng thông số với ảnh kết quả.
 - Bộ nhận diện PDFTools thống nhất trên thanh điều hướng, footer và tab trình duyệt; có SVG gốc, favicon PNG, Apple Touch Icon và icon PWA 192/512 px.
 - Footer có liên hệ trực tiếp với Danh Phạm qua Facebook, Zalo và Telegram.
@@ -30,7 +30,7 @@
 - Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.1.0 · Bản dựng #14`; số bản dựng tự tăng theo Git commit.
 
 > [!NOTE]
-> Chuyển Office ưu tiên **nội dung có thể chỉnh sửa**, không sao chép hoàn hảo toàn bộ bố cục. PDF scan/ảnh chưa có chữ chọn được sẽ được từ chối kèm hướng dẫn OCR; giới hạn hiện tại là 100 trang và 25 MB. Chỉnh PDF hiện thêm lớp chữ/watermark hoặc số trang, chưa xóa hay sửa trực tiếp chữ gốc.
+> Chuyển Office ưu tiên **nội dung có thể chỉnh sửa**. Dù metadata cho thấy PDF được xuất từ Word, PDF vẫn không chứa đầy đủ style, lịch sử sửa và quan hệ đoạn/bảng của DOCX nên chỉ có thể tái dựng gần đúng. PDF scan/ảnh chưa có chữ chọn được sẽ được từ chối kèm hướng dẫn OCR; giới hạn hiện tại là 100 trang và 25 MB. Chỉnh PDF hiện thêm lớp chữ/watermark hoặc số trang, chưa xóa hay sửa trực tiếp chữ gốc.
 
 ## 🚀 Hướng dẫn nhanh
 
@@ -303,6 +303,10 @@ ROADMAP.md        Ý tưởng đã phân loại theo giá trị, rủi ro và đ
 
 ### 2026-08-24
 
+- Nâng cấp **PDF sang Word**: đọc metadata và lớp chữ để phân loại `word-export`, PDF số, PDF hỗn hợp hoặc scan; kết quả API trả số trang có chữ/trang ảnh để UI cảnh báo chính xác thay vì đoán theo tên tệp.
+- DOCX nay tái dựng theo từng khổ trang, lề suy ra, khoảng cách dọc, căn trái/giữa/phải, tab, cỡ chữ cùng đậm/nghiêng còn nhận diện được. Giao diện nói rõ đây là bản tái dựng có thể sửa, không phải file Word gốc đã được phục hồi 100%.
+- Chỉnh PDF có canvas preview riêng: nhấp hoặc kéo lớp chữ trực tiếp trên trang, tinh chỉnh tọa độ ngang/dọc theo phần trăm và gửi cùng hợp đồng tọa độ lên backend. Phần mô tả xác nhận công cụ chỉ thêm lớp mới, chưa sửa/xóa chữ gốc.
+- E2E kiểm tra semantic bên trong DOCX (`pgSz`, căn giữa, đậm, nghiêng), phân loại Word/scan/PDF hỗn hợp và vị trí ảnh overlay trong content stream. `npm run verify` đã qua; browser 2560×1440 xác nhận chữ rõ, phân loại nguồn đúng và kéo overlay đổi từ preset sang tọa độ tùy chỉnh; `npm run audit:prod` báo 0 lỗ hổng. Không thêm dependency; máy khác chỉ cần pull, chưa cần chạy lại `npm ci`.
 - Thêm **Sắp xếp PDF**: thumbnail kéo-thả, xoay, nhân bản, đảo thứ tự, thêm/xóa trang và preview PDF kết quả; API/E2E kiểm tra đúng thứ tự, số trang và rotation.
 - Bảo vệ VPS nhỏ bằng giới hạn tổng request 50 MB, 500 trang PDF, tối đa 2 tác vụ xử lý đồng thời, kiểm tra nội dung PDF/ảnh thật và chặn ảnh vượt 30 megapixel. Thêm biến `MAX_UPLOAD_TOTAL_MB`/`MAX_CONCURRENT_JOBS` trong `.env.example` và đồng bộ `client_max_body_size 50M` ở Nginx.
 - Thêm `ROADMAP.md` phân loại đề xuất thành làm ngay, ưu tiên tiếp theo, cần hạ tầng trước và chưa cần; OCR/Office/qpdf/AI không được gắn nhãn “dễ” hoặc “sẵn sàng” khi chưa có isolation, timeout và kiểm thử semantic.
@@ -321,7 +325,7 @@ ROADMAP.md        Ý tưởng đã phân loại theo giá trị, rủi ro và đ
 - Thay cột liên kết mẫu ở footer bằng Facebook, Zalo và Telegram thật của Danh Phạm; giữ số điện thoại hiển thị để người dùng có thể tìm thủ công khi deep link bị giới hạn.
 - Đã render kiểm tra logo/icon, xác nhận kích thước và MIME qua localhost; `npm run verify` đã qua toàn bộ production build, smoke test và E2E ảnh/PDF/Office.
 - `npm run verify` đã qua production build, smoke test và E2E ảnh/PDF/Office; kiểm tra footer trên browser không tràn ngang và đủ ba liên kết ngoài. Không thêm dependency. Sơ đồ, bảo trì thủ công và liên hệ đã push tại `79bf4d3`; máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn vì `package.json` có thêm script.
-- Các thay đổi Sắp xếp PDF, resource guard, Nginx 50 MB và roadmap trong lượt này hiện **chưa commit, chưa push và chưa deploy**; HEAD/GitHub hiện là `e4b3b61`.
+- Sắp xếp PDF, resource guard, Nginx 50 MB và roadmap đã nằm trên `origin/main` tại `17c9e16`. Nâng cấp PDF→Word/chỉnh PDF trong lượt hiện tại **chưa commit, chưa push và chưa deploy**.
 
 ### 2026-08-23
 

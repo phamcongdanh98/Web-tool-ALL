@@ -52,12 +52,12 @@ flowchart TB
     ROOT --> PDF["📄 9 công cụ PDF"]
     ROOT --> IMG["🖼️ 6 công cụ ảnh"]
 
-    PDF --> PE["Chỉnh sửa PDF<br/>chữ · watermark · số trang"]
+    PDF --> PE["Chỉnh sửa PDF<br/>kéo overlay · tọa độ · số trang"]
     PDF --> PC["Nén PDF<br/>đặt MB / không mất dữ liệu"]
     PDF --> PM["Ghép PDF<br/>kéo thứ tự · xoay · chèn"]
     PDF --> PO["Sắp xếp PDF<br/>kéo-thả · nhân bản · xóa"]
     PDF --> PS["Tách PDF<br/>chọn thumbnail · xuất ZIP"]
-    PDF --> PW["PDF sang Word"]
+    PDF --> PW["PDF sang Word<br/>phân loại nguồn · tái dựng bố cục"]
     PDF --> PX["PDF sang Excel"]
     PDF --> PP["PDF sang PowerPoint"]
     PDF --> PT["PDF sang văn bản"]
@@ -96,7 +96,36 @@ flowchart LR
     K --> L["Tải kết quả"]
 ```
 
-## 4. Production, cập nhật và bảo trì
+## 4. Luồng PDF sang Word và chỉnh PDF
+
+```mermaid
+flowchart TD
+    F["📄 PDF đầu vào"] --> M["Đọc metadata · chữ · hình ảnh từng trang"]
+    M --> K{"Loại PDF?"}
+    K -->|"Không có lớp chữ"| S["Scan · HTTP 422 · hướng dẫn OCR"]
+    K -->|"Chữ + trang ảnh"| H["PDF hỗn hợp · cảnh báo trang chưa OCR"]
+    K -->|"Creator/Producer là Word"| W["Có dấu hiệu xuất từ Word"]
+    K -->|"Có chữ khác"| D["PDF số thông thường"]
+    H --> R["Tái dựng phần chữ hiện có"]
+    W --> R
+    D --> R
+    R --> O["DOCX: khổ trang · lề · khoảng cách · căn dòng · tab · kiểu chữ"]
+    O --> C["Kết quả chỉnh sửa được · không tuyên bố là Word gốc"]
+
+    F --> P["Canvas preview chỉnh PDF"]
+    P --> G["Nhấp/kéo overlay · tọa độ tâm x/y % từ góc trên-trái"]
+    G --> A["API clamp + đổi sang hệ tọa độ PDF"]
+    A --> L["Giữ nội dung gốc · thêm lớp chữ mới"]
+
+    classDef decision fill:#27272a,stroke:#a1a1aa,color:#fff;
+    classDef warn fill:#9a3412,stroke:#fb923c,color:#fff;
+    classDef ok fill:#166534,stroke:#4ade80,color:#fff;
+    class K decision;
+    class S,H warn;
+    class W,D,R,O,C,P,G,A,L ok;
+```
+
+## 5. Production, cập nhật và bảo trì
 
 ```mermaid
 flowchart TD
@@ -128,7 +157,7 @@ flowchart TD
     class C,E,J,K,Q decision;
 ```
 
-## 5. Quy tắc cập nhật sơ đồ
+## 6. Quy tắc cập nhật sơ đồ
 
 Trong cùng commit thay đổi chức năng:
 

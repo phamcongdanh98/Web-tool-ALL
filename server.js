@@ -227,7 +227,9 @@ app.post('/api/tools/pdf/edit', upload.single('file'), enforceUploadedBytes, asy
     const fontSize = clamp(Number(req.body.fontSize) || 16, 8, 72)
     const opacity = clamp(Number(req.body.opacity) || 0.75, 0.1, 1)
     const color = /^#[0-9a-f]{6}$/i.test(req.body.color || '') ? req.body.color : '#4f46e5'
-    const position = ['top-left', 'top-center', 'top-right', 'center', 'bottom-left', 'bottom-center', 'bottom-right'].includes(req.body.position) ? req.body.position : 'bottom-center'
+    const position = ['custom', 'top-left', 'top-center', 'top-right', 'center', 'bottom-left', 'bottom-center', 'bottom-right'].includes(req.body.position) ? req.body.position : 'bottom-center'
+    const xPercent = clamp(Number(req.body.xPercent) || 50, 2, 98)
+    const yPercent = clamp(Number(req.body.yPercent) || 88, 2, 98)
     const horizontal = position.endsWith('left') ? 'left' : position.endsWith('right') ? 'right' : 'center'
     const vertical = position.startsWith('top') ? 'top' : position.startsWith('bottom') ? 'bottom' : 'center'
 
@@ -246,12 +248,27 @@ app.post('/api/tools/pdf/edit', upload.single('file'), enforceUploadedBytes, asy
       const overlayWidth = overlay.width / scale
       const overlayHeight = overlay.height / scale
       const margin = 24
-      const x = horizontal === 'left' ? margin : horizontal === 'right' ? page.getWidth() - overlayWidth - margin : (page.getWidth() - overlayWidth) / 2
-      const y = vertical === 'top' ? page.getHeight() - overlayHeight - margin : vertical === 'bottom' ? margin : (page.getHeight() - overlayHeight) / 2
-      page.drawImage(overlay, { x: Math.max(0, x), y: Math.max(0, y), width: overlayWidth, height: overlayHeight, opacity })
+      const x = position === 'custom'
+        ? page.getWidth() * xPercent / 100 - overlayWidth / 2
+        : horizontal === 'left' ? margin : horizontal === 'right' ? page.getWidth() - overlayWidth - margin : (page.getWidth() - overlayWidth) / 2
+      const y = position === 'custom'
+        ? page.getHeight() * (1 - yPercent / 100) - overlayHeight / 2
+        : vertical === 'top' ? page.getHeight() - overlayHeight - margin : vertical === 'bottom' ? margin : (page.getHeight() - overlayHeight) / 2
+      page.drawImage(overlay, {
+        x: clamp(x, 0, Math.max(0, page.getWidth() - overlayWidth)),
+        y: clamp(y, 0, Math.max(0, page.getHeight() - overlayHeight)),
+        width: overlayWidth,
+        height: overlayHeight,
+        opacity,
+      })
     }
 
     const buffer = Buffer.from(await source.save({ useObjectStreams: true, addDefaultPage: false }))
+    res.set({
+      'X-PDF-Edit-Position': position,
+      'X-PDF-Edit-X': String(xPercent),
+      'X-PDF-Edit-Y': String(yPercent),
+    })
     download(res, buffer, safeName(req.file.originalname, editType === 'page-numbers' ? '-numbered.pdf' : '-edited.pdf'), 'application/pdf')
   } catch (error) { next(error) }
 })
@@ -264,6 +281,12 @@ app.post('/api/tools/pdf/to-:format', upload.single('file'), enforceUploadedByte
     res.set({
       'X-Extracted-Pages': String(result.pages),
       'X-Extracted-Characters': String(result.characterCount),
+      'X-PDF-Source-Kind': result.source.kind,
+      'X-PDF-Text-Pages': String(result.source.textPageCount),
+      'X-PDF-Image-Only-Pages': String(result.source.imageOnlyPageCount),
+      'X-PDF-Blank-Pages': String(result.source.blankPageCount),
+      'X-PDF-Has-Structure': result.source.hasStructTree ? 'yes' : 'no',
+      ...(result.layoutMode ? { 'X-Word-Layout-Mode': result.layoutMode } : {}),
     })
     download(res, result.buffer, safeName(req.file.originalname, `.${result.extension}`), result.type)
   } catch (error) { next(error) }

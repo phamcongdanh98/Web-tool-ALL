@@ -2,10 +2,13 @@ import assert from 'node:assert/strict'
 import ExcelJS from '@excel.js/exceljs'
 import http from 'node:http'
 import JSZip from 'jszip'
+import path from 'node:path'
 import sharp from 'sharp'
 import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:13999'
+const standardFontDataUrl = path.resolve('node_modules/pdfjs-dist/standard_fonts') + path.sep
 
 const request = async (path, form) => {
   const response = await fetch(`${baseUrl}${path}`, { method: 'POST', body: form })
@@ -68,6 +71,52 @@ const makeTextPdf = async () => {
   const second = pdf.addPage([595, 842])
   second.drawText('Second page content', { x: 50, y: 780, size: 18, font })
   return Buffer.from(await pdf.save())
+}
+
+const makeWordExportPdf = async () => {
+  const pdf = await PDFDocument.create()
+  pdf.setCreator('Microsoft® Word for Microsoft 365')
+  pdf.setProducer('Microsoft® Word for Microsoft 365')
+  const regular = await pdf.embedFont(StandardFonts.Helvetica)
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
+  const italic = await pdf.embedFont(StandardFonts.TimesRomanItalic)
+  const page = pdf.addPage([595, 842])
+  const heading = 'WORD EXPORT HEADING'
+  page.drawText(heading, { x: (595 - bold.widthOfTextAtSize(heading, 20)) / 2, y: 780, size: 20, font: bold })
+  page.drawText('Editable paragraph reconstructed from PDF.', { x: 54, y: 728, size: 12, font: regular })
+  page.drawText('Italic source style', { x: 54, y: 704, size: 11, font: italic })
+  return Buffer.from(await pdf.save())
+}
+
+const makeImagePdf = async (image, withText = false) => {
+  const pdf = await PDFDocument.create()
+  if (withText) {
+    const font = await pdf.embedFont(StandardFonts.Helvetica)
+    const textPage = pdf.addPage([595, 842])
+    textPage.drawText('Selectable page before scanned page', { x: 50, y: 780, size: 16, font })
+  }
+  const imagePage = pdf.addPage([595, 842])
+  const embedded = await pdf.embedPng(image)
+  imagePage.drawImage(embedded, { x: 40, y: 100, width: 515, height: 640 })
+  return Buffer.from(await pdf.save())
+}
+
+const getLastImageTransform = async (buffer, pageNumber) => {
+  const loadingTask = getDocument({ data: new Uint8Array(buffer), standardFontDataUrl })
+  try {
+    const pdf = await loadingTask.promise
+    const page = await pdf.getPage(pageNumber)
+    const operations = await page.getOperatorList()
+    let lastTransform = null
+    let paintedTransform = null
+    operations.fnArray.forEach((operation, index) => {
+      if (operation === OPS.transform) lastTransform = operations.argsArray[index]
+      if ([OPS.paintImageXObject, OPS.paintInlineImageXObject].includes(operation)) paintedTransform = lastTransform
+    })
+    return paintedTransform
+  } finally {
+    await loadingTask.destroy().catch(() => null)
+  }
 }
 
 const imageInput = await sharp({
@@ -215,12 +264,20 @@ pdfEditForm.append('file', new Blob([textPdf], { type: 'application/pdf' }), 'of
 pdfEditForm.append('editType', 'text')
 pdfEditForm.append('text', 'Danh Pham - Trang {page}/{pages}')
 pdfEditForm.append('pages', '2')
-pdfEditForm.append('position', 'bottom-right')
+pdfEditForm.append('position', 'custom')
+pdfEditForm.append('xPercent', '23')
+pdfEditForm.append('yPercent', '42')
 pdfEditForm.append('fontSize', '20')
 const editedPdfResult = await request('/api/tools/pdf/edit', pdfEditForm)
 const editedPdf = await PDFDocument.load(editedPdfResult.body)
 assert.equal(editedPdf.getPageCount(), 2)
 assert.ok(editedPdfResult.body.length > textPdf.length, 'PDF chỉnh sửa không có dữ liệu overlay mới.')
+assert.equal(editedPdfResult.response.headers.get('x-pdf-edit-position'), 'custom')
+assert.equal(editedPdfResult.response.headers.get('x-pdf-edit-x'), '23')
+assert.equal(editedPdfResult.response.headers.get('x-pdf-edit-y'), '42')
+const editedPlacement = await getLastImageTransform(editedPdfResult.body, 2)
+assert.ok(Array.isArray(editedPlacement) && editedPlacement.length === 6, 'Overlay tùy chỉnh phải thực sự được vẽ lên trang PDF.')
+assert.ok(editedPlacement[4] < 595 / 2, 'Tọa độ 23% phải đặt overlay ở nửa trái trang PDF.')
 
 const convert = async format => {
   const form = new FormData()
@@ -228,14 +285,18 @@ const convert = async format => {
   const output = await request(`/api/tools/pdf/to-${format}`, form)
   assert.equal(output.response.headers.get('x-extracted-pages'), '2')
   assert.ok(Number(output.response.headers.get('x-extracted-characters')) > 50)
+  assert.equal(output.response.headers.get('x-pdf-source-kind'), 'digital')
+  assert.equal(output.response.headers.get('x-pdf-text-pages'), '2')
   return output
 }
 
 const word = await convert('word')
 assert.match(word.response.headers.get('content-type') || '', /wordprocessingml/)
+assert.equal(word.response.headers.get('x-word-layout-mode'), 'adaptive-reflow')
 const wordZip = await JSZip.loadAsync(word.body)
 const wordXml = await wordZip.file('word/document.xml').async('string')
 assert.match(wordXml, /PDFTools editable office test/)
+assert.match(wordXml, /<w:pgSz/, 'DOCX phải giữ khổ giấy được suy ra từ PDF.')
 
 const excel = await convert('excel')
 assert.match(excel.response.headers.get('content-type') || '', /spreadsheetml/)
@@ -255,9 +316,37 @@ const text = await convert('text')
 assert.match(text.response.headers.get('content-type') || '', /^text\/plain/)
 assert.match(text.body.toString('utf8'), /Second page content/)
 
+const wordExportPdf = await makeWordExportPdf()
+const wordExportForm = new FormData()
+wordExportForm.append('file', new Blob([wordExportPdf], { type: 'application/pdf' }), 'word-export.pdf')
+const reconstructedWord = await request('/api/tools/pdf/to-word', wordExportForm)
+assert.equal(reconstructedWord.response.headers.get('x-pdf-source-kind'), 'word-export')
+assert.equal(reconstructedWord.response.headers.get('x-word-layout-mode'), 'adaptive-reflow')
+const reconstructedZip = await JSZip.loadAsync(reconstructedWord.body)
+const reconstructedXml = await reconstructedZip.file('word/document.xml').async('string')
+assert.match(reconstructedXml, /WORD EXPORT HEADING/)
+assert.match(reconstructedXml, /<w:jc w:val="center"/, 'Tiêu đề ở giữa PDF phải được căn giữa trong Word.')
+assert.match(reconstructedXml, /<w:b\/>/, 'Kiểu chữ đậm còn nhận diện được phải được giữ trong Word.')
+assert.match(reconstructedXml, /<w:i\/>/, 'Kiểu chữ nghiêng còn nhận diện được phải được giữ trong Word.')
+
+const mixedPdf = await makeImagePdf(imageInput, true)
+const mixedForm = new FormData()
+mixedForm.append('file', new Blob([mixedPdf], { type: 'application/pdf' }), 'mixed.pdf')
+const mixedText = await request('/api/tools/pdf/to-text', mixedForm)
+assert.equal(mixedText.response.headers.get('x-pdf-source-kind'), 'mixed')
+assert.equal(mixedText.response.headers.get('x-pdf-text-pages'), '1')
+assert.equal(mixedText.response.headers.get('x-pdf-image-only-pages'), '1')
+assert.match(mixedText.body.toString('utf8'), /Selectable page before scanned page/)
+
+const scannedPdf = await makeImagePdf(imageInput)
+const scannedForm = new FormData()
+scannedForm.append('file', new Blob([scannedPdf], { type: 'application/pdf' }), 'scan.pdf')
+const scannedError = await requestError('/api/tools/pdf/to-word', scannedForm, 422)
+assert.match(scannedError.message, /PDF scan|OCR/)
+
 const blankForm = new FormData()
 blankForm.append('file', new Blob([firstPdf], { type: 'application/pdf' }), 'blank.pdf')
 const blankError = await requestError('/api/tools/pdf/to-word', blankForm, 422)
 assert.match(blankError.message, /OCR/)
 
-console.log('E2E API thành công: ảnh, PDF, sắp xếp trang, giới hạn upload và chuyển Word/Excel/PowerPoint/TXT đều hợp lệ.')
+console.log('E2E API thành công: ảnh, PDF, chỉnh vị trí overlay, phân loại scan/Word và chuyển Word/Excel/PowerPoint/TXT đều hợp lệ.')

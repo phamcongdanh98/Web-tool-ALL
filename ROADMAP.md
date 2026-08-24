@@ -8,6 +8,8 @@ Tài liệu này phân loại ý tưởng theo code đang có, khả năng kiể
 | --- | --- | --- |
 | Sắp xếp PDF | Đã triển khai | Tái sử dụng `PdfPageBoard` và API `pagePlan`; hỗ trợ kéo-thả, xoay, nhân bản, thêm, xóa và preview PDF kết quả. |
 | Giới hạn tài nguyên API | Đã triển khai | VPS nhỏ cần trần tổng request 50 MB, 500 trang PDF, tối đa 2 tác vụ đồng thời, kiểm tra PDF/ảnh thật và giới hạn ảnh 30 megapixel. |
+| PDF → Word thích ứng | Đã triển khai bước nền | Phân loại scan/PDF hỗn hợp/Word-export, tái dựng khổ trang, lề, khoảng cách, căn dòng, tab và kiểu chữ còn suy ra được; không tuyên bố khôi phục DOCX gốc. |
+| Overlay chữ PDF trực tiếp | Đã triển khai | Canvas cho phép nhấp/kéo vị trí, tinh chỉnh x/y phần trăm; API clamp và đổi đúng hệ tọa độ trước khi thêm lớp chữ mới. |
 | Refactor | Làm tăng dần | Chỉ tách module khi chạm vào flow có test; không đại tu toàn bộ `App.jsx` trong một lần. |
 
 ## Ưu tiên tiếp theo
@@ -16,7 +18,7 @@ Tài liệu này phân loại ý tưởng theo code đang có, khả năng kiể
 2. **PDF → JPG/PNG/WebP**: tận dụng PDF.js; cần chọn trang, DPI, giới hạn pixel/RAM, ZIP và preview output thật.
 3. **Batch ảnh**: chỉ làm sau khi có giới hạn tổng file, số file, concurrency và ZIP streaming rõ ràng.
 4. **Xóa nền hậu xử lý**: nền màu/ảnh và brush khôi phục/xóa; cần giữ mask gốc, undo và cleanup canvas/model.
-5. **Editor PDF dạng overlay**: ảnh, chữ ký, shape, highlight và undo/redo; không mô tả là sửa chữ gốc.
+5. **Mở rộng editor PDF overlay**: nền tảng kéo chữ đã có; bước tiếp theo là ảnh, chữ ký, shape, highlight và undo/redo, vẫn không mô tả là sửa chữ gốc.
 
 ## Đúng về hướng đi nhưng chưa phù hợp VPS hiện tại
 
@@ -41,6 +43,8 @@ Tài liệu này phân loại ý tưởng theo code đang có, khả năng kiể
 - [OCRmyPDF – lưu ý khi triển khai online](https://ocrmypdf.readthedocs.io/en/stable/cloud.html)
 - [LibreOffice – chuyển đổi định dạng bằng command line](https://help.libreoffice.org/latest/en-US/text/shared/guide/convertfilters.html)
 - [qpdf – tùy chọn mã hóa/giải mã](https://qpdf.readthedocs.io/en/stable/cli.html)
+- [Microsoft Support – cách Word chuyển PDF và các giới hạn bố cục](https://support.microsoft.com/en-us/word/opening-pdfs-in-word)
+- [PDF.js API – metadata, text content và cấu trúc trang](https://mozilla.github.io/pdf.js/api/)
 
 ## Quy tắc cập nhật
 
