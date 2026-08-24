@@ -74,6 +74,7 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - `deploy/setup-ubuntu.sh` chỉ mở public TCP 80 ở host firewall và lưu bằng `netfilter-persistent`; không mở trực tiếp cổng Express 3001. Firewall/Security List phía nhà cung cấp vẫn được cấu hình ngoài repository.
 - Sau khi commit và push `main`, deploy từ máy phát triển bằng `npm run deploy:vps`. Script phải giữ các guard Git, preflight, health check và rollback; nếu bước chuẩn bị lỗi thì không restart phiên bản đang chạy.
 - `deploy/setup-ubuntu.sh` dùng khi cài VPS lần đầu hoặc khi chủ động cập nhật hạ tầng. Script phải có tính lặp lại an toàn, giữ domain/chứng chỉ Certbot, chỉ merge tuning được quản lý sau khi backup và kiểm tra `nginx -t`. Deploy code hằng ngày không chạy setup hạ tầng.
+- Setup Ubuntu phải chờ khóa `apt/dpkg` bằng timeout hữu hạn khi `unattended-upgrades` đang chạy; không xóa file lock hoặc kill cưỡng bức tiến trình package manager. Nếu timeout, giữ hệ thống nguyên trạng và hướng dẫn kiểm tra service cập nhật.
 - Sau commit làm thay đổi `deploy/nginx-assets.conf`, `deploy/nginx.conf` hoặc logic merge Nginx, phải deploy code trước rồi chạy `sudo ./deploy/setup-ubuntu.sh` một lần trên VPS. Xác nhận asset trả `Content-Encoding: gzip`/`br`, cache immutable và public HTTPS trước khi tuyên bố tối ưu đã lên production.
 - Khi sửa shell script, tối thiểu chạy `npm run check:shell` và `git diff --check`. Các lệnh Linux-only như `apt-get`, `systemctl`, `nginx -t`, `iptables` phải được xác nhận trên Ubuntu trước khi tuyên bố VPS đã triển khai thành công.
 

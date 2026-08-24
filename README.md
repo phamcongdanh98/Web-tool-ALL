@@ -301,6 +301,7 @@ DIAGRAMS.md       Sơ đồ kiến trúc, chức năng, luồng sử dụng và 
 
 ### 2026-08-24
 
+- Sửa `setup-ubuntu.sh` để tự chờ tối đa 10 phút khi `unattended-upgrades` giữ khóa `apt/dpkg`, thay vì thoát ngay; không xóa lock hoặc kill tiến trình cập nhật và có regression check trong smoke test. Bản sửa này đã qua `npm run verify` nhưng hiện chưa commit, chưa push và chưa deploy.
 - Thiết kế bộ nhận diện PDFTools mới: biểu tượng chồng tài liệu kết hợp tia sáng, dùng tông tím indigo và cyan đồng bộ với giao diện sản phẩm.
 - Thay ký tự `P` cũ ở header/footer bằng logo thật; bổ sung wordmark SVG để tái sử dụng cho tài liệu hoặc màn hình giới thiệu.
 - Thêm favicon SVG và PNG 32 px, Apple Touch Icon 180 px, icon PWA 192/512 px cùng `site.webmanifest`; khai báo đầy đủ trong `index.html` để browser và thiết bị nhận đúng biểu tượng.
@@ -313,7 +314,7 @@ DIAGRAMS.md       Sơ đồ kiến trúc, chức năng, luồng sử dụng và 
 - Thêm `npm run maintenance:vps -- status|on|off`; trạng thái đọc được đã thử qua SSH và website đang tắt bảo trì với HTTP 200. `on/off` chưa chạy trên production để tránh chủ động ngắt website trong lúc phát triển.
 - Thay cột liên kết mẫu ở footer bằng Facebook, Zalo và Telegram thật của Danh Phạm; giữ số điện thoại hiển thị để người dùng có thể tìm thủ công khi deep link bị giới hạn.
 - Đã render kiểm tra logo/icon, xác nhận kích thước và MIME qua localhost; `npm run verify` đã qua toàn bộ production build, smoke test và E2E ảnh/PDF/Office.
-- `npm run verify` đã qua production build, smoke test và E2E ảnh/PDF/Office; kiểm tra footer trên browser không tràn ngang và đủ ba liên kết ngoài. Không thêm dependency. Monitor và fallback bảo trì đã push tại `a8c1993`; các thay đổi sơ đồ, bảo trì thủ công và liên hệ hiện **chưa commit, chưa push và chưa deploy**. Máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn vì `package.json` có thêm script.
+- `npm run verify` đã qua production build, smoke test và E2E ảnh/PDF/Office; kiểm tra footer trên browser không tràn ngang và đủ ba liên kết ngoài. Không thêm dependency. Sơ đồ, bảo trì thủ công và liên hệ đã push tại `79bf4d3`; máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn vì `package.json` có thêm script.
 
 ### 2026-08-23
 

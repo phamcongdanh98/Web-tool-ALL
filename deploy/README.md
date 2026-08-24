@@ -30,6 +30,8 @@ cd /var/www/pdftools
 sudo ./deploy/setup-ubuntu.sh
 ```
 
+Nếu Ubuntu đang chạy `unattended-upgrades`, script sẽ tự chờ khóa `apt/dpkg` tối đa 10 phút rồi tiếp tục. Không xóa các file `/var/lib/dpkg/lock*` và không kill tiến trình cập nhật. Có thể đổi giới hạn khi thật sự cần, ví dụ `sudo APT_LOCK_TIMEOUT_SECONDS=900 ./deploy/setup-ubuntu.sh`.
+
 Script tự cài Git, curl và Nginx; nếu chưa có Node.js 22+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, cấu hình `/assets/` có cache lâu và Gzip build sẵn, cài trang bảo trì độc lập, tạo release đầu tiên rồi kiểm tra cả API lẫn trang chủ. Nếu đã có release healthy, script giữ release đó và không chạy lại `npm ci`/build. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
 
 Các lệnh thủ công tương đương để chẩn đoán khi script tự động báo lỗi:

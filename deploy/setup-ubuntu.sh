@@ -4,10 +4,42 @@ set -Eeuo pipefail
 APP_DIR='/var/www/pdftools'
 APP_USER='ubuntu'
 NODE_MAJOR='22'
+APT_LOCK_TIMEOUT_SECONDS="${APT_LOCK_TIMEOUT_SECONDS:-600}"
 
 fail() {
   printf 'Lỗi setup: %s\n' "$1" >&2
   exit 1
+}
+
+wait_for_apt() {
+  command -v fuser >/dev/null 2>&1 || return 0
+
+  local waited=0
+  local interval=5
+  local lock_files=(
+    /var/lib/dpkg/lock-frontend
+    /var/lib/dpkg/lock
+    /var/cache/apt/archives/lock
+    /var/lib/apt/lists/lock
+  )
+
+  while fuser "${lock_files[@]}" >/dev/null 2>&1; do
+    if (( waited == 0 )); then
+      printf 'Ubuntu đang cập nhật tự động; chờ khóa apt tối đa %s giây (không xóa lock)...\n' "$APT_LOCK_TIMEOUT_SECONDS"
+    fi
+    (( waited < APT_LOCK_TIMEOUT_SECONDS )) \
+      || fail "apt vẫn bận sau ${APT_LOCK_TIMEOUT_SECONDS} giây. Hãy kiểm tra: systemctl status unattended-upgrades --no-pager"
+    sleep "$interval"
+    (( waited += interval ))
+  done
+
+  if (( waited > 0 )); then
+    printf 'Khóa apt đã được giải phóng sau %s giây; tiếp tục setup.\n' "$waited"
+  fi
+}
+
+apt_get() {
+  apt-get -o "DPkg::Lock::Timeout=${APT_LOCK_TIMEOUT_SECONDS}" "$@"
 }
 
 [[ "$EUID" -eq 0 ]] || fail "Hãy chạy bằng sudo: sudo ${APP_DIR}/deploy/setup-ubuntu.sh"
@@ -16,6 +48,7 @@ fail() {
 # shellcheck disable=SC1091
 source /etc/os-release
 [[ "${ID:-}" == 'ubuntu' ]] || fail 'Script này chỉ hỗ trợ Ubuntu.'
+[[ "$APT_LOCK_TIMEOUT_SECONDS" =~ ^[1-9][0-9]*$ ]] || fail 'APT_LOCK_TIMEOUT_SECONDS phải là số giây nguyên dương.'
 id "$APP_USER" >/dev/null 2>&1 || fail "Không tồn tại user ${APP_USER}."
 [[ -d "${APP_DIR}/.git" ]] || fail "Chưa có repository tại ${APP_DIR}."
 [[ -f "${APP_DIR}/deploy/pdftools.service" ]] || fail 'Thiếu file cấu hình deploy. Hãy pull main mới nhất trước.'
@@ -24,8 +57,10 @@ id "$APP_USER" >/dev/null 2>&1 || fail "Không tồn tại user ${APP_USER}."
 
 printf '1/6 Cài Git, curl, chứng chỉ, Nginx và công cụ lưu firewall...\n'
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y ca-certificates curl git nginx iptables-persistent
+wait_for_apt
+apt_get update
+wait_for_apt
+apt_get install -y ca-certificates curl git nginx iptables-persistent
 
 node_compatible='false'
 if [[ -x /usr/bin/node ]] && /usr/bin/node -e 'const [major, minor] = process.versions.node.split(".").map(Number); process.exit(major > 22 || (major === 22 && minor >= 12) ? 0 : 1)'; then
@@ -37,8 +72,10 @@ if [[ "$node_compatible" != 'true' ]]; then
   nodesource_setup="$(mktemp)"
   trap 'rm -f "$nodesource_setup"' EXIT
   curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" -o "$nodesource_setup"
+  wait_for_apt
   bash "$nodesource_setup"
-  apt-get install -y nodejs
+  wait_for_apt
+  apt_get install -y nodejs
   rm -f "$nodesource_setup"
   trap - EXIT
 else

@@ -98,7 +98,11 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    A["Release cũ đang phục vụ"] --> B["Build release mới độc lập"]
+    S["setup-ubuntu.sh"] --> Q{"apt đang bị khóa?"}
+    Q -- "Có" --> W["Chờ an toàn tối đa 10 phút"]
+    W --> Q
+    Q -- "Không" --> A["Release cũ đang phục vụ"]
+    A --> B["Build release mới độc lập"]
     B --> C{"Preflight đạt?"}
     C -- "Không" --> A
     C -- "Có" --> D["Chuyển symlink + restart systemd"]
@@ -118,8 +122,8 @@ flowchart TD
     classDef wait fill:#9a3412,stroke:#fb923c,color:#fff;
     classDef decision fill:#27272a,stroke:#a1a1aa,color:#fff;
     class A,F,L,N ok;
-    class B,D,G,M,H,I wait;
-    class C,E,J,K decision;
+    class B,D,G,M,H,I,W wait;
+    class C,E,J,K,Q decision;
 ```
 
 ## 5. Quy tắc cập nhật sơ đồ
