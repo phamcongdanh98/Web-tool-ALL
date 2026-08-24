@@ -94,6 +94,58 @@ Luồng chuẩn:
 Sửa code → Kiểm tra → Commit → Push GitHub → CI xanh → Deploy VPS → Mở domain
 ```
 
+### 🗺️ Sơ đồ cập nhật từ Mac lên website
+
+```mermaid
+%%{init: {"theme":"base","themeVariables":{"background":"#0b0f14","fontFamily":"-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif","lineColor":"#94a3b8","primaryTextColor":"#f8fafc"}}}%%
+flowchart TD
+    subgraph LOCAL["1 · MÁY MAC"]
+        A["💻 Sửa code"] --> B["🧪 npm run verify"]
+        B --> C{"Verify đạt?"}
+        C -- "Không" --> D["🔧 Sửa lỗi"]
+        D --> B
+        C -- "Có" --> E["📦 Commit + Push main"]
+    end
+
+    subgraph GITHUB["2 · GITHUB"]
+        E --> F["⚙️ GitHub Actions · Node 22"]
+        F --> G{"CI xanh?"}
+        G -- "Không" --> D
+        G -- "Có" --> H["✅ Commit sẵn sàng deploy"]
+    end
+
+    subgraph VPS["3 · VPS / PRODUCTION"]
+        H --> I["🚀 npm run deploy:vps"]
+        I --> J{"Git sạch và đúng origin/main?"}
+        J -- "Không" --> K["⛔ Dừng · Production không đổi"]
+        J -- "Có" --> L["🏗️ Tạo release + npm ci + build"]
+        L --> M{"Preflight đạt?"}
+        M -- "Không" --> K
+        M -- "Có" --> N["🔄 Chuyển release + restart systemd"]
+        N --> O{"Health nội bộ + HTTPS đạt?"}
+        O -- "Không" --> P["↩️ Rollback release trước"]
+        O -- "Có" --> Q["🌐 Domain chạy phiên bản mới"]
+        P --> R["🛡️ Website trở lại bản ổn định"]
+        Q --> S["🔎 npm run status:vps"]
+    end
+
+    classDef local fill:#4338ca,stroke:#a5b4fc,color:#ffffff,stroke-width:1.5px;
+    classDef check fill:#27272a,stroke:#a1a1aa,color:#ffffff,stroke-width:1.5px;
+    classDef cloud fill:#075985,stroke:#38bdf8,color:#ffffff,stroke-width:1.5px;
+    classDef success fill:#166534,stroke:#4ade80,color:#ffffff,stroke-width:1.5px;
+    classDef stop fill:#7f1d1d,stroke:#f87171,color:#ffffff,stroke-width:1.5px;
+    class A,B,D,E local;
+    class C,G,J,M,O check;
+    class F,H,I,L,N cloud;
+    class Q,S success;
+    class K,P,R stop;
+    style LOCAL fill:#0b0f14,stroke:#475569,color:#e2e8f0
+    style GITHUB fill:#0b0f14,stroke:#475569,color:#e2e8f0
+    style VPS fill:#0b0f14,stroke:#475569,color:#e2e8f0
+```
+
+Nhánh màu đỏ giúp thấy rõ điểm dừng hoặc rollback; production chỉ đổi phiên bản sau khi toàn bộ kiểm tra cần thiết đều đạt.
+
 Trước tiên, xem trạng thái đồng bộ bằng một lệnh:
 
 ```bash
@@ -155,6 +207,22 @@ Không sửa đồng thời trên cùng một nhánh ở hai máy. Chỉ coi hai
 
 ### 🩺 5. Kiểm tra VPS khi có lỗi
 
+Lệnh tiện nhất để xem tổng thể CPU, RAM, swap, ổ đĩa, tiến trình và health:
+
+```bash
+npm run monitor:vps
+```
+
+Muốn màn hình tự cập nhật mỗi 5 giây:
+
+```bash
+npm run monitor:vps -- --watch 5
+```
+
+Nhấn `Control + C` để dừng chế độ theo dõi. Các màu có ý nghĩa: 🟢 dưới 70%, 🟡 từ 70% và 🔴 từ 85%. Hai lệnh chỉ đọc dữ liệu, không restart hoặc thay đổi VPS.
+
+Khi cần xem log chi tiết:
+
 ```bash
 ssh orace 'systemctl status pdftools --no-pager'
 ssh orace 'journalctl -u pdftools -n 100 --no-pager'
@@ -166,6 +234,23 @@ curl https://congcuweb.duckdns.org/api/health
 | `systemctl status` | Xem dịch vụ PDFTools đang chạy hay đã lỗi. |
 | `journalctl` | Xem 100 dòng log gần nhất để tìm nguyên nhân. |
 | `curl .../api/health` | Kiểm tra website public có trả trạng thái khỏe hay không. |
+
+### 🛠️ Giao diện bảo trì khi cập nhật
+
+Nginx tiếp tục phục vụ phiên bản cũ trong lúc release mới đang `npm ci`, build và preflight. Chỉ trong khoảng Express restart hoặc tạm không phản hồi 502/503/504, Nginx tự trả trang bảo trì độc lập với:
+
+- Logo PDFTools, dark/light mode và giao diện responsive.
+- HTTP `503` cùng `Retry-After: 15`, không cache trang lỗi.
+- Bộ đếm 15 giây, tự tải lại và nút thử lại ngay.
+- Không phụ thuộc Node, CDN hoặc asset của release đang chuyển đổi.
+
+Vì thay đổi này bổ sung cấu hình Nginx, sau khi commit/push và deploy code cần chạy **một lần** trên VPS:
+
+```bash
+ssh orace 'cd /var/www/pdftools && sudo ./deploy/setup-ubuntu.sh'
+```
+
+Setup nhận biết release hiện tại đang healthy nên không cài dependency/build lại lần thứ hai. Các lần cập nhật code thông thường sau đó chỉ cần `npm run deploy:vps`; không chạy lại setup nếu cấu hình hạ tầng không đổi.
 
 Hướng dẫn cài VPS, domain, HTTPS và rollback chi tiết nằm trong [`deploy/README.md`](deploy/README.md).
 
@@ -192,8 +277,13 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Thiết kế bộ nhận diện PDFTools mới: biểu tượng chồng tài liệu kết hợp tia sáng, dùng tông tím indigo và cyan đồng bộ với giao diện sản phẩm.
 - Thay ký tự `P` cũ ở header/footer bằng logo thật; bổ sung wordmark SVG để tái sử dụng cho tài liệu hoặc màn hình giới thiệu.
 - Thêm favicon SVG và PNG 32 px, Apple Touch Icon 180 px, icon PWA 192/512 px cùng `site.webmanifest`; khai báo đầy đủ trong `index.html` để browser và thiết bị nhận đúng biểu tượng.
+- Thêm sơ đồ Mermaid trực quan mô tả toàn bộ luồng Mac → verify → GitHub Actions → deploy VPS → health check/rollback; xem được ngay trên GitHub, còn VS Code cần trình preview có hỗ trợ Mermaid.
+- Thêm `npm run monitor:vps` để xem CPU, RAM, swap, disk, load, top process, trạng thái systemd/Nginx và health bằng một lệnh; hỗ trợ `-- --watch 5` để tự làm mới.
+- Thêm giao diện bảo trì độc lập và Nginx fallback 502/503/504: trả HTTP 503 + `Retry-After`, tự tải lại sau 15 giây và không phụ thuộc ứng dụng đang restart.
+- Tối ưu `setup-ubuntu.sh`: nếu release hiện tại đã healthy thì chỉ cập nhật hạ tầng/Nginx, không chạy lại toàn bộ `npm ci` và build lần thứ hai.
+- Đã thử `monitor:vps` qua SSH thật; kiểm tra trang bảo trì bằng browser ở 1280×720 gồm nội dung accessibility, căn giữa, không tràn ngang, bộ đếm và nút tải lại. `npm run verify` đã qua build, smoke và toàn bộ E2E API.
 - Đã render kiểm tra logo/icon, xác nhận kích thước và MIME qua localhost; `npm run verify` đã qua toàn bộ production build, smoke test và E2E ảnh/PDF/Office.
-- Không thêm dependency. Riêng thay đổi logo hiện **chưa commit, chưa push và chưa deploy**; máy khác chưa nhận được logo cho tới khi thay đổi được push.
+- Không thêm dependency. `package.json` chỉ thêm lệnh monitor; máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn. Bộ logo đã push tại `7607dbb`; sơ đồ, monitor và bảo trì hiện **chưa commit, chưa push và chưa deploy**.
 
 ### 2026-08-23
 

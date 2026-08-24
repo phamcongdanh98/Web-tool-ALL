@@ -19,6 +19,8 @@ source /etc/os-release
 id "$APP_USER" >/dev/null 2>&1 || fail "Không tồn tại user ${APP_USER}."
 [[ -d "${APP_DIR}/.git" ]] || fail "Chưa có repository tại ${APP_DIR}."
 [[ -f "${APP_DIR}/deploy/pdftools.service" ]] || fail 'Thiếu file cấu hình deploy. Hãy pull main mới nhất trước.'
+[[ -f "${APP_DIR}/deploy/maintenance.html" && -f "${APP_DIR}/deploy/nginx-maintenance.conf" ]] \
+  || fail 'Thiếu file giao diện/cấu hình bảo trì. Hãy pull main mới nhất trước.'
 
 printf '1/6 Cài Git, curl, chứng chỉ, Nginx và công cụ lưu firewall...\n'
 export DEBIAN_FRONTEND=noninteractive
@@ -55,6 +57,9 @@ install -m 0440 "${APP_DIR}/deploy/pdftools-sudoers" /etc/sudoers.d/pdftools-dep
 visudo -cf /etc/sudoers.d/pdftools-deploy
 install -d -m 0755 /etc/nginx/snippets
 install -m 0644 "${APP_DIR}/deploy/nginx-assets.conf" /etc/nginx/snippets/pdftools-assets.conf
+install -m 0644 "${APP_DIR}/deploy/nginx-maintenance.conf" /etc/nginx/snippets/pdftools-maintenance.conf
+install -d -o "$APP_USER" -g "$APP_USER" -m 0755 "${APP_DIR}/.deploy"
+install -o "$APP_USER" -g "$APP_USER" -m 0644 "${APP_DIR}/deploy/maintenance.html" "${APP_DIR}/.deploy/maintenance.html"
 
 if [[ -f /etc/nginx/sites-available/pdftools ]]; then
   printf '%s\n' 'Giữ domain/chứng chỉ Certbot và chỉ bổ sung tuning Nginx còn thiếu.'
@@ -85,6 +90,25 @@ if ! grep -Fq 'include /etc/nginx/snippets/pdftools-assets.conf;' "$nginx_site";
   rm -f "$nginx_site_next"
 fi
 
+if ! grep -Fq 'include /etc/nginx/snippets/pdftools-maintenance.conf;' "$nginx_site"; then
+  nginx_site_next="$(mktemp)"
+  awk '
+    !inserted && $1 == "server_name" {
+      print
+      print "    include /etc/nginx/snippets/pdftools-maintenance.conf;"
+      inserted = 1
+      next
+    }
+    { print }
+    END { if (!inserted) exit 1 }
+  ' "$nginx_site" >"$nginx_site_next" || {
+    rm -f "$nginx_site_next"
+    fail 'Không tìm thấy server_name để chèn cấu hình bảo trì Nginx.'
+  }
+  install -m 0644 "$nginx_site_next" "$nginx_site"
+  rm -f "$nginx_site_next"
+fi
+
 if ! grep -Fq 'client_body_timeout 300s;' "$nginx_site"; then
   sed -i '/client_max_body_size 30M;/a\    client_body_timeout 300s;' "$nginx_site"
 fi
@@ -106,6 +130,9 @@ if ! grep -Fq 'Permissions-Policy "camera=(), microphone=(), geolocation=()" alw
 fi
 if ! grep -Fq 'proxy_set_header Connection "";' "$nginx_site"; then
   sed -i '/proxy_set_header X-Forwarded-Proto/a\        proxy_set_header Connection "";' "$nginx_site"
+fi
+if ! grep -Fq 'proxy_intercept_errors on;' "$nginx_site"; then
+  sed -i '/proxy_pass http:\/\/127.0.0.1:3001;/a\        proxy_intercept_errors on;' "$nginx_site"
 fi
 
 if [[ -L /etc/nginx/sites-enabled/default ]]; then
@@ -138,8 +165,14 @@ else
   systemctl start nginx
 fi
 
-printf '6/6 Tạo release đầu tiên và kiểm tra health...\n'
-sudo -H -u "$APP_USER" "${APP_DIR}/deploy/deploy.sh"
+printf '6/6 Kiểm tra release và health...\n'
+if [[ -L "${APP_DIR}/.deploy/current" ]] \
+  && curl -fsS http://127.0.0.1:3001/api/health >/dev/null 2>&1; then
+  printf '%s\n' 'Release hiện tại đang healthy; giữ nguyên, không build/deploy lại.'
+else
+  printf '%s\n' 'Chưa có release healthy; tạo release đầu tiên.'
+  sudo -H -u "$APP_USER" "${APP_DIR}/deploy/deploy.sh"
+fi
 curl -fsS http://127.0.0.1:3001/api/health >/dev/null
 curl -fsS http://127.0.0.1/ >/dev/null
 

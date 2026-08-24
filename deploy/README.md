@@ -1,6 +1,6 @@
 # Triển khai PDFTools lên Ubuntu
 
-Thiết kế production dùng Nginx ở cổng 80, Express ở `127.0.0.1:3001` và `systemd` để giữ ứng dụng hoạt động sau khi reboot. Mỗi lần deploy tạo một release độc lập trong `/var/www/pdftools/.deploy/releases`, kiểm tra release mới trước, rồi mới chuyển symlink `current` và restart. Nếu health check sau restart thất bại, script tự quay lại release trước.
+Thiết kế production dùng Nginx ở cổng 80, Express ở `127.0.0.1:3001` và `systemd` để giữ ứng dụng hoạt động sau khi reboot. Mỗi lần deploy tạo một release độc lập trong `/var/www/pdftools/.deploy/releases`, kiểm tra release mới trước, rồi mới chuyển symlink `current` và restart. Nếu health check sau restart thất bại, script tự quay lại release trước. Trong khoảng Express tạm không phản hồi, Nginx trả trang bảo trì độc lập với HTTP 503 thay cho lỗi 502/504 thô.
 
 Không lưu IP, SSH key, mật khẩu hoặc nội dung `~/.ssh/config` trong repository. Máy phát triển chỉ cần có SSH alias `orace`; có thể đổi alias bằng biến `PDFTOOLS_SSH_HOST`.
 
@@ -30,7 +30,7 @@ cd /var/www/pdftools
 sudo ./deploy/setup-ubuntu.sh
 ```
 
-Script tự cài Git, curl và Nginx; nếu chưa có Node.js 22+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, cấu hình `/assets/` có cache lâu và Gzip build sẵn, tạo release đầu tiên rồi kiểm tra cả API lẫn trang chủ. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
+Script tự cài Git, curl và Nginx; nếu chưa có Node.js 22+ thì cài Node.js 22 từ NodeSource. Sau đó script mở TCP 80 trước rule `REJECT` của host, lưu firewall, cài `systemd`/sudoers/Nginx, cấu hình `/assets/` có cache lâu và Gzip build sẵn, cài trang bảo trì độc lập, tạo release đầu tiên rồi kiểm tra cả API lẫn trang chủ. Nếu đã có release healthy, script giữ release đó và không chạy lại `npm ci`/build. Nếu Nginx đã tồn tại, script giữ domain/chứng chỉ Certbot, chỉ bổ sung tuning còn thiếu, backup và chạy `nginx -t` trước khi reload. Security List hoặc Network Security Group của nhà cung cấp VPS vẫn phải cho phép inbound TCP 80.
 
 Các lệnh thủ công tương đương để chẩn đoán khi script tự động báo lỗi:
 
@@ -43,6 +43,7 @@ sudo visudo -cf /etc/sudoers.d/pdftools-deploy
 
 sudo install -d -m 0755 /etc/nginx/snippets
 sudo install -m 0644 deploy/nginx-assets.conf /etc/nginx/snippets/pdftools-assets.conf
+sudo install -m 0644 deploy/nginx-maintenance.conf /etc/nginx/snippets/pdftools-maintenance.conf
 sudo install -m 0644 deploy/nginx.conf /etc/nginx/sites-available/pdftools
 if [ -L /etc/nginx/sites-enabled/default ]; then sudo unlink /etc/nginx/sites-enabled/default; fi
 sudo ln -sfn /etc/nginx/sites-available/pdftools /etc/nginx/sites-enabled/pdftools
@@ -80,7 +81,7 @@ Trên máy phát triển, chạy verify, commit/push và chờ job GitHub Action
 npm run deploy:vps
 ```
 
-Lệnh local kiểm tra working tree sạch và `HEAD` trùng `origin/main`, rồi gọi SSH. Phía VPS khóa deploy, kiểm tra dung lượng, tạo release độc lập, retry `npm ci`, build, preflight, chuyển release nguyên tử, restart và health/rollback. Khi VPS healthy, máy phát triển kiểm tra tiếp public HTTPS. Có thể đổi URL kiểm tra bằng `PDFTOOLS_PUBLIC_HEALTH_URL`.
+Lệnh local kiểm tra working tree sạch và `HEAD` trùng `origin/main`, rồi gọi SSH. Phía VPS khóa deploy, kiểm tra dung lượng, cập nhật bản sao trang bảo trì ổn định, tạo release độc lập, retry `npm ci`, build, preflight, chuyển release nguyên tử, restart và health/rollback. Khi VPS healthy, máy phát triển kiểm tra tiếp public HTTPS. Có thể đổi URL kiểm tra bằng `PDFTOOLS_PUBLIC_HEALTH_URL`.
 
 Nếu máy khác dùng SSH alias khác:
 
@@ -89,6 +90,17 @@ PDFTOOLS_SSH_HOST=ten-alias-khac npm run deploy:vps
 ```
 
 ## Kiểm tra và xem log
+
+Từ máy Mac, xem nhanh toàn bộ tài nguyên và trạng thái dịch vụ:
+
+```bash
+npm run monitor:vps
+npm run monitor:vps -- --watch 5
+```
+
+Lệnh đầu chụp một lần; lệnh thứ hai tự làm mới mỗi 5 giây và dừng bằng `Control + C`. Cả hai chỉ đọc dữ liệu qua SSH.
+
+Các lệnh chẩn đoán chi tiết:
 
 ```bash
 ssh orace 'systemctl status pdftools --no-pager'

@@ -16,6 +16,19 @@ for command_name in node curl sed grep mktemp; do
 done
 [[ -f "${ROOT_DIR}/dist/index.html" ]] || fail 'Thiếu dist/index.html. Hãy chạy npm run build trước.'
 
+maintenance_file="${ROOT_DIR}/deploy/maintenance.html"
+maintenance_nginx="${ROOT_DIR}/deploy/nginx-maintenance.conf"
+[[ -f "$maintenance_file" && -f "$maintenance_nginx" ]] || fail 'Thiếu giao diện hoặc Nginx fallback bảo trì.'
+grep -Fq '<title>PDFTools đang cập nhật</title>' "$maintenance_file" || fail 'Trang bảo trì thiếu tiêu đề.'
+grep -Fq 'http-equiv="refresh" content="15"' "$maintenance_file" || fail 'Trang bảo trì chưa tự thử lại sau 15 giây.'
+grep -Fq 'Thử tải lại ngay' "$maintenance_file" || fail 'Trang bảo trì thiếu nút tải lại.'
+if grep -Eq 'https?://' "$maintenance_file"; then fail 'Trang bảo trì không được phụ thuộc tài nguyên mạng ngoài.'; fi
+grep -Fq 'error_page 502 503 504 =503' "$maintenance_nginx" || fail 'Nginx chưa chuyển lỗi upstream sang HTTP 503 bảo trì.'
+grep -Fq 'Retry-After "15" always' "$maintenance_nginx" || fail 'Trang bảo trì thiếu Retry-After.'
+grep -Fq 'include /etc/nginx/snippets/pdftools-maintenance.conf;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx site chưa include fallback bảo trì.'
+grep -Fq 'proxy_intercept_errors on;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx chưa chặn lỗi upstream để hiển thị bảo trì.'
+bash "${ROOT_DIR}/deploy/monitor.sh" --help >/dev/null || fail 'Lệnh monitor:vps không hiển thị được hướng dẫn.'
+
 cd "$ROOT_DIR"
 server_log="$(mktemp)"
 server_pid=''

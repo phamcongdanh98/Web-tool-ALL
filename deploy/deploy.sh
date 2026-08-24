@@ -13,13 +13,14 @@ NPM_BIN='/usr/bin/npm'
 DEPLOY_DIR="${APP_DIR}/.deploy"
 RELEASES_DIR="${DEPLOY_DIR}/releases"
 CURRENT_LINK="${DEPLOY_DIR}/current"
+MAINTENANCE_PAGE="${DEPLOY_DIR}/maintenance.html"
 
 fail() {
   printf 'Lỗi deploy: %s\n' "$1" >&2
   exit 1
 }
 
-for command_name in git curl sudo tar flock df awk find sort sed; do
+for command_name in git curl sudo tar flock df awk find sort sed install; do
   command -v "$command_name" >/dev/null 2>&1 || fail "Thiếu lệnh ${command_name}."
 done
 [[ -x "$NODE_BIN" && -x "$NPM_BIN" ]] || fail 'Thiếu Node/npm system-wide trong /usr/bin.'
@@ -46,6 +47,8 @@ git fetch --prune origin "$BRANCH"
 git merge --ff-only "origin/${BRANCH}"
 [[ "$(git rev-parse HEAD)" == "$(git rev-parse "origin/${BRANCH}")" ]] \
   || fail 'HEAD trên VPS chưa trùng commit đã push lên GitHub.'
+[[ -f "${APP_DIR}/deploy/maintenance.html" ]] || fail 'Thiếu giao diện bảo trì trong release nguồn.'
+install -m 0644 "${APP_DIR}/deploy/maintenance.html" "$MAINTENANCE_PAGE"
 
 revision="$(git rev-parse --short=12 HEAD)"
 build_number="$(git rev-list --count HEAD)"

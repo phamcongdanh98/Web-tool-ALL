@@ -22,11 +22,13 @@ npm run build
 npm run verify
 npm run audit:prod
 npm run status:vps
+npm run monitor:vps
 ```
 
 `npm run dev` phải khởi chạy cả Express lẫn Vite. Không đổi sang chỉ chạy Vite nếu các công cụ API vẫn cần hoạt động.
 `npm run verify` là cổng chất lượng chuẩn trước khi commit/push: kiểm tra cú pháp, shell script, production build, smoke test Express và E2E API xử lý ảnh/PDF thật.
 `npm run status:vps` là lệnh read-only để so sánh commit/bản dựng giữa Mac, GitHub, repository VPS, release đang chạy và public health.
+`npm run monitor:vps` là lệnh read-only chụp CPU, RAM, swap, disk, load, tiến trình, systemd, Nginx và health qua SSH; thêm `-- --watch 5` để tự làm mới mỗi 5 giây.
 Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không hạ xuống Node 20 vì dependency Excel hiện yêu cầu runtime mới hơn.
 
 ## Quy ước thay đổi
@@ -43,6 +45,7 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - Typography desktop dùng font hệ thống trước để hiển thị sắc nét trên macOS/Windows. Không đưa lại cỡ chữ nội dung/chú thích quan trọng xuống 7–10 px; sau thay đổi giao diện diện rộng phải kiểm tra thêm viewport 2560×1440 để tránh chữ quá nhỏ hoặc modal quá hẹp trên màn hình 27 inch 2K.
 - Nguồn nhận diện chuẩn là `public/favicon.svg` cho biểu tượng vuông và `public/logo.svg` cho wordmark ngang. Header/footer phải dùng cùng biểu tượng. Khi sửa logo, phải tạo lại các PNG 32, 180, 192 và 512 px từ SVG, giữ liên kết trong `index.html`/`site.webmanifest`, rồi kiểm tra độ rõ ở kích thước favicon và production build.
 - `npm run build` phải tiếp tục sinh `.br`/`.gz` qua `scripts/precompress-assets.mjs`. Express phục vụ Brotli/Gzip theo `Accept-Encoding`; Nginx phục vụ `/assets/` trực tiếp bằng `deploy/nginx-assets.conf` và `gzip_static`. Smoke test phải giữ kiểm tra `Content-Encoding` cùng `Vary: Accept-Encoding`.
+- Giao diện bảo trì production là `deploy/maintenance.html`, phải độc lập, không tải asset/CDN/API và tự thử lại. Nginx dùng `deploy/nginx-maintenance.conf` để trả trang này với HTTP 503 + `Retry-After` khi Express lỗi 502/503/504; không bật bảo trì trong lúc build vì release cũ vẫn phục vụ bình thường. Sau khi sửa trang/snippet, kiểm tra HTML ở desktop/mobile và chạy `nginx -t` trên Ubuntu trước khi reload.
 - Không commit `.env`, `node_modules`, `dist` hoặc cấu hình IDE cục bộ.
 - Không bao giờ commit private key, nội dung `~/.ssh`, địa chỉ máy chủ riêng hoặc thông tin đăng nhập. Chỉ ghi hướng dẫn chung trong repository; cấu hình kết nối cụ thể phải nằm ngoài dự án trên từng máy.
 - Sau mỗi thay đổi code hoặc cấu hình runtime đáng kể, chạy `npm run verify`. Chỉ thay đổi tài liệu thuần túy mới có thể dùng kiểm tra hẹp hơn như `git diff --check`.
@@ -61,6 +64,7 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - Không làm đồng thời trên cùng nhánh ở hai máy. Nếu cần làm song song, dùng nhánh riêng có tiền tố `codex/` và gộp qua pull request.
 - GitHub là nguồn code chuẩn. VPS chỉ pull commit đã push để build và chạy; không sửa trực tiếp source production trên VPS nhằm tránh lệch code giữa hai máy và máy chủ.
 - Production dùng các file trong `deploy/`: Nginx proxy vào Express loopback, `systemd` chạy symlink `.deploy/current`, và `deploy/deploy.sh` tạo release độc lập. Không đổi lại sang chạy `vite preview` trong production.
+- Mỗi deploy cập nhật bản sao ổn định `.deploy/maintenance.html`; Nginx không phụ thuộc Node hoặc asset của release để hiển thị trang bảo trì. `npm run monitor:vps` chỉ được đọc trạng thái, không restart/kill/dọn tài nguyên.
 - `deploy/setup-ubuntu.sh` chỉ mở public TCP 80 ở host firewall và lưu bằng `netfilter-persistent`; không mở trực tiếp cổng Express 3001. Firewall/Security List phía nhà cung cấp vẫn được cấu hình ngoài repository.
 - Sau khi commit và push `main`, deploy từ máy phát triển bằng `npm run deploy:vps`. Script phải giữ các guard Git, preflight, health check và rollback; nếu bước chuẩn bị lỗi thì không restart phiên bản đang chạy.
 - `deploy/setup-ubuntu.sh` dùng khi cài VPS lần đầu hoặc khi chủ động cập nhật hạ tầng. Script phải có tính lặp lại an toàn, giữ domain/chứng chỉ Certbot, chỉ merge tuning được quản lý sau khi backup và kiểm tra `nginx -t`. Deploy code hằng ngày không chạy setup hạ tầng.
