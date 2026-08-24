@@ -6,6 +6,7 @@ import path from 'node:path'
 import sharp from 'sharp'
 import { PDFDocument, PDFName, StandardFonts } from 'pdf-lib'
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs'
+import { createExactWordBuffer } from '../lib/exact-word.js'
 
 const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:13999'
 const standardFontDataUrl = path.resolve('node_modules/pdfjs-dist/standard_fonts') + path.sep
@@ -183,6 +184,26 @@ const imageInput = await sharp({
     background: { r: 35, g: 120, b: 210 },
   },
 }).png().toBuffer()
+
+const exactPageImage = await sharp(Buffer.from(`
+  <svg width="1240" height="1754" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1240" height="1754" fill="white"/>
+    <text x="110" y="155" font-family="serif" font-size="42" fill="#111827">PDFTOOLS EXACT WORD TEST</text>
+    <text x="110" y="235" font-family="serif" font-size="27" fill="#111827">Giữ nguyên lề, dấu và chữ ký hiển thị</text>
+    <circle cx="890" cy="1280" r="105" fill="none" stroke="#dc2626" stroke-width="16"/>
+    <text x="820" y="1295" font-family="sans-serif" font-size="35" fill="#dc2626">DẤU</text>
+    <path d="M720 1420 C800 1350 875 1490 1015 1365" fill="none" stroke="#2563eb" stroke-width="13"/>
+  </svg>
+`)).png().toBuffer()
+const exactWordBuffer = await createExactWordBuffer([{ data: exactPageImage, mimeType: 'image/png', width: 595, height: 842 }])
+const exactWordZip = await JSZip.loadAsync(exactWordBuffer)
+const exactWordXml = await exactWordZip.file('word/document.xml').async('string')
+assert.match(exactWordXml, /<wp:anchor/, 'Word giữ nguyên hình thức phải dùng ảnh neo toàn trang.')
+assert.match(exactWordXml, /<wp:positionH relativeFrom="page"/, 'Ảnh phải được đặt theo gốc trang Word.')
+assert.match(exactWordXml, /<wp:positionV relativeFrom="page"/, 'Ảnh phải được đặt theo gốc trang Word.')
+assert.match(exactWordXml, /<w:pgSz w:w="11900" w:h="16840"/, 'Khổ Word phải khớp chính xác khổ PDF nguồn.')
+assert.match(exactWordXml, /<w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0"/, 'Chế độ giữ nguyên hình thức không được tự thêm lề Word.')
+assert.equal(exactWordZip.file(/^word\/media\//).length, 1, 'DOCX phải nhúng đúng một ảnh cho mỗi trang PDF.')
 
 const imageForm = new FormData()
 imageForm.append('file', new Blob([imageInput], { type: 'image/png' }), 'smoke.png')

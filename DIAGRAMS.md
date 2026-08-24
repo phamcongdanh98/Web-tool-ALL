@@ -57,7 +57,7 @@ flowchart TB
     PDF --> PM["Ghép PDF<br/>kéo thứ tự · xoay · chèn"]
     PDF --> PO["Sắp xếp PDF<br/>kéo-thả · nhân bản · xóa"]
     PDF --> PS["Tách PDF<br/>chọn thumbnail · xuất ZIP"]
-    PDF --> PW["PDF sang Word<br/>PDF ký số · đoạn reflow · bảng thật"]
+    PDF --> PW["PDF sang Word<br/>giữ hình thức / chỉnh sửa được"]
     PDF --> PX["PDF sang Excel"]
     PDF --> PP["PDF sang PowerPoint"]
     PDF --> PT["PDF sang văn bản"]
@@ -100,7 +100,12 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    F["📄 PDF đầu vào"] --> M["Đọc metadata · chữ · hình ảnh · trường chữ ký"]
+    F["📄 PDF đầu vào"] --> Z{"Kiểu Word?"}
+    Z -->|"Giữ nguyên hình thức · mặc định"| E["PDF.js render nội dung + annotation<br/>200 DPI · giới hạn 40 trang"]
+    E --> I["PNG/JPEG toàn trang<br/>giữ dấu · chữ ký · font · lề"]
+    I --> J["DOCX đúng khổ · lề 0 · ảnh neo theo trang"]
+    J --> Y["Giống hình thức PDF<br/>không sửa riêng chữ · không giữ hiệu lực ký số"]
+    Z -->|"Có thể chỉnh sửa"| M["Đọc metadata · chữ · hình ảnh · trường chữ ký"]
     M --> K{"Loại PDF?"}
     K -->|"Không có lớp chữ"| S["Scan · HTTP 422 · hướng dẫn OCR"]
     K -->|"Chữ + trang ảnh"| H["PDF hỗn hợp · cảnh báo trang chưa OCR"]
@@ -128,9 +133,9 @@ flowchart TD
     classDef decision fill:#27272a,stroke:#a1a1aa,color:#fff;
     classDef warn fill:#9a3412,stroke:#fb923c,color:#fff;
     classDef ok fill:#166534,stroke:#4ade80,color:#fff;
-    class K decision;
+    class Z,K decision;
     class S,H warn;
-    class V,W,D,R,T,B,Q,X,O,C,P,G,A,L ok;
+    class E,I,J,Y,V,W,D,R,T,B,Q,X,O,C,P,G,A,L ok;
 ```
 
 ## 5. Production, cập nhật và bảo trì

@@ -564,6 +564,8 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
 .option-cards button.active { border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 11%, transparent); }
 .option-cards b, .option-cards small { display: block; }
 .option-cards b { font-size: 13px; }
+.word-mode-control .option-cards button { min-height: 104px; }
+.word-mode-control .option-cards b em { display: inline-block; margin-left: 5px; padding: 2px 6px; border-radius: 999px; color: #fff; background: var(--primary); font-size: 9.5px; font-style: normal; letter-spacing: .02em; vertical-align: 1px; }
 .option-cards small { margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .target-size-control { position: relative; }
 .target-size-control > label { padding-right: 44px; }

@@ -22,7 +22,8 @@
 - Sắp xếp PDF độc lập: kéo-thả trang, xoay, nhân bản, đảo thứ tự, thêm hoặc xóa trang rồi preview kết quả.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
 - Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; có thể kéo chữ trực tiếp trên preview hoặc dùng tọa độ phần trăm, đồng thời hỗ trợ tự đánh số `Trang N / Tổng`.
-- Chuyển phần chữ có thể chọn trong PDF sang **Word, Excel, PowerPoint hoặc TXT**, có kiểm tra nhanh PDF scan, PDF hỗn hợp, PDF đã ký số và dấu hiệu được xuất từ Microsoft Word. Word dùng tái dựng dòng chảy: gom dòng thành đoạn, phục hồi bố cục hai cột và nhận diện bảng thành ô Word thật có thể chỉnh sửa.
+- **PDF sang Word có hai chế độ rõ ràng**: mặc định **Giữ nguyên hình thức** kết xuất từng trang ở 200 DPI để giữ dấu, chữ ký hiển thị, font, khoảng cách và lề; chế độ **Có thể chỉnh sửa** dùng tái dựng dòng chảy, gom đoạn, phục hồi bố cục hai cột và nhận diện bảng thành ô Word thật.
+- Chuyển phần chữ có thể chọn trong PDF sang **Excel, PowerPoint hoặc TXT**, có kiểm tra nhanh PDF scan, PDF hỗn hợp, PDF đã ký số và dấu hiệu được xuất từ Microsoft Word.
 - Chỉnh ảnh trực quan: độ sáng, tương phản, bão hòa, sắc độ, làm mờ, trắng-đen, xoay và lật; preview dùng cùng thông số với ảnh kết quả.
 - Bộ nhận diện PDFTools thống nhất trên thanh điều hướng, footer và tab trình duyệt; có SVG gốc, favicon PNG, Apple Touch Icon và icon PWA 192/512 px.
 - Footer có liên hệ trực tiếp với Danh Phạm qua Facebook, Zalo và Telegram.
@@ -30,7 +31,7 @@
 - Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.1.0 · Bản dựng #14`; số bản dựng tự tăng theo Git commit.
 
 > [!NOTE]
-> Chuyển Office ưu tiên **nội dung có thể chỉnh sửa**. Dù PDF từng được xuất từ Word, PDF không còn đầy đủ style, lịch sử sửa và cấu trúc DOCX nên không thể lấy lại tệp Word ban đầu theo nghĩa tuyệt đối. Với PDF đã ký số, công cụ phục dựng phần tài liệu nhưng chữ ký số không còn hiệu lực trong DOCX. PDF scan/ảnh chưa có chữ chọn được sẽ được từ chối kèm hướng dẫn OCR; giới hạn hiện tại là 100 trang và 25 MB.
+> PDF sang Word mặc định ưu tiên **giống hình thức PDF**: trang Word là ảnh toàn trang nên không sửa riêng từng chữ; dấu/chữ ký nhìn thấy được giữ nhưng chữ ký số không còn hiệu lực xác thực trong DOCX. Chế độ này chạy ngay trong trình duyệt, tối đa 40 trang/lượt. Nếu cần sửa chữ và bảng, chọn **Có thể chỉnh sửa**; bố cục chỉ gần đúng và PDF scan cần OCR trước. Các chuyển đổi Office có thể chỉnh sửa giới hạn 100 trang và 25 MB.
 
 ## 🚀 Hướng dẫn nhanh
 
@@ -303,6 +304,9 @@ ROADMAP.md        Ý tưởng đã phân loại theo giá trị, rủi ro và đ
 
 ### 2026-08-24
 
+- Thêm chế độ mặc định **PDF → Word giữ nguyên hình thức**: PDF.js kết xuất cả nội dung trang và annotation ở 200 DPI; DOCX đặt ảnh đúng khổ, gốc tọa độ và lề 0 nên giữ dấu đỏ, chữ ký hiển thị, font, khoảng cách và lề như PDF. Chế độ chạy trong browser, lazy-load gói `docx`, tối đa 40 trang và không gửi tệp lên API.
+- Giao diện tách rõ **Giữ nguyên hình thức** và **Có thể chỉnh sửa**, gắn nhãn khuyên dùng cho bản giống PDF, preview trước/sau dùng chính trang nguồn và kết quả báo số trang, DPI, PNG/JPEG. UI nói rõ trang là ảnh và chữ ký số chỉ được giữ hình thức, không giữ hiệu lực mật mã.
+- E2E kiểm tra OOXML exact-mode có ảnh neo theo `page`, khổ `pgSz`, lề 0 và media nhúng. DOCX fixture có dấu đỏ/chữ ký xanh đã render bằng LibreOffice đúng 1 trang, sát đủ bốn cạnh; browser local hoàn tất luồng chọn PDF → tạo DOCX → xem kết quả, không có console error. `npm run verify` đã qua, `npm run audit:prod` báo 0 lỗ hổng và chunk Word 358 KB chỉ tải khi dùng. Không thêm dependency; lượt này **chưa commit, chưa push và chưa deploy**.
 - Nâng cấp **PDF đã ký số → Word** theo file công văn thực tế: phát hiện trường chữ ký `/Sig`, tách đúng với PDF scan và hiển thị rõ số chữ ký; DOCX không tuyên bố giữ hiệu lực mật mã của chữ ký PDF.
 - Thay cách đặt từng dòng bằng **tái dựng dòng chảy**: hai khối tiêu đề/chân trang dùng bố cục cột ổn định, các dòng thân bài được gom thành đoạn Word có thể reflow và bảng `STT` được dựng thành bảng Word thật với khung, ô gộp ngang/dọc, căn lề và độ rộng cột.
 - Nghiên cứu tài liệu công khai của Smallpdf: công cụ này hợp tác với Solid Documents và dùng các ý tưởng Flowing/Continuous/Exact, nhận diện bảng, header/footer; PDF scan mới đi qua OCR. PDFTools hiện áp dụng hướng Flowing cho PDF có chữ, không OCR lại file số để tránh giảm chất lượng.
@@ -329,7 +333,7 @@ ROADMAP.md        Ý tưởng đã phân loại theo giá trị, rủi ro và đ
 - Thay cột liên kết mẫu ở footer bằng Facebook, Zalo và Telegram thật của Danh Phạm; giữ số điện thoại hiển thị để người dùng có thể tìm thủ công khi deep link bị giới hạn.
 - Đã render kiểm tra logo/icon, xác nhận kích thước và MIME qua localhost; `npm run verify` đã qua toàn bộ production build, smoke test và E2E ảnh/PDF/Office.
 - `npm run verify` đã qua production build, smoke test và E2E ảnh/PDF/Office; kiểm tra footer trên browser không tràn ngang và đủ ba liên kết ngoài. Không thêm dependency. Sơ đồ, bảo trì thủ công và liên hệ đã push tại `79bf4d3`; máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn vì `package.json` có thêm script.
-- Mốc tái dựng PDF→Word nền tảng và kéo overlay đã nằm trên `origin/main` tại `a32bee4`. Nâng cấp PDF ký số, đoạn dòng chảy và bảng Word trong lượt hiện tại **chưa commit, chưa push và chưa deploy**.
+- Mốc PDF ký số, đoạn dòng chảy và bảng Word đã nằm trên `origin/main` tại `9a22da2`. Chế độ Word giữ nguyên hình thức trong lượt hiện tại **chưa commit, chưa push và chưa deploy**.
 
 ### 2026-08-23
 
