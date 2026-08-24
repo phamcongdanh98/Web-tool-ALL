@@ -286,7 +286,9 @@ app.post('/api/tools/pdf/to-:format', upload.single('file'), enforceUploadedByte
       'X-PDF-Image-Only-Pages': String(result.source.imageOnlyPageCount),
       'X-PDF-Blank-Pages': String(result.source.blankPageCount),
       'X-PDF-Has-Structure': result.source.hasStructTree ? 'yes' : 'no',
+      'X-PDF-Signatures': String(result.source.signatureCount || 0),
       ...(result.layoutMode ? { 'X-Word-Layout-Mode': result.layoutMode } : {}),
+      ...(Number.isFinite(result.detectedTables) ? { 'X-Word-Detected-Tables': String(result.detectedTables) } : {}),
     })
     download(res, result.buffer, safeName(req.file.originalname, `.${result.extension}`), result.type)
   } catch (error) { next(error) }

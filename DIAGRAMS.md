@@ -57,7 +57,7 @@ flowchart TB
     PDF --> PM["Ghép PDF<br/>kéo thứ tự · xoay · chèn"]
     PDF --> PO["Sắp xếp PDF<br/>kéo-thả · nhân bản · xóa"]
     PDF --> PS["Tách PDF<br/>chọn thumbnail · xuất ZIP"]
-    PDF --> PW["PDF sang Word<br/>phân loại nguồn · tái dựng bố cục"]
+    PDF --> PW["PDF sang Word<br/>PDF ký số · đoạn reflow · bảng thật"]
     PDF --> PX["PDF sang Excel"]
     PDF --> PP["PDF sang PowerPoint"]
     PDF --> PT["PDF sang văn bản"]
@@ -100,17 +100,25 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-    F["📄 PDF đầu vào"] --> M["Đọc metadata · chữ · hình ảnh từng trang"]
+    F["📄 PDF đầu vào"] --> M["Đọc metadata · chữ · hình ảnh · trường chữ ký"]
     M --> K{"Loại PDF?"}
     K -->|"Không có lớp chữ"| S["Scan · HTTP 422 · hướng dẫn OCR"]
     K -->|"Chữ + trang ảnh"| H["PDF hỗn hợp · cảnh báo trang chưa OCR"]
+    K -->|"Có /Sig hoặc /ByteRange"| V["PDF văn bản đã ký số"]
     K -->|"Creator/Producer là Word"| W["Có dấu hiệu xuất từ Word"]
     K -->|"Có chữ khác"| D["PDF số thông thường"]
     H --> R["Tái dựng phần chữ hiện có"]
+    V --> R
     W --> R
     D --> R
-    R --> O["DOCX: khổ trang · lề · khoảng cách · căn dòng · tab · kiểu chữ"]
-    O --> C["Kết quả chỉnh sửa được · không tuyên bố là Word gốc"]
+    R --> T{"Nhận diện bố cục"}
+    T -->|"Nhiều dòng"| B["Gom đoạn · căn đều · first-line indent"]
+    T -->|"STT + cột số liệu"| Q["Bảng Word thật · border · ô gộp"]
+    T -->|"Tiêu đề / nơi nhận"| X["Bố cục hai cột ổn định"]
+    B --> O["DOCX khổ trang gốc · Flowing reconstruction"]
+    Q --> O
+    X --> O
+    O --> C["Chỉnh sửa được · chữ ký PDF không còn hiệu lực"]
 
     F --> P["Canvas preview chỉnh PDF"]
     P --> G["Nhấp/kéo overlay · tọa độ tâm x/y % từ góc trên-trái"]
@@ -122,7 +130,7 @@ flowchart TD
     classDef ok fill:#166534,stroke:#4ade80,color:#fff;
     class K decision;
     class S,H warn;
-    class W,D,R,O,C,P,G,A,L ok;
+    class V,W,D,R,T,B,Q,X,O,C,P,G,A,L ok;
 ```
 
 ## 5. Production, cập nhật và bảo trì

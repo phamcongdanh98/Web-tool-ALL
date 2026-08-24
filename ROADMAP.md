@@ -8,7 +8,7 @@ Tài liệu này phân loại ý tưởng theo code đang có, khả năng kiể
 | --- | --- | --- |
 | Sắp xếp PDF | Đã triển khai | Tái sử dụng `PdfPageBoard` và API `pagePlan`; hỗ trợ kéo-thả, xoay, nhân bản, thêm, xóa và preview PDF kết quả. |
 | Giới hạn tài nguyên API | Đã triển khai | VPS nhỏ cần trần tổng request 50 MB, 500 trang PDF, tối đa 2 tác vụ đồng thời, kiểm tra PDF/ảnh thật và giới hạn ảnh 30 megapixel. |
-| PDF → Word thích ứng | Đã triển khai bước nền | Phân loại scan/PDF hỗn hợp/Word-export, tái dựng khổ trang, lề, khoảng cách, căn dòng, tab và kiểu chữ còn suy ra được; không tuyên bố khôi phục DOCX gốc. |
+| PDF → Word dòng chảy | Đã triển khai cho tài liệu số/công văn | Phân loại scan/PDF hỗn hợp/Word-export/PDF ký số; gom dòng thành đoạn, phục hồi khối hai cột và bảng `STT` thành bảng Word có border/ô gộp. Không tuyên bố khôi phục DOCX gốc hoặc hiệu lực chữ ký. |
 | Overlay chữ PDF trực tiếp | Đã triển khai | Canvas cho phép nhấp/kéo vị trí, tinh chỉnh x/y phần trăm; API clamp và đổi đúng hệ tọa độ trước khi thêm lớp chữ mới. |
 | Refactor | Làm tăng dần | Chỉ tách module khi chạm vào flow có test; không đại tu toàn bộ `App.jsx` trong một lần. |
 
@@ -40,6 +40,8 @@ Tài liệu này phân loại ý tưởng theo code đang có, khả năng kiể
 
 - [iLovePDF – danh mục công cụ chính thức](https://www.ilovepdf.com/)
 - [Smallpdf – danh mục công cụ chính thức](https://smallpdf.com/)
+- [Smallpdf – PDF sang Word, công khai hợp tác với Solid Documents](https://smallpdf.com/vi/pdf-to-word)
+- [Solid Documents – Flowing/Continuous/Exact, nhận diện bảng và header/footer](https://www.soliddocuments.com/convert/PDF-to-Word/303/12)
 - [OCRmyPDF – lưu ý khi triển khai online](https://ocrmypdf.readthedocs.io/en/stable/cloud.html)
 - [LibreOffice – chuyển đổi định dạng bằng command line](https://help.libreoffice.org/latest/en-US/text/shared/guide/convertfilters.html)
 - [qpdf – tùy chọn mã hóa/giải mã](https://qpdf.readthedocs.io/en/stable/cli.html)

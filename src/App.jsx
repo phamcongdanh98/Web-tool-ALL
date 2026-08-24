@@ -10,7 +10,7 @@ const pdfTools = [
   { icon: '⊕', name: 'Ghép PDF', description: 'Sắp xếp và ghép nhiều tệp PDF thành một', color: 'blue', mode: 'pdf-merge' },
   { icon: '↕', name: 'Sắp xếp PDF', description: 'Kéo thả, xoay, nhân bản, thêm hoặc xóa trang', color: 'indigo', mode: 'pdf-organize' },
   { icon: '◫', name: 'Tách PDF', description: 'Chọn trực tiếp thumbnail và tải kết quả dạng ZIP', color: 'purple', mode: 'pdf-split' },
-  { icon: 'W', name: 'PDF sang Word', description: 'Trích xuất chữ thành DOCX có thể chỉnh sửa', color: 'blue', mode: 'pdf-to-word' },
+  { icon: 'W', name: 'PDF sang Word', description: 'Tái dựng PDF số/ký số thành DOCX có thể sửa', color: 'blue', mode: 'pdf-to-word' },
   { icon: 'X', name: 'PDF sang Excel', description: 'Tách dòng và cột thành workbook XLSX', color: 'green', mode: 'pdf-to-excel' },
   { icon: 'P', name: 'PDF sang PowerPoint', description: 'Mỗi trang thành slide với chữ có thể sửa', color: 'orange', mode: 'pdf-to-powerpoint' },
   { icon: 'TXT', name: 'PDF sang văn bản', description: 'Xuất nội dung có thể chọn thành tệp TXT', color: 'teal', mode: 'pdf-to-text' },
@@ -109,6 +109,7 @@ const warmPdfTools = () => {
 
 const pdfSourceLabels = {
   'word-export': 'Có dấu hiệu xuất từ Microsoft Word',
+  'signed-document': 'PDF văn bản đã ký số',
   digital: 'PDF có văn bản chọn được',
   mixed: 'PDF hỗn hợp: chữ và trang dạng ảnh',
   scan: 'Có thể là PDF scan',
@@ -116,10 +117,14 @@ const pdfSourceLabels = {
 
 const readPdfTextPreview = async file => {
   const pdfjs = await loadPdfJs()
-  const loadingTask = pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
+  const data = new Uint8Array(await file.arrayBuffer())
+  const loadingTask = pdfjs.getDocument({ data })
   try {
     const pdf = await loadingTask.promise
     const metadata = await pdf.getMetadata().catch(() => ({ info: {} }))
+    const signatures = await pdf.getSignatures().catch(() => null)
+    const fieldObjects = signatures?.length ? null : await pdf.getFieldObjects().catch(() => null)
+    const signatureCount = signatures?.length || (fieldObjects ? Object.values(fieldObjects).flat().filter(field => field?.type === 'signature').length : 0)
     const creator = String(metadata.info?.Creator || '')
     const producer = String(metadata.info?.Producer || '')
     const hasWordMetadata = /(microsoft\s*(?:office\s*)?word|word\s+for\s+mac|acrobat\s+pdfmaker[^\n]*word)/i.test(`${creator} ${producer}`.normalize('NFKD').replace(/[®™]/g, ''))
@@ -153,6 +158,7 @@ const readPdfTextPreview = async file => {
     }
     const sourceKind = textPages && imageOnlyPages ? 'mixed'
       : !textPages ? 'scan'
+        : signatureCount ? 'signed-document'
         : hasWordMetadata ? 'word-export'
           : 'digital'
     return {
@@ -161,6 +167,7 @@ const readPdfTextPreview = async file => {
       creator,
       producer,
       hasStructTree: Boolean(metadata.hasStructTree),
+      signatureCount,
       textPages,
       imageOnlyPages,
       sampledPages: checkedPages,
@@ -960,7 +967,9 @@ function ToolModal({ mode, close }) {
           pdfSourceKind: response.headers.get('x-pdf-source-kind') || undefined,
           pdfTextPages: Number(response.headers.get('x-pdf-text-pages')) || undefined,
           pdfImageOnlyPages: Number(response.headers.get('x-pdf-image-only-pages')) || 0,
+          pdfSignatures: Number(response.headers.get('x-pdf-signatures')) || 0,
           wordLayoutMode: response.headers.get('x-word-layout-mode') || undefined,
+          wordDetectedTables: Number(response.headers.get('x-word-detected-tables')) || 0,
           editPosition: response.headers.get('x-pdf-edit-position') || undefined,
         }
       }
@@ -1002,7 +1011,7 @@ function ToolModal({ mode, close }) {
     <form className={`tool-modal ${files.length ? 'tool-modal-wide' : ''} ${isPdfOffice ? 'pdf-office-modal' : ''} ${mode === 'pdf-edit' ? 'pdf-edit-modal' : ''}`} onSubmit={submit}>
       <button className="close" type="button" onClick={close}>×</button>
       <div className="modal-heading"><i>✦</i><div><p>CÔNG CỤ PDFTOOLS</p><h2>{labels[mode]}</h2></div></div>
-      <p className="modal-copy">{isOrganize ? 'Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.' : isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
+      <p className="modal-copy">{isOrganize ? 'Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.' : isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : mode === 'pdf-to-word' ? 'Tái dựng PDF có chữ hoặc đã ký số thành DOCX: gom đoạn, phục hồi bảng và bố cục để tiếp tục chỉnh sửa.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
 
       {!files.length ? <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files) }}>
         <input ref={input} className="drop-file-input" aria-label="Chọn tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
@@ -1044,8 +1053,8 @@ function ToolModal({ mode, close }) {
             </>}
 
             {isPdfOffice && <>
-              {pdfDiagnosis && <div className={`pdf-diagnosis ${pdfDiagnosis.sourceKind}`}><strong>{pdfSourceLabels[pdfDiagnosis.sourceKind]}</strong><span>{pdfDiagnosis.sourceKind === 'word-export' ? 'Metadata cho thấy PDF có thể được xuất từ Word; hệ thống sẽ tái dựng bố cục nâng cao.' : pdfDiagnosis.sourceKind === 'scan' ? 'Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi chuyển.' : pdfDiagnosis.sourceKind === 'mixed' ? 'Một số trang có chữ, một số trang chỉ có ảnh; trang ảnh sẽ cần OCR.' : 'Có lớp chữ để tái dựng thành nội dung Office có thể chỉnh sửa.'}</span><small>Kiểm tra nhanh {pdfDiagnosis.sampledPages}/{pdfDiagnosis.totalPages} trang{pdfDiagnosis.producer ? ` · Trình tạo: ${pdfDiagnosis.producer}` : ''}{pdfDiagnosis.hasStructTree ? ' · Có cấu trúc PDF được gắn thẻ' : ''}</small></div>}
-              <div className="control-note office-note"><b>{mode === 'pdf-to-word' ? 'Tái dựng Word có thể chỉnh sửa' : 'Chuyển đổi văn bản có thể chỉnh sửa'}</b><span>{mode === 'pdf-to-word' ? 'Giữ khổ giấy, ngắt trang, vị trí dòng, khoảng cách, căn lề, cỡ chữ và đậm/nghiêng khi PDF còn đủ dữ liệu.' : mode === 'pdf-to-excel' ? 'Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.' : mode === 'pdf-to-powerpoint' ? 'Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.' : 'Xuất văn bản UTF-8, phân tách rõ từng trang.'}</span><em>{pdfTextPreview ? `Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString('vi-VN')} ký tự. Không thể khôi phục lịch sử sửa, style hoặc cấu trúc mà PDF đã loại bỏ.` : 'Chưa tìm thấy chữ có thể chọn trong phần xem trước.'}</em></div>
+              {pdfDiagnosis && <div className={`pdf-diagnosis ${pdfDiagnosis.sourceKind}`}><strong>{pdfSourceLabels[pdfDiagnosis.sourceKind]}</strong><span>{pdfDiagnosis.sourceKind === 'word-export' ? 'Metadata cho thấy PDF có thể được xuất từ Word; hệ thống sẽ tái dựng bố cục nâng cao.' : pdfDiagnosis.sourceKind === 'signed-document' ? `Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Công cụ phục dựng phần tài liệu có thể chỉnh sửa; chữ ký số không còn hiệu lực khi đổi sang DOCX.` : pdfDiagnosis.sourceKind === 'scan' ? 'Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi chuyển.' : pdfDiagnosis.sourceKind === 'mixed' ? 'Một số trang có chữ, một số trang chỉ có ảnh; trang ảnh sẽ cần OCR.' : 'Có lớp chữ để tái dựng thành nội dung Office có thể chỉnh sửa.'}</span><small>Kiểm tra nhanh {pdfDiagnosis.sampledPages}/{pdfDiagnosis.totalPages} trang{pdfDiagnosis.producer ? ` · Trình tạo: ${pdfDiagnosis.producer}` : ''}{pdfDiagnosis.hasStructTree ? ' · Có cấu trúc PDF được gắn thẻ' : ''}</small></div>}
+              <div className="control-note office-note"><b>{mode === 'pdf-to-word' ? 'Tái dựng Word có thể chỉnh sửa' : 'Chuyển đổi văn bản có thể chỉnh sửa'}</b><span>{mode === 'pdf-to-word' ? 'Gom lại đoạn văn, nhận diện bảng thành ô Word thật, giữ khổ giấy, căn lề, cỡ chữ và đậm/nghiêng khi PDF còn đủ dữ liệu.' : mode === 'pdf-to-excel' ? 'Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.' : mode === 'pdf-to-powerpoint' ? 'Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.' : 'Xuất văn bản UTF-8, phân tách rõ từng trang.'}</span><em>{pdfTextPreview ? `Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString('vi-VN')} ký tự. Không thể khôi phục lịch sử sửa hoặc chữ ký số hợp lệ mà PDF đã loại bỏ.` : 'Chưa tìm thấy chữ có thể chọn trong phần xem trước.'}</em></div>
             </>}
 
             {mode === 'pdf-compress' && <>
@@ -1071,7 +1080,7 @@ function ToolModal({ mode, close }) {
       {result && <div className="result-workspace">
         <div className="result-heading"><div><span>KẾT QUẢ</span><h3>{result.name}</h3></div><a className="primary download-result" href={result.url} download={result.name}>Tải xuống <b>↓</b></a></div>
         <div className="result-comparison"><MediaPreview info={fileInfo[0]} title="Trước xử lý" /><MediaPreview info={result} title="Sau xử lý" checkerboard={mode === 'remove-background'} /></div>
-        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}{result.pdfSourceKind && <span><small>Loại PDF</small><b>{pdfSourceLabels[result.pdfSourceKind] || result.pdfSourceKind}</b></span>}{result.wordLayoutMode && <span><small>Chế độ Word</small><b>Tái dựng bố cục linh hoạt</b></span>}{result.pdfImageOnlyPages > 0 && <span><small>Chưa OCR</small><b>{result.pdfImageOnlyPages} trang ảnh</b></span>}</div>
+        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}{result.pdfSourceKind && <span><small>Loại PDF</small><b>{pdfSourceLabels[result.pdfSourceKind] || result.pdfSourceKind}</b></span>}{result.wordLayoutMode && <span><small>Chế độ Word</small><b>Dòng chảy + bảng thật</b></span>}{result.wordDetectedTables > 0 && <span><small>Bảng nhận diện</small><b>{result.wordDetectedTables} bảng Word</b></span>}{result.pdfSignatures > 0 && <span><small>Chữ ký PDF</small><b>{result.pdfSignatures} · không chuyển hiệu lực</b></span>}{result.pdfImageOnlyPages > 0 && <span><small>Chưa OCR</small><b>{result.pdfImageOnlyPages} trang ảnh</b></span>}</div>
       </div>}
     </form>
   </div>

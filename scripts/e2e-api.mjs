@@ -4,7 +4,7 @@ import http from 'node:http'
 import JSZip from 'jszip'
 import path from 'node:path'
 import sharp from 'sharp'
-import { PDFDocument, StandardFonts } from 'pdf-lib'
+import { PDFDocument, PDFName, StandardFonts } from 'pdf-lib'
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs'
 
 const baseUrl = process.env.BASE_URL || 'http://127.0.0.1:13999'
@@ -86,6 +86,62 @@ const makeWordExportPdf = async () => {
   page.drawText('Editable paragraph reconstructed from PDF.', { x: 54, y: 728, size: 12, font: regular })
   page.drawText('Italic source style', { x: 54, y: 704, size: 11, font: italic })
   return Buffer.from(await pdf.save())
+}
+
+const makeStructuredLetterPdf = async () => {
+  const pdf = await PDFDocument.create()
+  pdf.setCreator('Microsoft Word for Microsoft 365')
+  pdf.setProducer('Microsoft Word for Microsoft 365')
+  const regular = await pdf.embedFont(StandardFonts.TimesRoman)
+  const bold = await pdf.embedFont(StandardFonts.TimesRomanBold)
+  const italic = await pdf.embedFont(StandardFonts.TimesRomanItalic)
+  const page = pdf.addPage([595, 842])
+  const draw = (text, x, y, options = {}) => page.drawText(text, { x, y, size: options.size || 14, font: options.bold ? bold : options.italic ? italic : regular })
+
+  draw('UBND PHUONG NAM NHA TRANG', 62, 801, { size: 13 })
+  draw('CONG HOA XA HOI CHU NGHIA VIET NAM', 296, 801, { size: 13, bold: true })
+  draw('TRUNG TAM PVHC CONG', 79, 785, { bold: true })
+  draw('Doc lap - Tu do - Hanh phuc', 344, 785, { bold: true })
+  draw('So: 278/TTPVHCC', 115, 754, { size: 13 })
+  draw('Nam Nha Trang, ngay 18 thang 08 nam 2026', 305, 753, { italic: true })
+  draw('V/v danh sach ho so tre han', 100, 734, { size: 12 })
+  draw('Kinh gui: Don vi kiem tra', 225, 706)
+  draw('Thuc hien y kien chi dao, Trung tam bao cao so luong ho so tre han nhu sau:', 121, 678)
+  draw('Noi dung tiep theo cua doan van duoc tai dung thanh dong chay co the sua.', 85, 662)
+  draw('Trong 849 ho so dang giai quyet, co cac nhom cu the:', 121, 630)
+
+  const x = [85, 121, 331, 447, 552]
+  const y = [468, 433, 399, 364, 329, 294, 259]
+  x.forEach(value => page.drawLine({ start: { x: value, y: y.at(-1) }, end: { x: value, y: y[0] }, thickness: 0.8 }))
+  y.forEach(value => page.drawLine({ start: { x: x[0], y: value }, end: { x: x.at(-1), y: value }, thickness: 0.8 }))
+  draw('Dang giai quyet 849 ho so', 352, 450, { bold: true })
+  draw('STT', 94, 433, { bold: true })
+  draw('Linh vuc', 193, 433, { bold: true })
+  draw('Con han', 345, 416, { bold: true })
+  draw('Qua han', 462, 416, { bold: true })
+  ;[
+    ['1', 'Dat dai', '800', '41', 382],
+    ['2', 'Tai chinh dat dai', '0', '5', 347],
+    ['3', 'Dang ky cu tru', '3', '0', 312],
+  ].forEach(([number, field, onTime, overdue, baseline]) => {
+    draw(number, 103, baseline)
+    draw(field, 133, baseline)
+    draw(onTime, 360, baseline)
+    draw(overdue, 480, baseline)
+  })
+  draw('Tong', 204, 277, { bold: true })
+  draw('803', 360, 277)
+  draw('46', 480, 277)
+  draw('Kinh bao cao Don vi kiem tra./.', 121, 243)
+  draw('(Dinh kem danh sach)', 121, 215, { italic: true })
+  draw('Noi nhan:', 90, 187, { size: 12, bold: true })
+  draw('GIAM DOC', 396, 187, { bold: true })
+  draw('- Nhu tren;', 90, 171, { size: 11 })
+  draw('- Luu: VT.', 90, 155, { size: 11 })
+  draw('NGUYEN VAN A', 385, 107, { bold: true })
+  const signatureField = pdf.context.register(pdf.context.obj({ FT: PDFName.of('Sig'), T: 'Signature1' }))
+  pdf.catalog.set(PDFName.of('AcroForm'), pdf.context.obj({ Fields: [signatureField], SigFlags: 3 }))
+  return Buffer.from(await pdf.save({ useObjectStreams: false }))
 }
 
 const makeImagePdf = async (image, withText = false) => {
@@ -292,7 +348,7 @@ const convert = async format => {
 
 const word = await convert('word')
 assert.match(word.response.headers.get('content-type') || '', /wordprocessingml/)
-assert.equal(word.response.headers.get('x-word-layout-mode'), 'adaptive-reflow')
+assert.equal(word.response.headers.get('x-word-layout-mode'), 'flowing-reconstruction')
 const wordZip = await JSZip.loadAsync(word.body)
 const wordXml = await wordZip.file('word/document.xml').async('string')
 assert.match(wordXml, /PDFTools editable office test/)
@@ -321,13 +377,28 @@ const wordExportForm = new FormData()
 wordExportForm.append('file', new Blob([wordExportPdf], { type: 'application/pdf' }), 'word-export.pdf')
 const reconstructedWord = await request('/api/tools/pdf/to-word', wordExportForm)
 assert.equal(reconstructedWord.response.headers.get('x-pdf-source-kind'), 'word-export')
-assert.equal(reconstructedWord.response.headers.get('x-word-layout-mode'), 'adaptive-reflow')
+assert.equal(reconstructedWord.response.headers.get('x-word-layout-mode'), 'flowing-reconstruction')
 const reconstructedZip = await JSZip.loadAsync(reconstructedWord.body)
 const reconstructedXml = await reconstructedZip.file('word/document.xml').async('string')
 assert.match(reconstructedXml, /WORD EXPORT HEADING/)
 assert.match(reconstructedXml, /<w:jc w:val="center"/, 'Tiêu đề ở giữa PDF phải được căn giữa trong Word.')
 assert.match(reconstructedXml, /<w:b\/>/, 'Kiểu chữ đậm còn nhận diện được phải được giữ trong Word.')
 assert.match(reconstructedXml, /<w:i\/>/, 'Kiểu chữ nghiêng còn nhận diện được phải được giữ trong Word.')
+
+const structuredLetterPdf = await makeStructuredLetterPdf()
+const structuredLetterForm = new FormData()
+structuredLetterForm.append('file', new Blob([structuredLetterPdf], { type: 'application/pdf' }), 'structured-letter.pdf')
+const structuredWord = await request('/api/tools/pdf/to-word', structuredLetterForm)
+assert.equal(structuredWord.response.headers.get('x-word-layout-mode'), 'flowing-reconstruction')
+assert.equal(structuredWord.response.headers.get('x-word-detected-tables'), '1')
+assert.equal(structuredWord.response.headers.get('x-pdf-source-kind'), 'signed-document')
+assert.equal(structuredWord.response.headers.get('x-pdf-signatures'), '1')
+const structuredWordZip = await JSZip.loadAsync(structuredWord.body)
+const structuredWordXml = await structuredWordZip.file('word/document.xml').async('string')
+assert.match(structuredWordXml, /<w:tbl>/, 'Bảng PDF phải được tái dựng thành bảng Word thật.')
+assert.match(structuredWordXml, /<w:gridSpan w:val="2"\/>/, 'Tiêu đề bảng nhiều cột phải giữ ô gộp ngang.')
+assert.match(structuredWordXml, /<w:vMerge w:val="restart"\/>/, 'Tiêu đề STT phải giữ ô gộp dọc.')
+assert.match(structuredWordXml, /Noi dung tiep theo cua doan van/, 'Nội dung đoạn văn phải còn trong DOCX.')
 
 const mixedPdf = await makeImagePdf(imageInput, true)
 const mixedForm = new FormData()
