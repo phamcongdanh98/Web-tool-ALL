@@ -23,6 +23,7 @@
 - Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; hỗ trợ tự đánh số `Trang N / Tổng`.
 - Chuyển phần chữ có thể chọn trong PDF sang **Word, Excel, PowerPoint hoặc TXT**, có preview nội dung trước khi chuyển. Word giữ ngắt trang, Excel tạo một sheet mỗi trang, PowerPoint tạo slide với chữ có thể sửa.
 - Chỉnh ảnh trực quan: độ sáng, tương phản, bão hòa, sắc độ, làm mờ, trắng-đen, xoay và lật; preview dùng cùng thông số với ảnh kết quả.
+- Bộ nhận diện PDFTools thống nhất trên thanh điều hướng, footer và tab trình duyệt; có SVG gốc, favicon PNG, Apple Touch Icon và icon PWA 192/512 px.
 - Dark mode, tìm kiếm công cụ và giao diện responsive.
 - Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.1.0 · Bản dựng #14`; số bản dựng tự tăng theo Git commit.
 
@@ -186,6 +187,14 @@ AGENTS.md         Hướng dẫn dành cho Codex
 
 ## 📝 Nhật ký thay đổi gần đây
 
+### 2026-08-24
+
+- Thiết kế bộ nhận diện PDFTools mới: biểu tượng chồng tài liệu kết hợp tia sáng, dùng tông tím indigo và cyan đồng bộ với giao diện sản phẩm.
+- Thay ký tự `P` cũ ở header/footer bằng logo thật; bổ sung wordmark SVG để tái sử dụng cho tài liệu hoặc màn hình giới thiệu.
+- Thêm favicon SVG và PNG 32 px, Apple Touch Icon 180 px, icon PWA 192/512 px cùng `site.webmanifest`; khai báo đầy đủ trong `index.html` để browser và thiết bị nhận đúng biểu tượng.
+- Đã render kiểm tra logo/icon, xác nhận kích thước và MIME qua localhost; `npm run verify` đã qua toàn bộ production build, smoke test và E2E ảnh/PDF/Office.
+- Không thêm dependency. Riêng thay đổi logo hiện **chưa commit, chưa push và chưa deploy**; máy khác chưa nhận được logo cho tới khi thay đổi được push.
+
 ### 2026-08-23
 
 - Chuẩn bị phiên bản **1.1.1**: viết lại nén PDF đặt dung lượng theo hướng ưu tiên độ phân giải, phân bổ dung lượng theo độ phức tạp từng trang và chỉ giảm DPI khi chất lượng mã hóa thấp nhất vẫn vượt mục tiêu.
@@ -196,7 +205,7 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Chuẩn hóa typography cho màn hình 27 inch 2K: dùng font hệ thống sắc nét trên macOS/Windows, bỏ tải Google Fonts, tăng cỡ chữ điều hướng, thẻ công cụ, modal, nút, chú thích và footer lên mức đọc được; modal công cụ rộng tối đa 1280 px.
 - Đã chạy `npm run verify`, production smoke/E2E, kiểm tra browser ở 2560×1440 và 390×844; `npm run audit:prod` báo **0 lỗ hổng**.
 - Không thêm dependency. Máy khác chỉ cần `git pull --ff-only`; chưa cần chạy lại `npm ci` nếu đang ở dependency của 1.1.0.
-- Phiên bản 1.1.1 hiện là thay đổi cục bộ: **chưa commit, chưa push và chưa deploy**.
+- Phiên bản 1.1.1 đã được commit và đồng bộ lên `origin/main` tại commit `0cce169`; kiểm tra trạng thái VPS bằng `npm run status:vps` trước khi kết luận production đã nhận bản này.
 - Phát hành mốc code **1.1.0**: hoàn thiện chỉnh ảnh, thêm chữ/watermark/đánh số PDF và chuyển PDF sang Word, Excel, PowerPoint, TXT.
 - Bổ sung preview chữ trước khi chuyển Office, preview kết quả theo loại tệp, metadata số trang/ký tự và thông báo riêng cho PDF scan cần OCR.
 - Loại bỏ form nhận email giả chỉ báo thành công nhưng không lưu dữ liệu; footer nay liên kết tới GitHub để theo dõi phiên bản thật.
@@ -205,7 +214,7 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Chuẩn hóa runtime thành Node.js 22.12+ để đồng nhất dependency Excel, GitHub Actions và VPS; VPS hiện tại dùng Node 22 nên không cần cài lại.
 - Mở rộng E2E qua đường API thật: chỉnh ảnh, chỉnh PDF, kiểm tra nội dung bên trong DOCX/XLSX/PPTX/TXT và lỗi 422 cho PDF không có chữ. DOCX/XLSX/PPTX cũng đã được kiểm tra ZIP; LibreOffice mở/chuyển được cả ba định dạng.
 - Đã chạy production smoke/E2E, build, kiểm tra desktop/mobile bằng browser và `npm audit --omit=dev` (**0 lỗ hổng**).
-- Phiên bản 1.1.0 đã được commit và đồng bộ lên `origin/main` tại commit `2f92abc`; bản 1.1.1 ở trên chưa được phát hành.
+- Phiên bản 1.1.0 đã được commit tại `2f92abc`; mốc 1.1.1 kế tiếp nằm tại `0cce169`.
 - Khắc phục preview PDF tải rất lâu trên VPS: preview ưu tiên trình xem native và tự fallback sang PDF.js sau khoảng 1,2 giây nếu browser nhúng không hỗ trợ.
 - Tải nền PDF.js/PDF worker khi browser rảnh hoặc người dùng trỏ vào công cụ PDF, tránh bắt đầu tải thư viện nặng sau khi đã chọn tệp.
 - Production build tự sinh Brotli/Gzip cho asset; Express chọn đúng biến thể theo `Accept-Encoding`, còn Nginx phục vụ `/assets/` trực tiếp với cache immutable và `gzip_static`.
