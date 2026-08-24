@@ -24,6 +24,7 @@
 - Chuyển phần chữ có thể chọn trong PDF sang **Word, Excel, PowerPoint hoặc TXT**, có preview nội dung trước khi chuyển. Word giữ ngắt trang, Excel tạo một sheet mỗi trang, PowerPoint tạo slide với chữ có thể sửa.
 - Chỉnh ảnh trực quan: độ sáng, tương phản, bão hòa, sắc độ, làm mờ, trắng-đen, xoay và lật; preview dùng cùng thông số với ảnh kết quả.
 - Bộ nhận diện PDFTools thống nhất trên thanh điều hướng, footer và tab trình duyệt; có SVG gốc, favicon PNG, Apple Touch Icon và icon PWA 192/512 px.
+- Footer có liên hệ trực tiếp với Danh Phạm qua Facebook, Zalo và Telegram.
 - Dark mode, tìm kiếm công cụ và giao diện responsive.
 - Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.1.0 · Bản dựng #14`; số bản dựng tự tăng theo Git commit.
 
@@ -31,6 +32,9 @@
 > Chuyển Office ưu tiên **nội dung có thể chỉnh sửa**, không sao chép hoàn hảo toàn bộ bố cục. PDF scan/ảnh chưa có chữ chọn được sẽ được từ chối kèm hướng dẫn OCR; giới hạn hiện tại là 100 trang và 25 MB. Chỉnh PDF hiện thêm lớp chữ/watermark hoặc số trang, chưa xóa hay sửa trực tiếp chữ gốc.
 
 ## 🚀 Hướng dẫn nhanh
+
+> [!TIP]
+> Xem [DIAGRAMS.md](DIAGRAMS.md) để hiểu trực quan kiến trúc, 14 chức năng, luồng xử lý tệp và production/bảo trì.
 
 ### 💻 1. Chạy website trên máy Mac
 
@@ -252,6 +256,22 @@ ssh orace 'cd /var/www/pdftools && sudo ./deploy/setup-ubuntu.sh'
 
 Setup nhận biết release hiện tại đang healthy nên không cài dependency/build lại lần thứ hai. Các lần cập nhật code thông thường sau đó chỉ cần `npm run deploy:vps`; không chạy lại setup nếu cấu hình hạ tầng không đổi.
 
+Kiểm tra trạng thái bảo trì:
+
+```bash
+npm run maintenance:vps -- status
+```
+
+Bật thủ công trước một thay đổi hạ tầng cần ngắt website, rồi tắt sau khi hoàn tất:
+
+```bash
+npm run maintenance:vps -- on
+npm run deploy:vps
+npm run maintenance:vps -- off
+```
+
+`on` yêu cầu public trả đúng HTTP 503; nếu Nginx chưa có cấu hình mới, lệnh tự xóa cờ để website không bị kẹt. Khi bảo trì đang bật, deploy vẫn kiểm tra health nội bộ và chờ lệnh `off` mới kiểm tra public HTTPS.
+
 Hướng dẫn cài VPS, domain, HTTPS và rollback chi tiết nằm trong [`deploy/README.md`](deploy/README.md).
 
 ## 🗂️ Cấu trúc chính
@@ -268,7 +288,14 @@ scripts/          Smoke/E2E production dùng cho local và CI
 .github/workflows CI tự động trên push và pull request
 .env.example      Biến môi trường mẫu
 AGENTS.md         Hướng dẫn dành cho Codex
+DIAGRAMS.md       Sơ đồ kiến trúc, chức năng, luồng sử dụng và production
 ```
+
+## 💬 Liên hệ
+
+- Facebook: [Danh Phạm](https://www.facebook.com/danhpham100898)
+- Zalo: [0356 719 463](https://zalo.me/0356719463)
+- Telegram: [0356 719 463](https://t.me/+84356719463)
 
 ## 📝 Nhật ký thay đổi gần đây
 
@@ -282,8 +309,11 @@ AGENTS.md         Hướng dẫn dành cho Codex
 - Thêm giao diện bảo trì độc lập và Nginx fallback 502/503/504: trả HTTP 503 + `Retry-After`, tự tải lại sau 15 giây và không phụ thuộc ứng dụng đang restart.
 - Tối ưu `setup-ubuntu.sh`: nếu release hiện tại đã healthy thì chỉ cập nhật hạ tầng/Nginx, không chạy lại toàn bộ `npm ci` và build lần thứ hai.
 - Đã thử `monitor:vps` qua SSH thật; kiểm tra trang bảo trì bằng browser ở 1280×720 gồm nội dung accessibility, căn giữa, không tràn ngang, bộ đếm và nút tải lại. `npm run verify` đã qua build, smoke và toàn bộ E2E API.
+- Thêm `DIAGRAMS.md` với sơ đồ kiến trúc, bản đồ 14 chức năng, luồng người dùng và production/bảo trì; `npm run check:diagrams` khiến verify thất bại nếu danh sách công cụ đổi mà sơ đồ chưa cập nhật.
+- Thêm `npm run maintenance:vps -- status|on|off`; trạng thái đọc được đã thử qua SSH và website đang tắt bảo trì với HTTP 200. `on/off` chưa chạy trên production để tránh chủ động ngắt website trong lúc phát triển.
+- Thay cột liên kết mẫu ở footer bằng Facebook, Zalo và Telegram thật của Danh Phạm; giữ số điện thoại hiển thị để người dùng có thể tìm thủ công khi deep link bị giới hạn.
 - Đã render kiểm tra logo/icon, xác nhận kích thước và MIME qua localhost; `npm run verify` đã qua toàn bộ production build, smoke test và E2E ảnh/PDF/Office.
-- Không thêm dependency. `package.json` chỉ thêm lệnh monitor; máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn. Bộ logo đã push tại `7607dbb`; sơ đồ, monitor và bảo trì hiện **chưa commit, chưa push và chưa deploy**.
+- `npm run verify` đã qua production build, smoke test và E2E ảnh/PDF/Office; kiểm tra footer trên browser không tràn ngang và đủ ba liên kết ngoài. Không thêm dependency. Monitor và fallback bảo trì đã push tại `a8c1993`; các thay đổi sơ đồ, bảo trì thủ công và liên hệ hiện **chưa commit, chưa push và chưa deploy**. Máy khác nên chạy `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn vì `package.json` có thêm script.
 
 ### 2026-08-23
 

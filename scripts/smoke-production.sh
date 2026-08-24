@@ -27,7 +27,9 @@ grep -Fq 'error_page 502 503 504 =503' "$maintenance_nginx" || fail 'Nginx chưa
 grep -Fq 'Retry-After "15" always' "$maintenance_nginx" || fail 'Trang bảo trì thiếu Retry-After.'
 grep -Fq 'include /etc/nginx/snippets/pdftools-maintenance.conf;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx site chưa include fallback bảo trì.'
 grep -Fq 'proxy_intercept_errors on;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx chưa chặn lỗi upstream để hiển thị bảo trì.'
+grep -Fq '/var/www/pdftools/.deploy/maintenance.flag' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx chưa hỗ trợ bật bảo trì thủ công.'
 bash "${ROOT_DIR}/deploy/monitor.sh" --help >/dev/null || fail 'Lệnh monitor:vps không hiển thị được hướng dẫn.'
+bash "${ROOT_DIR}/deploy/maintenance.sh" --help >/dev/null || fail 'Lệnh maintenance:vps không hiển thị được hướng dẫn.'
 
 cd "$ROOT_DIR"
 server_log="$(mktemp)"

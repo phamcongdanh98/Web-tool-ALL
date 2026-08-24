@@ -38,7 +38,14 @@ printf 'Triển khai %s qua SSH host %s...\n' "$(git rev-parse --short HEAD)" "$
 remote_command="$(printf 'cd %q && ./deploy/deploy.sh' "$REMOTE_APP_DIR")"
 ssh "$SSH_HOST" "$remote_command"
 
-if [[ -n "$PUBLIC_HEALTH_URL" ]]; then
+maintenance_flag="$(printf '%q' "${REMOTE_APP_DIR}/.deploy/maintenance.flag")"
+maintenance_enabled='false'
+if ssh "$SSH_HOST" "test -f ${maintenance_flag}"; then
+  maintenance_enabled='true'
+  printf '%s\n' 'Bảo trì thủ công đang bật; bỏ qua public health cho tới khi tắt bảo trì.'
+fi
+
+if [[ -n "$PUBLIC_HEALTH_URL" && "$maintenance_enabled" == 'false' ]]; then
   printf 'Kiểm tra public HTTPS: %s...\n' "$PUBLIC_HEALTH_URL"
   curl --fail --silent --show-error --retry 3 --retry-delay 2 --max-time 20 "$PUBLIC_HEALTH_URL" >/dev/null || {
     printf '%s\n' 'Release trên VPS healthy nội bộ nhưng kiểm tra public HTTPS thất bại. Hãy kiểm tra DNS/Nginx/Certbot.' >&2
@@ -46,4 +53,8 @@ if [[ -n "$PUBLIC_HEALTH_URL" ]]; then
   }
 fi
 
-printf '%s\n' 'Deploy và kiểm tra public HTTPS thành công.'
+if [[ "$maintenance_enabled" == 'true' ]]; then
+  printf '%s\n' 'Deploy healthy nội bộ. Chạy: npm run maintenance:vps -- off'
+else
+  printf '%s\n' 'Deploy và kiểm tra public HTTPS thành công.'
+fi

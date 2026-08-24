@@ -100,6 +100,24 @@ npm run monitor:vps -- --watch 5
 
 Lệnh đầu chụp một lần; lệnh thứ hai tự làm mới mỗi 5 giây và dừng bằng `Control + C`. Cả hai chỉ đọc dữ liệu qua SSH.
 
+## Bảo trì thủ công
+
+Chế độ tự động luôn trả trang bảo trì khi Express lỗi 502/503/504. Chỉ bật thủ công khi cần chủ động chặn request public trong một thay đổi hạ tầng:
+
+```bash
+npm run maintenance:vps -- status
+npm run maintenance:vps -- on
+npm run deploy:vps
+npm run maintenance:vps -- off
+```
+
+- `status` chỉ đọc cờ bảo trì và mã HTTP public.
+- `on` tạo đúng một cờ `.deploy/maintenance.flag`, yêu cầu Nginx trả HTTP 503 và tự hoàn tác nếu cấu hình chưa hoạt động.
+- Khi cờ đang bật, deploy vẫn chạy internal health/rollback nhưng bỏ qua public health có chủ đích.
+- `off` xóa đúng cờ trên và yêu cầu website trở lại HTTP 200/301/302.
+
+Không bật bảo trì thủ công cho deploy code thông thường: release cũ vẫn phục vụ trong lúc release mới build và trang fallback tự xuất hiện ở khoảng restart nếu cần.
+
 Các lệnh chẩn đoán chi tiết:
 
 ```bash

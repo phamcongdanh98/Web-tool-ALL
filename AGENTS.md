@@ -12,6 +12,7 @@
 - `lib/pdf-office.js`: trích xuất chữ bằng PDF.js và tạo DOCX/XLSX/TXT bằng `docx` cùng `@excel.js/exceljs`.
 - `lib/pptx.js`: sinh PowerPoint OOXML bằng `jszip`; mỗi dòng PDF là một text shape có thể chỉnh sửa.
 - `vite.config.js`: Vite proxy `/api` đến Express ở cổng 3001.
+- `DIAGRAMS.md`: nguồn sơ đồ kiến trúc, bản đồ chức năng, luồng người dùng và production.
 
 ## Lệnh cần dùng
 
@@ -19,16 +20,20 @@
 npm ci
 npm run dev
 npm run build
+npm run check:diagrams
 npm run verify
 npm run audit:prod
 npm run status:vps
 npm run monitor:vps
+npm run maintenance:vps -- status
 ```
 
 `npm run dev` phải khởi chạy cả Express lẫn Vite. Không đổi sang chỉ chạy Vite nếu các công cụ API vẫn cần hoạt động.
+`npm run check:diagrams` đối chiếu tên/số lượng công cụ trong `src/App.jsx` với `DIAGRAMS.md`; phải qua khi thêm, xóa hoặc đổi tên công cụ.
 `npm run verify` là cổng chất lượng chuẩn trước khi commit/push: kiểm tra cú pháp, shell script, production build, smoke test Express và E2E API xử lý ảnh/PDF thật.
 `npm run status:vps` là lệnh read-only để so sánh commit/bản dựng giữa Mac, GitHub, repository VPS, release đang chạy và public health.
 `npm run monitor:vps` là lệnh read-only chụp CPU, RAM, swap, disk, load, tiến trình, systemd, Nginx và health qua SSH; thêm `-- --watch 5` để tự làm mới mỗi 5 giây.
+`npm run maintenance:vps -- status|on|off` xem, bật hoặc tắt bảo trì thủ công. `on/off` thay đổi trạng thái public trên VPS; chỉ chạy khi người dùng chủ động yêu cầu. Sau deploy đang bật bảo trì, phải chạy `off` và xác nhận public HTTPS.
 Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không hạ xuống Node 20 vì dependency Excel hiện yêu cầu runtime mới hơn.
 
 ## Quy ước thay đổi
@@ -46,6 +51,7 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - Nguồn nhận diện chuẩn là `public/favicon.svg` cho biểu tượng vuông và `public/logo.svg` cho wordmark ngang. Header/footer phải dùng cùng biểu tượng. Khi sửa logo, phải tạo lại các PNG 32, 180, 192 và 512 px từ SVG, giữ liên kết trong `index.html`/`site.webmanifest`, rồi kiểm tra độ rõ ở kích thước favicon và production build.
 - `npm run build` phải tiếp tục sinh `.br`/`.gz` qua `scripts/precompress-assets.mjs`. Express phục vụ Brotli/Gzip theo `Accept-Encoding`; Nginx phục vụ `/assets/` trực tiếp bằng `deploy/nginx-assets.conf` và `gzip_static`. Smoke test phải giữ kiểm tra `Content-Encoding` cùng `Vary: Accept-Encoding`.
 - Giao diện bảo trì production là `deploy/maintenance.html`, phải độc lập, không tải asset/CDN/API và tự thử lại. Nginx dùng `deploy/nginx-maintenance.conf` để trả trang này với HTTP 503 + `Retry-After` khi Express lỗi 502/503/504; không bật bảo trì trong lúc build vì release cũ vẫn phục vụ bình thường. Sau khi sửa trang/snippet, kiểm tra HTML ở desktop/mobile và chạy `nginx -t` trên Ubuntu trước khi reload.
+- Mỗi thay đổi thêm/xóa/đổi tên chức năng hoặc đổi nơi xử lý browser/API, preview, output, kiến trúc hay deploy phải cập nhật `DIAGRAMS.md` trong cùng công việc. Đối chiếu tên/số lượng công cụ với `pdfTools`/`imageTools`; không để sơ đồ mô tả chức năng chưa hoạt động.
 - Không commit `.env`, `node_modules`, `dist` hoặc cấu hình IDE cục bộ.
 - Không bao giờ commit private key, nội dung `~/.ssh`, địa chỉ máy chủ riêng hoặc thông tin đăng nhập. Chỉ ghi hướng dẫn chung trong repository; cấu hình kết nối cụ thể phải nằm ngoài dự án trên từng máy.
 - Sau mỗi thay đổi code hoặc cấu hình runtime đáng kể, chạy `npm run verify`. Chỉ thay đổi tài liệu thuần túy mới có thể dùng kiểm tra hẹp hơn như `git diff --check`.

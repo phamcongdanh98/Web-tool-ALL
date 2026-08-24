@@ -130,6 +130,8 @@ fi
 release_path="$(readlink -f "${app_dir}/.deploy/current" 2>/dev/null || true)"
 release_name='chưa có release'
 [[ -z "$release_path" ]] || release_name="$(basename "$release_path")"
+maintenance_state='TẮT'
+[[ ! -f "${app_dir}/.deploy/maintenance.flag" ]] || maintenance_state='ĐANG BẬT'
 
 printf '\n📊 TÀI NGUYÊN VPS PDFTOOLS\n'
 printf '🕒 %s · %s\n\n' "$(date -u '+%Y-%m-%d %H:%M:%S UTC')" "$(uptime -p)"
@@ -147,6 +149,7 @@ fi
 printf '%s App     %s · %s\n' "$service_icon" "$service_state" "$process_summary"
 printf '%s Nginx   %s\n' "$nginx_icon" "$nginx_state"
 printf '🩺 Health  %s\n' "$health_state"
+printf '🛠️  Bảo trì %s\n' "$maintenance_state"
 printf '🚀 Release %s\n\n' "$release_name"
 
 printf '🔝 Tiến trình dùng nhiều RAM nhất\n'

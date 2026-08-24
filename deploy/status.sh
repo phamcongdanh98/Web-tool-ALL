@@ -30,10 +30,14 @@ dirty='false'
 
 remote_repo="$(printf '%q' "$REMOTE_APP_DIR")"
 remote_current="$(printf '%q' "${REMOTE_APP_DIR}/.deploy/current")"
+remote_maintenance="$(printf '%q' "${REMOTE_APP_DIR}/.deploy/maintenance.flag")"
 remote_command="$(printf 'git -C %s rev-parse HEAD\nreadlink -f %s' "$remote_repo" "$remote_current")"
+remote_command+=$'\n'
+remote_command+="if test -f ${remote_maintenance}; then echo on; else echo off; fi"
 remote_info="$(ssh "$SSH_HOST" "$remote_command")" || fail "không kết nối được SSH host ${SSH_HOST}."
 vps_revision="$(printf '%s\n' "$remote_info" | sed -n '1p')"
 running_path="$(printf '%s\n' "$remote_info" | sed -n '2p')"
+maintenance_state="$(printf '%s\n' "$remote_info" | sed -n '3p')"
 [[ -n "$vps_revision" && -n "$running_path" ]] || fail 'VPS chưa có repository hoặc release đang chạy.'
 
 running_revision="${running_path##*-}"
@@ -57,7 +61,10 @@ else
 fi
 
 asset_encoding=''
-if curl --fail --silent --show-error --max-time 15 "$PUBLIC_HEALTH_URL" >/dev/null; then
+if [[ "$maintenance_state" == 'on' ]]; then
+  website_state="${yellow}🛠️  Bảo trì thủ công${reset}"
+  asset_state="${yellow}⏸️  Tạm dừng kiểm tra${reset}"
+elif curl --fail --silent --show-error --max-time 15 "$PUBLIC_HEALTH_URL" >/dev/null; then
   website_state="${green}✅ Online${reset}"
   public_html="$(curl --fail --silent --show-error --max-time 15 "${PUBLIC_SITE_URL}/" || true)"
   public_asset="$(printf '%s' "$public_html" | sed -n 's/.*src="\([^"]*\/assets\/[^"]*\.js\)".*/\1/p' | sed -n '1p')"
@@ -69,7 +76,9 @@ else
   website_state="${red}❌ Không phản hồi${reset}"
 fi
 
-if [[ "$asset_encoding" == 'br' || "$asset_encoding" == 'gzip' ]]; then
+if [[ "$maintenance_state" == 'on' ]]; then
+  :
+elif [[ "$asset_encoding" == 'br' || "$asset_encoding" == 'gzip' ]]; then
   asset_state="${green}✅ ${asset_encoding}${reset}"
 else
   asset_state="${yellow}⚠️  Chưa nén${reset}"
@@ -80,10 +89,17 @@ printf '💻 Mac       Phiên bản %s · Bản dựng #%s%s  (%s)\n' "$app_vers
 printf '☁️  GitHub    Phiên bản %s · Bản dựng #%s      (%s)\n' "$app_version" "$github_build" "${github_revision:0:7}"
 printf '🖥️  VPS repo  Phiên bản %s · Bản dựng #%s      (%s)\n' "$app_version" "$vps_build" "${vps_revision:0:7}"
 printf '🚀 Đang chạy Phiên bản %s · Bản dựng #%s      (%s)\n' "$app_version" "$running_build" "${running_revision:0:7}"
-printf '🌐 Website   %s\n\n' "$website_state"
+printf '🌐 Website   %s\n' "$website_state"
+if [[ "$maintenance_state" == 'on' ]]; then
+  printf '🛠️  Bảo trì   %sĐANG BẬT%s\n\n' "$yellow" "$reset"
+else
+  printf '🛠️  Bảo trì   %sTắt%s\n\n' "$green" "$reset"
+fi
 printf '📦 Asset web %s\n\n' "$asset_state"
 
-if [[ "$dirty" == 'true' ]]; then
+if [[ "$maintenance_state" == 'on' ]]; then
+  printf '\n🛠️  Website đang bảo trì thủ công. Khi cập nhật xong chạy: npm run maintenance:vps -- off\n'
+elif [[ "$dirty" == 'true' ]]; then
   printf '%s⚠️  Mac có file chưa commit.%s\n' "$yellow" "$reset"
 elif [[ "$local_revision" == "$github_revision" ]]; then
   printf '%s✅ Mac và GitHub đã đồng bộ.%s\n' "$green" "$reset"

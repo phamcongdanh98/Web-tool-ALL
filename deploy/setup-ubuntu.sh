@@ -134,6 +134,9 @@ fi
 if ! grep -Fq 'proxy_intercept_errors on;' "$nginx_site"; then
   sed -i '/proxy_pass http:\/\/127.0.0.1:3001;/a\        proxy_intercept_errors on;' "$nginx_site"
 fi
+if ! grep -Fq '/var/www/pdftools/.deploy/maintenance.flag' "$nginx_site"; then
+  sed -i '/location \/ {/a\        if (-f /var/www/pdftools/.deploy/maintenance.flag) { return 503; }' "$nginx_site"
+fi
 
 if [[ -L /etc/nginx/sites-enabled/default ]]; then
   unlink /etc/nginx/sites-enabled/default
