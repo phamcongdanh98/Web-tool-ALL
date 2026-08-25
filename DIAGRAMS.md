@@ -81,7 +81,7 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    O["Mở / tải lại website"] --> W["Màn hình chào 1,9 giây<br/>Danh Phạm · Facebook · Zalo · Telegram"]
+    O["Mở / tải lại website"] --> W["Màn hình chào 4,5 giây<br/>Danh Phạm · Facebook · Zalo · Telegram"]
     W --> A["Chọn công cụ"]
     A --> B["Kéo-thả hoặc chọn tệp"]
     B --> C{"Tệp hợp lệ?"}

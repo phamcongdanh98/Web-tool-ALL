@@ -127,7 +127,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .welcome-contacts em { margin-left: auto; color: #a5b4fc; font-size: 12px; font-style: normal; }
 .welcome-loading { margin-top: 24px; }
 .welcome-loading > div { width: min(330px, 72%); height: 4px; overflow: hidden; margin: 0 auto 10px; border-radius: 999px; background: rgba(255, 255, 255, .13); }
-.welcome-loading > div span { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc); transform-origin: left; animation: welcome-progress 1.5s cubic-bezier(.4, 0, .2, 1) both; }
+.welcome-loading > div span { display: block; width: 100%; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc); transform-origin: left; animation: welcome-progress 4.1s cubic-bezier(.4, 0, .2, 1) both; }
 .welcome-loading small { color: #b7c0d6; font-size: 11px; }
 .welcome-version { display: block; margin-top: 12px; color: #7f8ca8; font-size: 10px; font-weight: 700; letter-spacing: .3px; }
 

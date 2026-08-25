@@ -1294,11 +1294,11 @@ export default function App() {
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('pdftools-theme', dark ? 'dark' : 'light') }, [dark])
   useEffect(() => {
     document.body.classList.add('welcome-active')
-    const beginExit = setTimeout(() => setWelcomePhase('leaving'), 1500)
+    const beginExit = setTimeout(() => setWelcomePhase('leaving'), 4100)
     const removeSplash = setTimeout(() => {
       setWelcomePhase('hidden')
       document.body.classList.remove('welcome-active')
-    }, 1900)
+    }, 4500)
     return () => {
       clearTimeout(beginExit)
       clearTimeout(removeSplash)
