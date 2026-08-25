@@ -23,7 +23,7 @@ flowchart LR
     A --> G["🛡️ 50 MB · 500 trang · 2 tác vụ đồng thời"]
     G --> I["🖼️ Sharp · xử lý ảnh"]
     G --> D["📄 pdf-lib · PDF / ZIP"]
-    G --> O["📝 DOCX / XLSX / PPTX / TXT"]
+    G --> O["📝 PDF.js + DOCX / XLSX / PPTX / TXT"]
 
     B1 --> X["✅ Preview kết quả"]
     B2 --> X
@@ -57,7 +57,7 @@ flowchart TB
     PDF --> PM["Ghép PDF<br/>kéo thứ tự · xoay · chèn"]
     PDF --> PO["Sắp xếp PDF<br/>kéo-thả · nhân bản · xóa"]
     PDF --> PS["Tách PDF<br/>chọn thumbnail · xuất ZIP"]
-    PDF --> PW["PDF sang Word<br/>giữ hình thức / chỉnh sửa được"]
+    PDF --> PW["PDF sang Word<br/>đoạn + bảng + dấu/chữ ký"]
     PDF --> PX["PDF sang Excel"]
     PDF --> PP["PDF sang PowerPoint"]
     PDF --> PT["PDF sang văn bản"]
@@ -101,13 +101,7 @@ flowchart LR
 ```mermaid
 flowchart TD
     F["📄 PDF đầu vào"] --> Z{"Kiểu Word?"}
-    Z -->|"Bố cục chính xác · mặc định"| E["PDF.js đọc text item + toán tử trang<br/>200 DPI · giới hạn 40 trang"]
-    E --> K0{"Có lớp chữ?"}
-    K0 -->|"Không / trang ảnh"| S["Scan · hướng dẫn OCR"]
-    K0 -->|"Có"| I["Render nền không có chữ<br/>giữ đường kẻ · ảnh · dấu · chữ ký"]
-    I --> J["Mỗi dòng → text box Word<br/>tọa độ · font · cỡ · màu · độ co"]
-    J --> Y["DOCX đúng khổ · lề 0<br/>giống bố cục + chữ sửa được"]
-    Z -->|"Dòng chảy văn bản"| M["Đọc metadata · chữ · hình ảnh · trường chữ ký"]
+    Z -->|"Word có cấu trúc · mặc định"| M["API đọc metadata · chữ/font<br/>toán tử ảnh · trường chữ ký"]
     M --> K{"Loại PDF?"}
     K -->|"Không có lớp chữ"| S["Scan · HTTP 422 · hướng dẫn OCR"]
     K -->|"Chữ + trang ảnh"| H["PDF hỗn hợp · cảnh báo trang chưa OCR"]
@@ -118,14 +112,23 @@ flowchart TD
     V --> R
     W --> R
     D --> R
+    R --> GL["Tách ảnh / dấu / chữ ký<br/>PNG trong suốt · neo theo trang"]
     R --> T{"Nhận diện bố cục"}
     T -->|"Nhiều dòng"| B["Gom đoạn · căn đều · first-line indent"]
     T -->|"STT + cột số liệu"| Q["Bảng Word thật · border · ô gộp"]
-    T -->|"Tiêu đề / nơi nhận"| X["Bố cục hai cột ổn định"]
-    B --> O["DOCX khổ trang gốc · Flowing reconstruction"]
+    T -->|"Tiêu đề / nơi nhận"| X["Hai cột · khoảng cách theo PDF"]
+    B --> O["DOCX khổ trang gốc<br/>structured reconstruction"]
     Q --> O
     X --> O
-    O --> C["Chỉnh sửa được · chữ ký PDF không còn hiệu lực"]
+    GL --> O
+    O --> C["Đoạn + bảng chỉnh sửa được<br/>giữ phần nhìn thấy của chữ ký"]
+
+    Z -->|"Giữ vị trí từng dòng · dự phòng"| E["Browser đọc text item + toán tử trang<br/>200 DPI · giới hạn 40 trang"]
+    E --> K0{"Có lớp chữ?"}
+    K0 -->|"Không / trang ảnh"| S
+    K0 -->|"Có"| I["Render nền không có chữ<br/>giữ đường kẻ · ảnh · dấu · chữ ký"]
+    I --> J["Mỗi dòng → text box Word<br/>tọa độ · font · cỡ · màu · độ co"]
+    J --> Y["DOCX đúng khổ · lề 0<br/>ưu tiên vị trí hơn reflow"]
 
     F --> P["Canvas preview chỉnh PDF"]
     P --> G["Nhấp/kéo overlay · tọa độ tâm x/y % từ góc trên-trái"]

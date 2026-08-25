@@ -140,6 +140,8 @@ const makeStructuredLetterPdf = async () => {
   draw('- Nhu tren;', 90, 171, { size: 11 })
   draw('- Luu: VT.', 90, 155, { size: 11 })
   draw('NGUYEN VAN A', 385, 107, { bold: true })
+  const visibleSignature = await pdf.embedPng(signatureImageInput)
+  page.drawImage(visibleSignature, { x: 348, y: 93, width: 125, height: 92 })
   const signatureField = pdf.context.register(pdf.context.obj({ FT: PDFName.of('Sig'), T: 'Signature1' }))
   pdf.catalog.set(PDFName.of('AcroForm'), pdf.context.obj({ Fields: [signatureField], SigFlags: 3 }))
   return Buffer.from(await pdf.save({ useObjectStreams: false }))
@@ -184,6 +186,13 @@ const imageInput = await sharp({
     background: { r: 35, g: 120, b: 210 },
   },
 }).png().toBuffer()
+
+const signatureImageInput = await sharp(Buffer.from(`
+  <svg width="500" height="360" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="230" cy="180" r="145" fill="none" stroke="#c62828" stroke-width="18"/>
+    <path d="M80 215 C175 80 225 295 440 120 M120 285 C225 250 320 225 470 195" fill="none" stroke="#1565c0" stroke-width="16" stroke-linecap="round"/>
+  </svg>
+`)).png().toBuffer()
 
 const exactPageImage = await sharp(Buffer.from(`
   <svg width="1240" height="1754" xmlns="http://www.w3.org/2000/svg">
@@ -379,7 +388,7 @@ const convert = async format => {
 
 const word = await convert('word')
 assert.match(word.response.headers.get('content-type') || '', /wordprocessingml/)
-assert.equal(word.response.headers.get('x-word-layout-mode'), 'flowing-reconstruction')
+assert.equal(word.response.headers.get('x-word-layout-mode'), 'structured-reconstruction')
 const wordZip = await JSZip.loadAsync(word.body)
 const wordXml = await wordZip.file('word/document.xml').async('string')
 assert.match(wordXml, /PDFTools editable office test/)
@@ -408,7 +417,7 @@ const wordExportForm = new FormData()
 wordExportForm.append('file', new Blob([wordExportPdf], { type: 'application/pdf' }), 'word-export.pdf')
 const reconstructedWord = await request('/api/tools/pdf/to-word', wordExportForm)
 assert.equal(reconstructedWord.response.headers.get('x-pdf-source-kind'), 'word-export')
-assert.equal(reconstructedWord.response.headers.get('x-word-layout-mode'), 'flowing-reconstruction')
+assert.equal(reconstructedWord.response.headers.get('x-word-layout-mode'), 'structured-reconstruction')
 const reconstructedZip = await JSZip.loadAsync(reconstructedWord.body)
 const reconstructedXml = await reconstructedZip.file('word/document.xml').async('string')
 assert.match(reconstructedXml, /WORD EXPORT HEADING/)
@@ -420,8 +429,9 @@ const structuredLetterPdf = await makeStructuredLetterPdf()
 const structuredLetterForm = new FormData()
 structuredLetterForm.append('file', new Blob([structuredLetterPdf], { type: 'application/pdf' }), 'structured-letter.pdf')
 const structuredWord = await request('/api/tools/pdf/to-word', structuredLetterForm)
-assert.equal(structuredWord.response.headers.get('x-word-layout-mode'), 'flowing-reconstruction')
+assert.equal(structuredWord.response.headers.get('x-word-layout-mode'), 'structured-reconstruction')
 assert.equal(structuredWord.response.headers.get('x-word-detected-tables'), '1')
+assert.equal(structuredWord.response.headers.get('x-word-embedded-graphics'), '1')
 assert.equal(structuredWord.response.headers.get('x-pdf-source-kind'), 'signed-document')
 assert.equal(structuredWord.response.headers.get('x-pdf-signatures'), '1')
 const structuredWordZip = await JSZip.loadAsync(structuredWord.body)
@@ -430,6 +440,9 @@ assert.match(structuredWordXml, /<w:tbl>/, 'Bảng PDF phải được tái dự
 assert.match(structuredWordXml, /<w:gridSpan w:val="2"\/>/, 'Tiêu đề bảng nhiều cột phải giữ ô gộp ngang.')
 assert.match(structuredWordXml, /<w:vMerge w:val="restart"\/>/, 'Tiêu đề STT phải giữ ô gộp dọc.')
 assert.match(structuredWordXml, /Noi dung tiep theo cua doan van/, 'Nội dung đoạn văn phải còn trong DOCX.')
+assert.match(structuredWordXml, /<wp:positionH relativeFrom="page"/, 'Dấu/chữ ký phải được neo theo chiều ngang của trang Word.')
+assert.match(structuredWordXml, /<wp:positionV relativeFrom="page"/, 'Dấu/chữ ký phải được neo theo chiều dọc của trang Word.')
+assert.equal(structuredWordZip.file(/^word\/media\//).length, 1, 'Ảnh dấu/chữ ký nhìn thấy được phải được nhúng riêng, không raster toàn trang.')
 
 const mixedPdf = await makeImagePdf(imageInput, true)
 const mixedForm = new FormData()

@@ -289,6 +289,7 @@ app.post('/api/tools/pdf/to-:format', upload.single('file'), enforceUploadedByte
       'X-PDF-Signatures': String(result.source.signatureCount || 0),
       ...(result.layoutMode ? { 'X-Word-Layout-Mode': result.layoutMode } : {}),
       ...(Number.isFinite(result.detectedTables) ? { 'X-Word-Detected-Tables': String(result.detectedTables) } : {}),
+      ...(Number.isFinite(result.embeddedGraphics) ? { 'X-Word-Embedded-Graphics': String(result.embeddedGraphics) } : {}),
     })
     download(res, result.buffer, safeName(req.file.originalname, `.${result.extension}`), result.type)
   } catch (error) { next(error) }
