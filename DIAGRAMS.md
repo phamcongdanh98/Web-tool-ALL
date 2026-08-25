@@ -148,7 +148,18 @@ flowchart TD
     Q -- "Có" --> W["Chờ an toàn tối đa 10 phút"]
     W --> Q
     Q -- "Không" --> A["Release cũ đang phục vụ"]
-    A --> B["Build release mới độc lập"]
+    R["Mac build dist + SHA-256"] --> U["Upload artifact qua SSH timeout/keepalive"]
+    U --> V{"Đúng commit + checksum?"}
+    V -- "Không" --> A
+    V -- "Có" --> X{"Cache dependency có sẵn?"}
+    X -- "Không" --> T{"Lockfile trùng release hiện tại?"}
+    T -- "Có" --> AA["Seed cache bằng hard-link"]
+    AA --> B
+    T -- "Không" --> Y{"RAM/load an toàn?"}
+    Y -- "Không" --> A
+    Y -- "Có" --> Z["npm ci production có timeout"]
+    X -- "Có" --> B["Tạo release mới độc lập"]
+    Z --> B
     B --> C{"Preflight đạt?"}
     C -- "Không" --> A
     C -- "Có" --> D["Chuyển symlink + restart systemd"]
@@ -168,8 +179,8 @@ flowchart TD
     classDef wait fill:#9a3412,stroke:#fb923c,color:#fff;
     classDef decision fill:#27272a,stroke:#a1a1aa,color:#fff;
     class A,F,L,N ok;
-    class B,D,G,M,H,I,W wait;
-    class C,E,J,K,Q decision;
+    class B,D,G,M,H,I,W,R,U,Z,AA wait;
+    class C,E,J,K,Q,V,X,Y,T decision;
 ```
 
 ## 6. Quy tắc cập nhật sơ đồ

@@ -6,6 +6,7 @@ SSH_HOST="${PDFTOOLS_SSH_HOST:-orace}"
 REMOTE_APP_DIR="${PDFTOOLS_APP_DIR:-/var/www/pdftools}"
 PUBLIC_HEALTH_URL="${PDFTOOLS_PUBLIC_HEALTH_URL:-https://congcuweb.duckdns.org/api/health}"
 PUBLIC_SITE_URL="${PDFTOOLS_PUBLIC_SITE_URL:-${PUBLIC_HEALTH_URL%/api/health}}"
+source "${ROOT_DIR}/deploy/ssh-options.sh"
 
 fail() {
   printf '❌ Không kiểm tra được trạng thái: %s\n' "$1" >&2
@@ -34,7 +35,8 @@ remote_maintenance="$(printf '%q' "${REMOTE_APP_DIR}/.deploy/maintenance.flag")"
 remote_command="$(printf 'git -C %s rev-parse HEAD\nreadlink -f %s' "$remote_repo" "$remote_current")"
 remote_command+=$'\n'
 remote_command+="if test -f ${remote_maintenance}; then echo on; else echo off; fi"
-remote_info="$(ssh "$SSH_HOST" "$remote_command")" || fail "không kết nối được SSH host ${SSH_HOST}."
+remote_info="$(ssh "${PDFTOOLS_SSH_OPTIONS[@]}" "$SSH_HOST" "$remote_command")" \
+  || fail "không kết nối được SSH host ${SSH_HOST} trong ${PDFTOOLS_SSH_CONNECT_TIMEOUT} giây."
 vps_revision="$(printf '%s\n' "$remote_info" | sed -n '1p')"
 running_path="$(printf '%s\n' "$remote_info" | sed -n '2p')"
 maintenance_state="$(printf '%s\n' "$remote_info" | sed -n '3p')"

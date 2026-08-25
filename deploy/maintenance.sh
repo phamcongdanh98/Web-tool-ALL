@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SSH_HOST="${PDFTOOLS_SSH_HOST:-orace}"
 REMOTE_APP_DIR="${PDFTOOLS_APP_DIR:-/var/www/pdftools}"
 PUBLIC_SITE_URL="${PDFTOOLS_PUBLIC_SITE_URL:-https://congcuweb.duckdns.org}"
 ACTION="${1:-status}"
+source "${ROOT_DIR}/deploy/ssh-options.sh"
 
 usage() {
   cat <<'USAGE'
@@ -52,7 +54,7 @@ case "$ACTION" in
     ;;
 esac
 
-remote_result="$(ssh -o ConnectTimeout=10 "$SSH_HOST" "$remote_command")" || {
+remote_result="$(ssh "${PDFTOOLS_SSH_OPTIONS[@]}" "$SSH_HOST" "$remote_command")" || {
   printf 'Không thay đổi được trạng thái bảo trì qua SSH host %s.\n' "$SSH_HOST" >&2
   exit 1
 }
@@ -77,7 +79,7 @@ if [[ "$ACTION" == 'on' ]]; then
     exit 0
   fi
 
-  ssh -o ConnectTimeout=10 "$SSH_HOST" "rm -f -- ${remote_flag}"
+  ssh "${PDFTOOLS_SSH_OPTIONS[@]}" "$SSH_HOST" "rm -f -- ${remote_flag}"
   printf 'Nginx chưa trả HTTP 503 (nhận %s); đã tự tắt cờ bảo trì để tránh trạng thái treo.\n' "$public_code" >&2
   printf '%s\n' 'Hãy deploy code và chạy setup-ubuntu.sh một lần trước khi dùng lệnh on.' >&2
   exit 1

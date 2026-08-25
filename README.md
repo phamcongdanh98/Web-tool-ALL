@@ -124,8 +124,9 @@ flowchart TD
         H --> I["🚀 npm run deploy:vps"]
         I --> J{"Git sạch và đúng origin/main?"}
         J -- "Không" --> K["⛔ Dừng · Production không đổi"]
-        J -- "Có" --> L["🏗️ Tạo release + npm ci + build"]
-        L --> M{"Preflight đạt?"}
+        J -- "Có" --> L["📦 Build ở Mac + checksum + upload"]
+        L --> T["♻️ VPS dùng cache dependency + tạo release"]
+        T --> M{"Preflight đạt?"}
         M -- "Không" --> K
         M -- "Có" --> N["🔄 Chuyển release + restart systemd"]
         N --> O{"Health nội bộ + HTTPS đạt?"}
@@ -142,7 +143,7 @@ flowchart TD
     classDef stop fill:#7f1d1d,stroke:#f87171,color:#ffffff,stroke-width:1.5px;
     class A,B,D,E local;
     class C,G,J,M,O check;
-    class F,H,I,L,N cloud;
+    class F,H,I,L,T,N cloud;
     class Q,S success;
     class K,P,R stop;
     style LOCAL fill:#0b0f14,stroke:#475569,color:#e2e8f0
@@ -177,7 +178,7 @@ npm run deploy:vps
 | 📦 Chuẩn bị | `git add .` | Đưa toàn bộ file đã sửa vào commit sắp tạo. |
 | 🏷️ Tạo phiên bản | `git commit -m "..."` | Tạo commit mới; footer tự tăng số **Bản dựng**. |
 | ☁️ Đồng bộ | `git push origin main` | Đẩy commit từ Mac lên nhánh `main` của GitHub. |
-| 🚀 Phát hành | `npm run deploy:vps` | Đưa đúng commit lên VPS, kiểm tra domain và rollback nếu lỗi. |
+| 🚀 Phát hành | `npm run deploy:vps` | Build ở Mac, tải gói đã kiểm checksum lên VPS, kiểm tra domain và rollback nếu lỗi. |
 
 > [!IMPORTANT]
 > Sau `git push`, chờ job **Verify Node 22** trong GitHub Actions chuyển màu xanh rồi mới chạy deploy. Khi hoàn tất, mở website và đối chiếu số **Bản dựng** ở footer.
@@ -243,7 +244,7 @@ curl https://congcuweb.duckdns.org/api/health
 
 ### 🛠️ Giao diện bảo trì khi cập nhật
 
-Nginx tiếp tục phục vụ phiên bản cũ trong lúc release mới đang `npm ci`, build và preflight. Chỉ trong khoảng Express restart hoặc tạm không phản hồi 502/503/504, Nginx tự trả trang bảo trì độc lập với:
+Nginx tiếp tục phục vụ phiên bản cũ trong lúc Mac build/upload và VPS chuẩn bị cache dependency, release mới cùng preflight. Chỉ trong khoảng Express restart hoặc tạm không phản hồi 502/503/504, Nginx tự trả trang bảo trì độc lập với:
 
 - Logo PDFTools, dark/light mode và giao diện responsive.
 - HTTP `503` cùng `Retry-After: 15`, không cache trang lỗi.
@@ -304,6 +305,9 @@ ROADMAP.md        Ý tưởng đã phân loại theo giá trị, rủi ro và đ
 
 ### 2026-08-25
 
+- Tối ưu deploy cho VPS ít tài nguyên: frontend được build trên Mac, đóng gói `dist` kèm SHA-256 rồi mới upload; VPS không còn cài dependency phát triển hoặc chạy Vite build trong lần deploy hằng ngày.
+- Cache `node_modules` production theo `package-lock.json`, Node ABI và kiến trúc máy; lần đầu ưu tiên seed nhanh bằng hard-link từ release đang chạy, chỉ gọi `npm ci --omit=dev` khi dependency thật sự mới. Bước nặng tự dừng trước khi restart nếu RAM khả dụng dưới 256 MB hoặc load vượt 2,5 lần số vCPU; npm có timeout 10 phút, hai lần thử và chạy ưu tiên CPU thấp.
+- Toàn bộ lệnh deploy/status/monitor/bảo trì dùng SSH connect timeout cùng keepalive; artifact bị khóa vào đúng commit, kiểm SHA-256, giới hạn nội dung trong `dist` và cache không còn release tham chiếu được dọn an toàn. `npm run verify` đã qua production build/smoke/E2E, artifact local 19 MB hợp lệ và `npm run audit:prod` báo 0 lỗ hổng. Kiểm tra VPS read-only xác nhận app/Nginx healthy, còn 543 MiB RAM và lockfile Git của release đang chạy trùng HEAD nên lần deploy mới có thể seed cache, nhưng chưa upload/restart/deploy thật trong lượt này. `package.json` chỉ đổi lệnh kiểm tra shell, lockfile/dependency không đổi; máy khác nên `git pull --ff-only` rồi `npm ci` theo quy trình chuẩn. Thay đổi hiện **chưa commit, chưa push và chưa deploy**.
 - Thay chế độ PDF → Word dạng **ảnh toàn trang** bằng **Bố cục chính xác có thể chỉnh sửa**: PDF.js tách chữ khỏi lần render nền, `lib/exact-word.js` đặt từng dòng vào `WordprocessingShape` theo tọa độ trang, font, cỡ, đậm/nghiêng, màu và độ co ngang; đường kẻ, ảnh, dấu cùng chữ ký tiếp tục nằm trong nền PNG/JPEG 200 DPI.
 - Đổi giao diện thành hai lựa chọn trung thực: **Bố cục chính xác** cho PDF số cần giống bản gốc và **Dòng chảy văn bản** cho nhu cầu sửa nhiều đoạn/bảng. Exact-mode không còn nhận PDF scan; giao diện hướng dẫn OCR và cảnh báo font đặc biệt có thể bị thay thế, chữ ký số chỉ giữ phần nhìn thấy.
 - E2E semantic kiểm tra `wps:wsp`, `w:txbxContent`, chữ thật trong `document.xml`, neo theo trang, khổ/lề 0 và chỉ một media nền. Đường đi browser thật đã chuyển PDF số tiếng Việt thành 11 khối chữ, tải DOCX và render LibreOffice đúng 1 trang; màu đỏ, chữ nghiêng, khung, dấu/chữ ký đều còn, không trùng chữ và không có console error. Đã thêm khoảng đệm text box sau khi QA phát hiện LibreOffice cắt cuối dòng. `npm run verify` đã qua và `npm run audit:prod` báo 0 lỗ hổng; lượt này **chưa commit, chưa push và chưa deploy**.

@@ -83,7 +83,13 @@ Trên máy phát triển, chạy verify, commit/push và chờ job GitHub Action
 npm run deploy:vps
 ```
 
-Lệnh local kiểm tra working tree sạch và `HEAD` trùng `origin/main`, rồi gọi SSH. Phía VPS khóa deploy, kiểm tra dung lượng, cập nhật bản sao trang bảo trì ổn định, tạo release độc lập, retry `npm ci`, build, preflight, chuyển release nguyên tử, restart và health/rollback. Khi VPS healthy, máy phát triển kiểm tra tiếp public HTTPS. Có thể đổi URL kiểm tra bằng `PDFTOOLS_PUBLIC_HEALTH_URL`.
+Lệnh local kiểm tra working tree sạch và `HEAD` trùng `origin/main`, build production ngay trên máy phát triển, đóng gói `dist`, tính SHA-256 rồi upload qua SSH. VPS kiểm đúng commit/checksum, khóa deploy, kiểm tra dung lượng, tạo release độc lập, preflight, chuyển symlink nguyên tử, restart và health/rollback. Vì Vite không còn build trên VPS nên website ít bị tranh CPU/RAM hơn.
+
+`node_modules` production được cache theo nội dung `package-lock.json`, Node ABI và kiến trúc VPS. Lần chuyển đổi đầu tiên ưu tiên seed cache bằng hard-link từ release đang chạy nếu lockfile nguyên bản trong đúng commit Git trùng, nên không bị sai bởi `npm prune`, không tải lại và gần như không tốn thêm dung lượng; các release sau dùng lại cache ngay. Chỉ khi dependency/Node ABI thật sự mới, VPS mới chạy một lần `npm ci --omit=dev` với ưu tiên CPU thấp. Trước bước nặng, script tự dừng nếu RAM khả dụng dưới 256 MB hoặc load 1 phút vượt 2,5 lần số vCPU; npm bị giới hạn 10 phút mỗi lần và tối đa hai lần thử. Mọi lỗi xảy ra trước lúc chuyển symlink đều giữ nguyên website đang chạy.
+
+Kết nối SSH mặc định hết thời gian bắt tay sau 15 giây và dùng keepalive, nên VPS mất phản hồi sẽ báo lỗi thay vì treo Terminal vô hạn. Có thể đổi ngưỡng kết nối bằng `PDFTOOLS_SSH_CONNECT_TIMEOUT`; có thể đổi URL kiểm tra bằng `PDFTOOLS_PUBLIC_HEALTH_URL`.
+
+> Chỉ lần đầu tiên gặp một lockfile/Node ABI chưa tồn tại và không thể seed từ release hiện tại mới cần tạo cache bằng npm. Các lần deploy tiếp theo với cùng dependency sẽ bỏ qua hoàn toàn `npm ci` trên VPS.
 
 Nếu máy khác dùng SSH alias khác:
 

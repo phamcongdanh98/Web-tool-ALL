@@ -14,7 +14,7 @@
     "preview": "vite preview",
     "start": "node server.js",
     "check:diagrams": "node scripts/check-diagrams.mjs",
-    "check:shell": "bash -n deploy/setup-ubuntu.sh && bash -n deploy/configure-domain.sh && bash -n deploy/deploy.sh && bash -n deploy/remote.sh && bash -n deploy/status.sh && bash -n deploy/monitor.sh && bash -n deploy/maintenance.sh && bash -n scripts/smoke-production.sh",
+    "check:shell": "bash -n deploy/setup-ubuntu.sh && bash -n deploy/configure-domain.sh && bash -n deploy/ssh-options.sh && bash -n deploy/deploy.sh && bash -n deploy/remote.sh && bash -n deploy/status.sh && bash -n deploy/monitor.sh && bash -n deploy/maintenance.sh && bash -n scripts/smoke-production.sh",
     "test:smoke": "bash scripts/smoke-production.sh",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
     "verify": "node --check server.js && node --check scripts/e2e-api.mjs && node --check scripts/precompress-assets.mjs && node --check scripts/check-diagrams.mjs && npm run check:diagrams && npm run check:shell && npm run build && npm run test:smoke",

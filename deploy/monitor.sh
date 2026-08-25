@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SSH_HOST="${PDFTOOLS_SSH_HOST:-orace}"
 REMOTE_APP_DIR="${PDFTOOLS_APP_DIR:-/var/www/pdftools}"
 SERVICE="${PDFTOOLS_SERVICE:-pdftools}"
 WATCH_INTERVAL='5'
 WATCH_MODE='false'
+source "${ROOT_DIR}/deploy/ssh-options.sh"
 
 usage() {
   cat <<'USAGE'
@@ -45,7 +47,7 @@ command -v ssh >/dev/null 2>&1 || {
 }
 
 snapshot() {
-  ssh -o ConnectTimeout=10 "$SSH_HOST" bash -s -- "$REMOTE_APP_DIR" "$SERVICE" <<'REMOTE_SCRIPT'
+  ssh "${PDFTOOLS_SSH_OPTIONS[@]}" "$SSH_HOST" bash -s -- "$REMOTE_APP_DIR" "$SERVICE" <<'REMOTE_SCRIPT'
 set -Eeuo pipefail
 export LC_ALL=C
 
@@ -141,7 +143,7 @@ printf '⚪ Swap   %s / %s\n' "$(human_mib "$swap_used")" "$(human_mib "$swap_to
 printf '%s Disk   %s / %s (%s%%) · còn %s\n\n' "$(level_icon "$disk_percent")" "$(human_mib "$disk_used")" "$(human_mib "$disk_total")" "$disk_percent" "$(human_mib "$disk_available")"
 
 if ((swap_total == 0 && mem_total < 2048)); then
-  printf '%s\n\n' '⚠️  VPS dưới 2 GiB RAM và chưa có swap; npm ci/build có thể thiếu bộ nhớ khi tải cao.'
+  printf '%s\n\n' '⚠️  VPS dưới 2 GiB RAM và chưa có swap; lần tạo cache dependency mới có thể bị hoãn khi thiếu RAM.'
 fi
 
 [[ "$service_state" == 'active' ]] && service_icon='✅' || service_icon='❌'

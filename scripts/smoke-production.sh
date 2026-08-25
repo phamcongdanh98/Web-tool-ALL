@@ -31,6 +31,23 @@ grep -Fq '/var/www/pdftools/.deploy/maintenance.flag' "${ROOT_DIR}/deploy/nginx.
 grep -Fq 'client_max_body_size 50M;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx chưa đồng bộ giới hạn upload 50 MB với API.'
 grep -Fq 'DPkg::Lock::Timeout=' "${ROOT_DIR}/deploy/setup-ubuntu.sh" || fail 'Setup Ubuntu chưa chờ khóa dpkg/apt.'
 grep -Fq 'wait_for_apt' "${ROOT_DIR}/deploy/setup-ubuntu.sh" || fail 'Setup Ubuntu thiếu thông báo chờ cập nhật tự động.'
+grep -Fq 'PDFTOOLS_BUILD_ARCHIVE' "${ROOT_DIR}/deploy/remote.sh" || fail 'Deploy local chưa truyền gói frontend đã build.'
+grep -Fq 'scp "${PDFTOOLS_SSH_OPTIONS[@]}"' "${ROOT_DIR}/deploy/remote.sh" || fail 'Deploy local chưa tải artifact bằng kết nối SSH có timeout.'
+grep -Fq 'PDFTOOLS_EXPECTED_REVISION' "${ROOT_DIR}/deploy/deploy.sh" || fail 'Deploy chưa khóa artifact vào đúng commit.'
+grep -Fq 'sha256sum "$BUILD_ARCHIVE"' "${ROOT_DIR}/deploy/deploy.sh" || fail 'Deploy chưa kiểm tra checksum artifact.'
+grep -Fq 'Tái sử dụng dependency production đã cache' "${ROOT_DIR}/deploy/deploy.sh" || fail 'Deploy chưa tái sử dụng dependency production.'
+grep -Fq 'Khởi tạo cache nhanh từ dependency của release đang chạy' "${ROOT_DIR}/deploy/deploy.sh" || fail 'Deploy chưa seed cache từ release production hiện có.'
+grep -Fq 'ensure_heavy_step_capacity' "${ROOT_DIR}/deploy/deploy.sh" || fail 'Deploy chưa chặn bước nặng khi VPS thiếu tài nguyên.'
+grep -Fq 'timeout --signal=TERM --kill-after=15' "${ROOT_DIR}/deploy/deploy.sh" || fail 'npm ci/build trên VPS chưa có timeout hữu hạn.'
+grep -Fq 'vẫn đang chạy' "${ROOT_DIR}/deploy/deploy.sh" || fail 'Deploy thiếu heartbeat cho bước nặng.'
+(
+  # shellcheck source=../deploy/ssh-options.sh
+  source "${ROOT_DIR}/deploy/ssh-options.sh"
+  printf '%s\n' "${PDFTOOLS_SSH_OPTIONS[@]}" | grep -Fq 'ConnectTimeout=' \
+    || fail 'Tùy chọn SSH thiếu ConnectTimeout.'
+  printf '%s\n' "${PDFTOOLS_SSH_OPTIONS[@]}" | grep -Fq 'ServerAliveInterval=' \
+    || fail 'Tùy chọn SSH thiếu keepalive.'
+)
 bash "${ROOT_DIR}/deploy/monitor.sh" --help >/dev/null || fail 'Lệnh monitor:vps không hiển thị được hướng dẫn.'
 bash "${ROOT_DIR}/deploy/maintenance.sh" --help >/dev/null || fail 'Lệnh maintenance:vps không hiển thị được hướng dẫn.'
 
