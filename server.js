@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { convertPdfText } from './lib/pdf-office.js'
+import { redactionToPixels } from './lib/browser-utility.js'
 
 const require = createRequire(import.meta.url)
 const { ZipArchive } = require('archiver')
@@ -140,6 +141,23 @@ app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes
       if (rotation) image = image.rotate(rotation)
       if (req.body.flip === 'true') image = image.flip()
       if (req.body.flop === 'true') image = image.flop()
+    } else if (action === 'redact') {
+      let regions
+      try { regions = JSON.parse(req.body.regions || '[]') }
+      catch { return res.status(400).json({ message: 'Danh sách vùng che không hợp lệ.' }) }
+      if (!Array.isArray(regions) || !regions.length) return res.status(400).json({ message: 'Hãy tạo ít nhất một vùng che.' })
+      if (regions.length > 20) return res.status(400).json({ message: 'Mỗi ảnh chỉ được có tối đa 20 vùng che.' })
+      const invalidRegion = regions.some(region => !['x', 'y', 'w', 'h'].every(key => Number.isFinite(Number(region?.[key]))) || Number(region.w) < 0.25 || Number(region.h) < 0.25)
+      if (invalidRegion) return res.status(400).json({ message: 'Tọa độ vùng che không hợp lệ.' })
+      const color = /^#[0-9a-f]{6}$/i.test(req.body.redactionColor || '') ? req.body.redactionColor : '#111827'
+      const metadata = await sharp(req.file.buffer, { animated: false, limitInputPixels: maximumImagePixels }).metadata()
+      const orientedWidth = metadata.autoOrient?.width || ([5, 6, 7, 8].includes(metadata.orientation) ? metadata.height : metadata.width)
+      const orientedHeight = metadata.autoOrient?.height || ([5, 6, 7, 8].includes(metadata.orientation) ? metadata.width : metadata.height)
+      const rectangles = regions.map(region => redactionToPixels(region, orientedWidth, orientedHeight))
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${orientedWidth}" height="${orientedHeight}" viewBox="0 0 ${orientedWidth} ${orientedHeight}">${rectangles.map(rectangle => `<rect x="${rectangle.left}" y="${rectangle.top}" width="${rectangle.width}" height="${rectangle.height}" fill="${color}" shape-rendering="crispEdges"/>`).join('')}</svg>`
+      const buffer = await image.composite([{ input: Buffer.from(svg), left: 0, top: 0 }]).png().toBuffer()
+      res.set({ 'X-Redaction-Regions': String(rectangles.length), 'X-Metadata-Stripped': 'yes' })
+      return download(res, buffer, safeName(req.file.originalname, '-redacted.png'), 'image/png')
     } else if (action === 'remove-background') {
       const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true })
       const { width, height, channels } = info

@@ -100,9 +100,9 @@ compressed_headers="$(curl --fail --silent --show-error --head --max-time 10 -H 
 printf '%s' "$compressed_headers" | grep -qi '^content-encoding: br' || fail 'Production chưa phục vụ asset Brotli.'
 printf '%s' "$compressed_headers" | grep -qi '^vary:.*accept-encoding' || fail 'Asset nén chưa có Vary: Accept-Encoding.'
 asset_body="$(curl --compressed --fail --silent --show-error --max-time 20 "${BASE_URL}${asset_path}")"
-printf '%s' "$asset_body" | grep -Fq 'Danh Phạm' || fail 'Bản build chưa hiển thị tên tác giả Danh Phạm.'
-printf '%s' "$asset_body" | grep -Fq 'Phiên bản' || fail 'Bản build chưa hiển thị phiên bản thân thiện.'
-printf '%s' "$asset_body" | grep -Fq 'Bản dựng #' || fail 'Bản build chưa nhúng số bản dựng theo commit.'
+grep -Fq 'Danh Phạm' <<<"$asset_body" || fail 'Bản build chưa hiển thị tên tác giả Danh Phạm.'
+grep -Fq 'Phiên bản' <<<"$asset_body" || fail 'Bản build chưa hiển thị phiên bản thân thiện.'
+grep -Fq 'Bản dựng #' <<<"$asset_body" || fail 'Bản build chưa nhúng số bản dựng theo commit.'
 
 BASE_URL="$BASE_URL" node scripts/e2e-api.mjs
 

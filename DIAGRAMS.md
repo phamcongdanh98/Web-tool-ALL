@@ -13,12 +13,14 @@ flowchart LR
     R --> P["👁️ Chọn tệp · preview · cấu hình"]
 
     P --> C{"Xử lý ở đâu?"}
-    C -->|"Trong browser"| B["🧠 PDF.js / Canvas / AI model"]
+    C -->|"Trong browser"| B["🧠 PDF.js / Canvas / AI model / QR / ZIP"]
     C -->|"API nội bộ"| A["📤 Multipart /api/tools"]
 
     B --> B1["Nén PDF đặt MB"]
     B --> B2["Xóa phông AI"]
     B --> B3["Preview PDF / khung cắt"]
+    B --> B4["Tạo + đọc QR cục bộ"]
+    B --> B5["Đổi tên hàng loạt → ZIP"]
 
     A --> G["🛡️ Tổng 50 MB · nén PDF 50 MB/tệp<br/>công cụ khác 25 MB/tệp · 500 trang · 2 tác vụ"]
     G --> I["🖼️ Sharp · xử lý ảnh"]
@@ -27,6 +29,8 @@ flowchart LR
 
     B1 --> X["✅ Preview kết quả"]
     B2 --> X
+    B4 --> X
+    B5 --> X
     I --> X
     D --> X
     O --> X
@@ -37,7 +41,7 @@ flowchart LR
     classDef server fill:#166534,stroke:#4ade80,color:#fff;
     classDef result fill:#9a3412,stroke:#fb923c,color:#fff;
     class U,N,S edge;
-    class R,P,C,B,B1,B2,B3 browser;
+    class R,P,C,B,B1,B2,B3,B4,B5 browser;
     class E,A,G,I,D,O server;
     class X,T result;
 ```
@@ -48,9 +52,10 @@ Tệp được xử lý trong bộ nhớ hoặc trong browser. Luồng hiện t�
 
 ```mermaid
 flowchart TB
-    ROOT["PDFTools · 15 công cụ"]
+    ROOT["PDFTools · 20 công cụ · 19 sẵn sàng"]
     ROOT --> PDF["📄 9 công cụ PDF"]
-    ROOT --> IMG["🖼️ 6 công cụ ảnh"]
+    ROOT --> IMG["🖼️ 7 công cụ ảnh"]
+    ROOT --> UTL["🧰 4 công cụ tiện ích"]
 
     PDF --> PE["Chỉnh sửa PDF<br/>kéo overlay · tọa độ · số trang"]
     PDF --> PC["Nén PDF<br/>đặt MB / không mất dữ liệu"]
@@ -68,13 +73,23 @@ flowchart TB
     IMG --> IK["Cắt ảnh<br/>khung kéo-thả"]
     IMG --> IN["Nén ảnh"]
     IMG --> IE["Chỉnh sửa ảnh<br/>màu · xoay · lật"]
+    IMG --> ID["Che thông tin<br/>kéo vùng · Sharp làm phẳng · bỏ EXIF"]
+
+    UTL --> QC["Tạo mã QR<br/>preview · tự kiểm tra đọc lại"]
+    UTL --> QR["Đọc mã QR<br/>ảnh cục bộ · không tự mở link"]
+    UTL --> BR["Đổi tên file hàng loạt<br/>preview tên · ZIP giữ nguyên byte"]
+    UTL --> LS["Rút gọn liên kết<br/>đang nghiên cứu persistence + chống abuse"]
 
     classDef root fill:#312e81,stroke:#a5b4fc,color:#fff;
     classDef pdf fill:#075985,stroke:#38bdf8,color:#fff;
     classDef image fill:#166534,stroke:#4ade80,color:#fff;
+    classDef utility fill:#9a3412,stroke:#fb923c,color:#fff;
+    classDef planned fill:#713f12,stroke:#facc15,color:#fff,stroke-dasharray: 5 5;
     class ROOT root;
     class PDF,PE,PC,PM,PO,PS,PW,PX,PP,PT pdf;
-    class IMG,IR,IC,IZ,IK,IN,IE image;
+    class IMG,IR,IC,IZ,IK,IN,IE,ID image;
+    class UTL,QC,QR,BR utility;
+    class LS planned;
 ```
 
 ## 3. Luồng sử dụng chung
@@ -83,7 +98,10 @@ flowchart TB
 flowchart LR
     O["Mở / tải lại website"] --> W["Màn hình chào 4,5 giây<br/>Danh Phạm · Facebook · Zalo · Telegram"]
     W --> A["Chọn công cụ"]
-    A --> B["Kéo-thả hoặc chọn tệp"]
+    A --> A0{"Loại thao tác?"}
+    A0 -->|"Tạo QR"| Q0["Nhập text/link · preview · kiểm tra đọc lại"]
+    Q0 --> L
+    A0 -->|"Công cụ dùng tệp"| B["Kéo-thả hoặc chọn tệp"]
     B --> C{"Tệp hợp lệ?"}
     C -- "Không" --> D["Thông báo lỗi rõ ràng"]
     D --> B
@@ -192,7 +210,7 @@ flowchart TD
 
 Trong cùng commit thay đổi chức năng:
 
-1. Đối chiếu danh sách `pdfTools` và `imageTools` trong `src/App.jsx` với mục **Bản đồ chức năng**.
+1. Đối chiếu danh sách `pdfTools`, `imageTools` và `utilityTools` trong `src/App.jsx` với mục **Bản đồ chức năng**.
 2. Nếu đổi xử lý browser/API, cập nhật **Kiến trúc và luồng dữ liệu**.
 3. Nếu đổi preview, validation hoặc kết quả tải xuống, cập nhật **Luồng sử dụng chung**.
 4. Nếu đổi CI, Nginx, systemd, deploy, health hoặc rollback, cập nhật **Production, cập nhật và bảo trì**.

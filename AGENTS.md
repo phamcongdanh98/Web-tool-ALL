@@ -7,8 +7,10 @@
 ## Kiến trúc
 
 - `src/App.jsx`: toàn bộ giao diện React và state của các modal công cụ.
+- `src/UtilityTools.jsx`: modal tách riêng cho QR, đổi tên hàng loạt, che thông tin ảnh và trạng thái nghiên cứu link rút gọn; không nhồi các flow không cùng hợp đồng vào `ToolModal`.
 - `src/styles.css`: kiểu giao diện. Không thêm framework CSS trừ khi người dùng yêu cầu.
 - `server.js`: Express API. Dùng `sharp` cho ảnh, `pdf-lib` cho PDF và `archiver` cho ZIP.
+- `lib/browser-utility.js`: helper thuần cho tên tệp an toàn, chống tên trùng, URL HTTP/HTTPS và quy đổi vùng che phần trăm sang pixel; dùng chung ở client, server và test.
 - `lib/pdf-office.js`: trích xuất chữ bằng PDF.js và tạo DOCX/XLSX/TXT bằng `docx` cùng `@excel.js/exceljs`.
 - `lib/pptx.js`: sinh PowerPoint OOXML bằng `jszip`; mỗi dòng PDF là một text shape có thể chỉnh sửa.
 - `vite.config.js`: Vite proxy `/api` đến Express ở cổng 3001.
@@ -22,6 +24,7 @@ npm ci
 npm run dev
 npm run build
 npm run check:diagrams
+npm run test:browser-tools
 npm run verify
 npm run audit:prod
 npm run status:vps
@@ -31,6 +34,7 @@ npm run maintenance:vps -- status
 
 `npm run dev` phải khởi chạy cả Express lẫn Vite. Không đổi sang chỉ chạy Vite nếu các công cụ API vẫn cần hoạt động.
 `npm run check:diagrams` đối chiếu tên/số lượng công cụ trong `src/App.jsx` với `DIAGRAMS.md`; phải qua khi thêm, xóa hoặc đổi tên công cụ.
+`npm run test:browser-tools` kiểm tra semantic QR tạo → đọc lại, ZIP đổi tên giữ nguyên byte, URL an toàn và tọa độ vùng che.
 `npm run verify` là cổng chất lượng chuẩn trước khi commit/push: kiểm tra cú pháp, shell script, production build, smoke test Express và E2E API xử lý ảnh/PDF thật.
 `npm run status:vps` là lệnh read-only để so sánh commit/bản dựng giữa Mac, GitHub, repository VPS, release đang chạy và public health.
 `npm run monitor:vps` là lệnh read-only chụp CPU, RAM, swap, disk, load, tiến trình, systemd, Nginx và health qua SSH; thêm `-- --watch 5` để tự làm mới mỗi 5 giây.
@@ -46,6 +50,10 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - Khi sửa PDF → Word mặc định, E2E phải kiểm tra nội dung semantic, `w:tbl`, `gridSpan`, `vMerge`, media riêng cho đồ họa và `wp:positionH/wp:positionV` neo theo trang; render LibreOffice phải xác nhận đúng số trang, tiêu đề hai cột, dòng/ngắt trang, bảng, nơi nhận, khối ký tên, dấu/chữ ký và không có trang trắng. Exact-mode vẫn phải kiểm tra `wps:wsp`, `w:txbxContent`, chữ semantic, `pgSz`, lề 0 và một nền đồ họa/trang. Không tuyên bố ngang bằng Smallpdf cho mọi PDF: font nhúng độc quyền có thể bị thay thế, bảng lạ có thể cần heuristic mới và chữ ký số chỉ còn phần nhìn thấy. Không dùng OCR cho PDF đã có lớp chữ chỉ vì metadata Word bị phần mềm ký số ghi đè.
 - Khi sửa chuyển đổi Office, E2E phải kiểm tra **nội dung semantic bên trong** DOCX/XLSX/PPTX/TXT, không chỉ MIME, đuôi tệp hoặc chữ ký ZIP. Khi thay đổi cấu trúc PPTX, mở/chuyển thử bằng LibreOffice nếu runtime có sẵn.
 - Chỉnh ảnh phải giữ preview CSS và pipeline Sharp đồng nghĩa cho sáng/tương phản/bão hòa/sắc độ/blur/xoay/lật/trắng-đen; E2E tối thiểu kiểm tra kích thước sau xoay và định dạng đầu ra.
+- Tạo QR và đọc QR chạy trong browser, lazy-load `qrcode`/`jsqr` và không gửi nội dung/ảnh lên server. QR tạo phải có quiet zone, tương phản tối thiểu và tự đọc lại trước khi cho tải PNG. QR đọc chỉ nhận JPG/PNG/WebP, không tự mở URL; chỉ hiển thị hostname và để người dùng chủ động nhấp. Khi dependency QR thay đổi phải kiểm tra chunk không nhập vào bundle đầu trang.
+- Đổi tên file hàng loạt chạy trong browser và luôn mô tả đúng giới hạn: browser không sửa trực tiếp tệp gốc, kết quả là ZIP. Giữ nguyên byte tệp, chặn path traversal/ký tự control/tên trùng, tối đa 100 tệp và 50 MB tổng; JSZip dùng `STORE` để tránh tốn CPU nén lại.
+- Che thông tin ảnh dùng tối đa 20 rectangle phần trăm từ góc trên-trái. Client phải cho kéo/resize và preview; API Sharp auto-orient ảnh, clamp tọa độ, ghi khối màu opaque thật, xuất PNG và không giữ EXIF/GPS. Không gọi blur/pixel hóa là “che an toàn”. E2E phải kiểm tra pixel trong vùng bị ghi đúng màu và pixel ngoài vùng giữ nguyên.
+- Rút gọn liên kết không được gắn “Sẵn sàng” khi chưa có database bền vững ngoài release, backup/migration, slug chống va chạm, expiry/disable, rate-limit và chống spam/phishing. Không dùng Map/bộ nhớ tiến trình hoặc API bên thứ ba rồi mô tả là dịch vụ ổn định.
 - Xóa phông dùng `@imgly/background-removal` ở phía client. Chỉ nhận JPG, PNG và WebP. Lần đầu chạy phải tải model AI; giữ hiển thị tiến độ cho người dùng.
 - Preview PDF dùng chiến lược hai lớp: thử viewer native trước, tự fallback sang PDF.js nếu viewer không phản hồi. PDF.js và worker được lazy-load/prewarm; không đổi lại sang tải đồng bộ trong bundle đầu trang.
 - Nén PDF **đặt dung lượng** là chế độ raster có mất dữ liệu: giữ kích thước trang nhưng chữ/link/form không còn tương tác. Thuật toán phải ưu tiên DPI rồi mới hạ độ phân giải khi JPEG/PNG vẫn vượt ngân sách; luôn hiển thị DPI và kiểu mã hóa trong kết quả. Khi sửa thuật toán, kiểm thử bằng PDF tài liệu có chữ nhỏ và một mục tiêu thực tế, không chỉ kiểm tra tệp mở được.

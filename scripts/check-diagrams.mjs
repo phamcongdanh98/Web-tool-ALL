@@ -12,13 +12,17 @@ const extractNames = (start, end) => {
 }
 
 const pdfNames = extractNames('const pdfTools = [', 'const imageTools = [')
-const imageNames = extractNames('const imageTools = [', 'const footerProducts = [')
-const allNames = [...pdfNames, ...imageNames]
+const imageNames = extractNames('const imageTools = [', 'const utilityTools = [')
+const utilityNames = extractNames('const utilityTools = [', 'const footerProducts = [')
+const allNames = [...pdfNames, ...imageNames, ...utilityNames]
+const unavailableCount = (appSource.match(/ready:\s*false/g) || []).length
+const readyCount = allNames.length - unavailableCount
 
 const expectedCounts = [
-  `PDFTools · ${allNames.length} công cụ`,
+  `PDFTools · ${allNames.length} công cụ · ${readyCount} sẵn sàng`,
   `${pdfNames.length} công cụ PDF`,
   `${imageNames.length} công cụ ảnh`,
+  `${utilityNames.length} công cụ tiện ích`,
 ]
 
 for (const text of expectedCounts) {
@@ -29,4 +33,4 @@ for (const name of allNames) {
   if (!diagrams.includes(name)) throw new Error(`DIAGRAMS.md thiếu chức năng: ${name}`)
 }
 
-console.log(`Sơ đồ hợp lệ: ${pdfNames.length} công cụ PDF · ${imageNames.length} công cụ ảnh.`)
+console.log(`Sơ đồ hợp lệ: ${pdfNames.length} PDF · ${imageNames.length} ảnh · ${utilityNames.length} tiện ích · ${readyCount} sẵn sàng.`)
