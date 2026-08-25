@@ -146,10 +146,10 @@ if ! grep -Fq 'include /etc/nginx/snippets/pdftools-maintenance.conf;' "$nginx_s
   rm -f "$nginx_site_next"
 fi
 
-if grep -Fq 'client_max_body_size 30M;' "$nginx_site"; then
-  sed -i 's/client_max_body_size 30M;/client_max_body_size 50M;/' "$nginx_site"
+if grep -Eq 'client_max_body_size (30|50)M;' "$nginx_site"; then
+  sed -Ei 's/client_max_body_size (30|50)M;/client_max_body_size 51M;/' "$nginx_site"
 elif ! grep -Fq 'client_max_body_size ' "$nginx_site"; then
-  sed -i '/server_name/a\    client_max_body_size 50M;' "$nginx_site"
+  sed -i '/server_name/a\    client_max_body_size 51M;' "$nginx_site"
 fi
 if ! grep -Fq 'client_body_timeout 300s;' "$nginx_site"; then
   sed -i '/client_max_body_size /a\    client_body_timeout 300s;' "$nginx_site"

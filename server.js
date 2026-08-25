@@ -19,14 +19,19 @@ dotenv.config()
 const app = express()
 app.disable('x-powered-by')
 app.use(cors())
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } })
+const megabyte = 1024 * 1024
+const defaultMaximumFileMb = 25
+const pdfCompressionMaximumFileMb = 50
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: defaultMaximumFileMb * megabyte } })
+const pdfCompressionUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: pdfCompressionMaximumFileMb * megabyte } })
 
 const safeName = (name, extension) => `${name.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9-_]/gi, '-') || 'toolhub-file'}${extension}`
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value))
 const numberOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback
 const escapeXml = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;')
 const clientError = (statusCode, message) => Object.assign(new Error(message), { statusCode })
-const maxUploadBytes = Math.round(clamp(numberOr(process.env.MAX_UPLOAD_TOTAL_MB, 50), 1, 200) * 1024 * 1024)
+const maxUploadBytes = Math.round(clamp(numberOr(process.env.MAX_UPLOAD_TOTAL_MB, 50), 1, 200) * megabyte)
+const maxUploadRequestBytes = maxUploadBytes + 64 * 1024
 const maxConcurrentJobs = Math.trunc(clamp(numberOr(process.env.MAX_CONCURRENT_JOBS, 2), 1, 8))
 const maximumImagePixels = 30_000_000
 const maximumPdfPages = 500
@@ -58,7 +63,7 @@ const download = (res, buffer, filename, type) => {
 
 app.use('/api/tools', (req, res, next) => {
   const contentLength = Number(req.get('content-length'))
-  if (Number.isFinite(contentLength) && contentLength > maxUploadBytes) {
+  if (Number.isFinite(contentLength) && contentLength > maxUploadRequestBytes) {
     return res.status(413).json({ message: `Tổng request vượt giới hạn ${Math.round(maxUploadBytes / 1024 / 1024)} MB.` })
   }
   if (activeJobs >= maxConcurrentJobs) {
@@ -196,7 +201,7 @@ app.post(['/api/tools/pdf/merge', '/api/tools/pdf/organize'], upload.array('file
   } catch (error) { next(error) }
 })
 
-app.post('/api/tools/pdf/compress', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
+app.post('/api/tools/pdf/compress', pdfCompressionUpload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp PDF.' })
     assertPdfFile(req.file)
@@ -381,9 +386,12 @@ if (process.env.NODE_ENV === 'production') {
   })
 }
 
-app.use((error, _req, res, _next) => {
+app.use((error, req, res, _next) => {
   console.error(error)
-  if (error?.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ message: 'Tệp vượt quá giới hạn 25 MB.' })
+  if (error?.code === 'LIMIT_FILE_SIZE') {
+    const maximumFileMb = req.path === '/api/tools/pdf/compress' ? pdfCompressionMaximumFileMb : defaultMaximumFileMb
+    return res.status(413).json({ message: `Tệp vượt quá giới hạn ${maximumFileMb} MB.` })
+  }
   const status = Number(error?.statusCode)
   res.status(status >= 400 && status < 500 ? status : 500).json({
     message: status >= 400 && status < 500 ? error.message : 'Không thể xử lý tệp này. Hãy kiểm tra lại định dạng hoặc thử tệp nhỏ hơn.',

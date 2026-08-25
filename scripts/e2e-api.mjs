@@ -308,6 +308,17 @@ const oversized = await requestWithHeadersOnly('/api/tools/pdf/compress', {
 assert.equal(oversized.status, 413, 'Request vượt tổng 50 MB phải bị chặn trước khi đọc upload.')
 assert.match(JSON.parse(oversized.body.toString('utf8')).message, /50 MB/)
 
+const nearLimitCompressionBytes = 50 * 1024 * 1024 - 1024
+const nearLimitCompressionPdf = Buffer.concat([
+  firstPdf,
+  Buffer.alloc(nearLimitCompressionBytes - firstPdf.length, 0x20),
+])
+const nearLimitCompressionForm = new FormData()
+nearLimitCompressionForm.append('file', new Blob([nearLimitCompressionPdf], { type: 'application/pdf' }), 'near-50mb.pdf')
+const nearLimitCompression = await request('/api/tools/pdf/compress', nearLimitCompressionForm)
+assert.equal((await PDFDocument.load(nearLimitCompression.body)).getPageCount(), 1, 'Nén PDF phải nhận được tệp gần 50 MB và trả PDF hợp lệ.')
+assert.equal(nearLimitCompression.response.headers.get('x-compression-mode'), 'lossless')
+
 const concurrencyLimit = await fetch(`${baseUrl}/api/health`).then(response => response.json()).then(health => health.processing.limit)
 const heldUploads = Array.from({ length: concurrencyLimit }, () => openHeldUpload('/api/tools/pdf/compress'))
 try {

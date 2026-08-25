@@ -59,6 +59,7 @@ const imageModes = ['compress', 'convert', 'resize', 'crop', 'edit', 'remove-bac
 const pdfOfficeModes = ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-text']
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const maximumFileBytes = 25 * 1024 * 1024
+const maximumPdfCompressionFileBytes = 50 * 1024 * 1024
 const maximumUploadBytes = 50 * 1024 * 1024
 const maximumPdfPages = 500
 const maximumExactWordPages = 40
@@ -949,6 +950,8 @@ function ToolModal({ mode, close }) {
   const isPageComposer = isMerge || isOrganize
   const isPdf = mode?.startsWith('pdf-')
   const isPdfOffice = pdfOfficeModes.includes(mode)
+  const maximumSelectedFileBytes = mode === 'pdf-compress' ? maximumPdfCompressionFileBytes : maximumFileBytes
+  const maximumSelectedFileMb = maximumSelectedFileBytes / 1024 / 1024
   const fileAccept = mode === 'remove-background'
     ? '.png,.jpg,.jpeg,.webp'
     : isImage ? '.png,.jpg,.jpeg,.webp,.avif,image/png,image/jpeg,image/webp,image/avif' : '.pdf,application/pdf'
@@ -987,7 +990,7 @@ function ToolModal({ mode, close }) {
     const picked = Array.from(selected || [])
     if (!picked.length) return
     const nextFiles = isPageComposer ? picked : picked.slice(0, 1)
-    if (nextFiles.some(file => file.size > maximumFileBytes)) return setMessage('Mỗi tệp không được vượt quá 25 MB.')
+    if (nextFiles.some(file => file.size > maximumSelectedFileBytes)) return setMessage(`Mỗi tệp không được vượt quá ${maximumSelectedFileMb} MB.`)
     if (nextFiles.reduce((sum, file) => sum + file.size, 0) > maximumUploadBytes) return setMessage('Tổng dung lượng mỗi lượt không được vượt quá 50 MB.')
     setLoading(true); setMessage('Đang đọc thông tin tệp…'); setResult(null)
     try {
@@ -1186,7 +1189,7 @@ function ToolModal({ mode, close }) {
 
       {!files.length ? <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files) }}>
         <input ref={input} className="drop-file-input" aria-label="Chọn tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
-        <span>⇧</span><b>Kéo thả {isPageComposer ? 'các tệp' : 'tệp'} vào đây</b><small>hoặc nhấp để chọn từ máy tính · tối đa 25 MB mỗi tệp, 50 MB mỗi lượt{isPdf ? ' · 500 trang PDF' : ''}</small>
+        <span>⇧</span><b>Kéo thả {isPageComposer ? 'các tệp' : 'tệp'} vào đây</b><small>hoặc nhấp để chọn từ máy tính · tối đa {maximumSelectedFileMb} MB mỗi tệp, 50 MB mỗi lượt{isPdf ? ' · 500 trang PDF' : ''}</small>
       </div> : <>
         <input ref={input} className="file-input" aria-label="Đổi tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
         <div className="selected-file-bar"><div><i>{isPdf ? 'PDF' : 'IMG'}</i><span><b>{files.length > 1 ? `${files.length} tệp đã chọn` : files[0].name}</b><small>{files.length > 1 ? `${formatBytes(files.reduce((sum, file) => sum + file.size, 0))} tổng cộng` : formatBytes(files[0].size)}</small></span></div><button type="button" onClick={() => input.current?.click()}>Đổi tệp</button></div>

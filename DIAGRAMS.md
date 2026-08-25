@@ -20,7 +20,7 @@ flowchart LR
     B --> B2["Xóa phông AI"]
     B --> B3["Preview PDF / khung cắt"]
 
-    A --> G["🛡️ 50 MB · 500 trang · 2 tác vụ đồng thời"]
+    A --> G["🛡️ Tổng 50 MB · nén PDF 50 MB/tệp<br/>công cụ khác 25 MB/tệp · 500 trang · 2 tác vụ"]
     G --> I["🖼️ Sharp · xử lý ảnh"]
     G --> D["📄 pdf-lib · PDF / ZIP"]
     G --> O["📝 PDF.js + DOCX / XLSX / PPTX / TXT"]

@@ -28,7 +28,7 @@ grep -Fq 'Retry-After "15" always' "$maintenance_nginx" || fail 'Trang bảo tr�
 grep -Fq 'include /etc/nginx/snippets/pdftools-maintenance.conf;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx site chưa include fallback bảo trì.'
 grep -Fq 'proxy_intercept_errors on;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx chưa chặn lỗi upstream để hiển thị bảo trì.'
 grep -Fq '/var/www/pdftools/.deploy/maintenance.flag' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx chưa hỗ trợ bật bảo trì thủ công.'
-grep -Fq 'client_max_body_size 50M;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx chưa đồng bộ giới hạn upload 50 MB với API.'
+grep -Fq 'client_max_body_size 51M;' "${ROOT_DIR}/deploy/nginx.conf" || fail 'Nginx cần cho phép body 51 MB để chứa tệp 50 MB cùng multipart overhead.'
 grep -Fq 'DPkg::Lock::Timeout=' "${ROOT_DIR}/deploy/setup-ubuntu.sh" || fail 'Setup Ubuntu chưa chờ khóa dpkg/apt.'
 grep -Fq 'wait_for_apt' "${ROOT_DIR}/deploy/setup-ubuntu.sh" || fail 'Setup Ubuntu thiếu thông báo chờ cập nhật tự động.'
 grep -Fq 'PDFTOOLS_BUILD_ARCHIVE' "${ROOT_DIR}/deploy/remote.sh" || fail 'Deploy local chưa truyền gói frontend đã build.'
