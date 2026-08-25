@@ -188,22 +188,32 @@ const imageInput = await sharp({
 const exactPageImage = await sharp(Buffer.from(`
   <svg width="1240" height="1754" xmlns="http://www.w3.org/2000/svg">
     <rect width="1240" height="1754" fill="white"/>
-    <text x="110" y="155" font-family="serif" font-size="42" fill="#111827">PDFTOOLS EXACT WORD TEST</text>
-    <text x="110" y="235" font-family="serif" font-size="27" fill="#111827">Giữ nguyên lề, dấu và chữ ký hiển thị</text>
+    <path d="M110 280 H1130" stroke="#111827" stroke-width="3"/>
     <circle cx="890" cy="1280" r="105" fill="none" stroke="#dc2626" stroke-width="16"/>
     <text x="820" y="1295" font-family="sans-serif" font-size="35" fill="#dc2626">DẤU</text>
     <path d="M720 1420 C800 1350 875 1490 1015 1365" fill="none" stroke="#2563eb" stroke-width="13"/>
   </svg>
 `)).png().toBuffer()
-const exactWordBuffer = await createExactWordBuffer([{ data: exactPageImage, mimeType: 'image/png', width: 595, height: 842 }])
+const exactWordBuffer = await createExactWordBuffer([{
+  background: { data: exactPageImage, mimeType: 'image/png' },
+  width: 595,
+  height: 842,
+  textItems: [
+    { text: 'PDFTOOLS EXACT WORD TEST', x: 52, y: 61, width: 315, height: 26, fontSize: 20, font: 'Arial', bold: true, color: '111827', scale: 100 },
+    { text: 'Chữ Word sửa được, dấu và chữ ký giữ ở nền', x: 52, y: 98, width: 360, height: 20, fontSize: 13, font: 'Times New Roman', color: '111827', scale: 100 },
+  ],
+}])
 const exactWordZip = await JSZip.loadAsync(exactWordBuffer)
 const exactWordXml = await exactWordZip.file('word/document.xml').async('string')
-assert.match(exactWordXml, /<wp:anchor/, 'Word giữ nguyên hình thức phải dùng ảnh neo toàn trang.')
-assert.match(exactWordXml, /<wp:positionH relativeFrom="page"/, 'Ảnh phải được đặt theo gốc trang Word.')
-assert.match(exactWordXml, /<wp:positionV relativeFrom="page"/, 'Ảnh phải được đặt theo gốc trang Word.')
+assert.match(exactWordXml, /<wps:wsp/, 'Word bố cục chính xác phải dùng WordprocessingShape cho chữ có thể sửa.')
+assert.match(exactWordXml, /<w:txbxContent/, 'Mỗi shape chữ phải chứa nội dung Word có thể chỉnh sửa.')
+assert.match(exactWordXml, /PDFTOOLS EXACT WORD TEST/, 'Nội dung chữ exact-mode phải nằm trong document.xml, không nằm trong ảnh.')
+assert.match(exactWordXml, /<wp:positionH relativeFrom="page"/, 'Ảnh nền và text box phải được đặt theo gốc trang Word.')
+assert.match(exactWordXml, /<wp:positionV relativeFrom="page"/, 'Ảnh nền và text box phải được đặt theo gốc trang Word.')
 assert.match(exactWordXml, /<w:pgSz w:w="11900" w:h="16840"/, 'Khổ Word phải khớp chính xác khổ PDF nguồn.')
-assert.match(exactWordXml, /<w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0"/, 'Chế độ giữ nguyên hình thức không được tự thêm lề Word.')
-assert.equal(exactWordZip.file(/^word\/media\//).length, 1, 'DOCX phải nhúng đúng một ảnh cho mỗi trang PDF.')
+assert.match(exactWordXml, /<w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0"/, 'Chế độ bố cục chính xác không được tự thêm lề Word.')
+assert.equal((exactWordXml.match(/<wp:anchor/g) || []).length, 3, 'DOCX phải có một nền đồ họa và hai text box neo theo trang.')
+assert.equal(exactWordZip.file(/^word\/media\//).length, 1, 'DOCX chỉ được nhúng lớp đồ họa nền; chữ phải là OOXML có thể sửa.')
 
 const imageForm = new FormData()
 imageForm.append('file', new Blob([imageInput], { type: 'image/png' }), 'smoke.png')

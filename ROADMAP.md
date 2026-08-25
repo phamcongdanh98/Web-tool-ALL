@@ -8,7 +8,7 @@ Tài liệu này phân loại ý tưởng theo code đang có, khả năng kiể
 | --- | --- | --- |
 | Sắp xếp PDF | Đã triển khai | Tái sử dụng `PdfPageBoard` và API `pagePlan`; hỗ trợ kéo-thả, xoay, nhân bản, thêm, xóa và preview PDF kết quả. |
 | Giới hạn tài nguyên API | Đã triển khai | VPS nhỏ cần trần tổng request 50 MB, 500 trang PDF, tối đa 2 tác vụ đồng thời, kiểm tra PDF/ảnh thật và giới hạn ảnh 30 megapixel. |
-| PDF → Word giữ nguyên hình thức | Đã triển khai, mặc định | Browser render mỗi trang cùng annotation ở 200 DPI rồi đặt ảnh đúng khổ/lề 0 trong DOCX; giữ dấu/chữ ký hiển thị và bố cục, nhưng chữ không chỉnh sửa riêng và chữ ký số không còn hiệu lực. |
+| PDF → Word bố cục chính xác | Đã triển khai, mặc định | Browser tách chữ thành text box Word theo tọa độ/font/cỡ/màu và render phần đồ họa còn lại làm nền 200 DPI; giữ dấu/chữ ký hiển thị, chữ sửa được, nhưng font đặc biệt có thể bị thay thế và chữ ký số không còn hiệu lực. |
 | PDF → Word dòng chảy | Đã triển khai cho tài liệu số/công văn | Phân loại scan/PDF hỗn hợp/Word-export/PDF ký số; gom dòng thành đoạn, phục hồi khối hai cột và bảng `STT` thành bảng Word có border/ô gộp. Không tuyên bố khôi phục DOCX gốc hoặc hiệu lực chữ ký. |
 | Overlay chữ PDF trực tiếp | Đã triển khai | Canvas cho phép nhấp/kéo vị trí, tinh chỉnh x/y phần trăm; API clamp và đổi đúng hệ tọa độ trước khi thêm lớp chữ mới. |
 | Refactor | Làm tăng dần | Chỉ tách module khi chạm vào flow có test; không đại tu toàn bộ `App.jsx` trong một lần. |

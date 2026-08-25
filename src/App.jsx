@@ -10,7 +10,7 @@ const pdfTools = [
   { icon: '⊕', name: 'Ghép PDF', description: 'Sắp xếp và ghép nhiều tệp PDF thành một', color: 'blue', mode: 'pdf-merge' },
   { icon: '↕', name: 'Sắp xếp PDF', description: 'Kéo thả, xoay, nhân bản, thêm hoặc xóa trang', color: 'indigo', mode: 'pdf-organize' },
   { icon: '◫', name: 'Tách PDF', description: 'Chọn trực tiếp thumbnail và tải kết quả dạng ZIP', color: 'purple', mode: 'pdf-split' },
-  { icon: 'W', name: 'PDF sang Word', description: 'Giữ nguyên dấu, chữ ký và hình thức từng trang', color: 'blue', mode: 'pdf-to-word' },
+  { icon: 'W', name: 'PDF sang Word', description: 'Bố cục chính xác, chữ Word vẫn chỉnh sửa được', color: 'blue', mode: 'pdf-to-word' },
   { icon: 'X', name: 'PDF sang Excel', description: 'Tách dòng và cột thành workbook XLSX', color: 'green', mode: 'pdf-to-excel' },
   { icon: 'P', name: 'PDF sang PowerPoint', description: 'Mỗi trang thành slide với chữ có thể sửa', color: 'orange', mode: 'pdf-to-powerpoint' },
   { icon: 'TXT', name: 'PDF sang văn bản', description: 'Xuất nội dung có thể chọn thành tệp TXT', color: 'teal', mode: 'pdf-to-text' },
@@ -220,6 +220,81 @@ const encodeExactWordPage = async canvas => {
   return png.size <= Math.max(3.5 * 1024 * 1024, jpeg.size * 1.5) ? png : jpeg
 }
 
+const exactWordFont = (fontObject, style = {}) => {
+  const original = String(fontObject?.name || fontObject?.fallbackName || style.fontFamily || '').replace(/^[A-Z]{6}\+/, '')
+  const normalized = original.toLowerCase()
+  const font = /times|serif/.test(normalized) ? 'Times New Roman'
+    : /courier|mono|consolas/.test(normalized) ? 'Courier New'
+      : /calibri/.test(normalized) ? 'Calibri'
+        : /cambria/.test(normalized) ? 'Cambria'
+          : /arial|helvetica|sans/.test(normalized) ? 'Arial'
+            : original.split(',')[0].replace(/["']/g, '').trim() || 'Arial'
+  return {
+    font,
+    bold: /bold|black|heavy|semibold|demi/.test(normalized),
+    italics: /italic|oblique/.test(normalized),
+  }
+}
+
+const collectExactTextColors = (pdfjs, operatorList) => {
+  const colors = []
+  const stack = []
+  let fillColor = '000000'
+  operatorList.fnArray.forEach((operation, index) => {
+    if (operation === pdfjs.OPS.save) stack.push(fillColor)
+    else if (operation === pdfjs.OPS.restore) fillColor = stack.pop() || '000000'
+    else if (operation === pdfjs.OPS.setFillRGBColor) {
+      const value = operatorList.argsArray[index]?.[0]
+      if (typeof value === 'string' && /^#[\da-f]{6}$/i.test(value)) fillColor = value.slice(1).toUpperCase()
+    } else if ([pdfjs.OPS.showText, pdfjs.OPS.showSpacedText, pdfjs.OPS.nextLineShowText, pdfjs.OPS.nextLineSetSpacingShowText].includes(operation)) colors.push(fillColor)
+  })
+  return colors
+}
+
+const makeExactTextItems = (pdfjs, page, viewport, content, colors = []) => {
+  const measureCanvas = document.createElement('canvas')
+  const measureContext = measureCanvas.getContext('2d')
+  let textIndex = 0
+  return content.items.flatMap(item => {
+    if (typeof item.str !== 'string' || !item.str.trim() || !Array.isArray(item.transform)) return []
+    const style = content.styles?.[item.fontName] || {}
+    let fontObject = null
+    try { fontObject = page.commonObjs.get(item.fontName) } catch {}
+    const font = exactWordFont(fontObject, style)
+    const tx = pdfjs.Util.transform(viewport.transform, item.transform)
+    let angle = Math.atan2(tx[1], tx[0])
+    if (style.vertical) angle += Math.PI / 2
+    const fontSize = Math.max(4, Math.hypot(tx[2], tx[3]))
+    const ascent = Number.isFinite(style.ascent) ? style.ascent : Number.isFinite(style.descent) ? 1 + style.descent : 0.8
+    const fontAscent = fontSize * ascent
+    const x = angle === 0 ? tx[4] : tx[4] + fontAscent * Math.sin(angle)
+    const y = angle === 0 ? tx[5] - fontAscent : tx[5] - fontAscent * Math.cos(angle)
+    const width = Math.max(Number(item.width) || fontSize * 0.5, fontSize * 0.35)
+    let naturalWidth = width
+    if (measureContext) {
+      measureContext.font = `${font.italics ? 'italic ' : ''}${font.bold ? '700' : '400'} ${fontSize}px "${font.font}"`
+      naturalWidth = measureContext.measureText(item.str).width || width
+    }
+    return [{
+      text: item.str,
+      x: Math.max(0, x),
+      y: Math.max(0, y),
+      // LibreOffice và một số bản Word dùng metric font rộng hơn PDF một chút.
+      // Chừa khoảng trong suốt để tránh dòng bị wrap/clipping nhưng không đổi vị trí hay độ co ngang.
+      width: Math.min(viewport.width - Math.max(0, x), width * 1.15 + Math.max(2, fontSize * 0.2)),
+      height: fontSize * 1.24,
+      fontSize,
+      font: font.font,
+      bold: font.bold,
+      italics: font.italics,
+      color: colors[textIndex++] || '000000',
+      scale: Math.max(20, Math.min(600, width / Math.max(naturalWidth, 0.1) * 100)),
+      rotation: angle * 180 / Math.PI,
+      direction: item.dir,
+    }]
+  })
+}
+
 const createExactWordFromPdf = async (file, onProgress) => {
   const [pdfjs, exactWord] = await Promise.all([loadPdfJs(), import('../lib/exact-word.js')])
   const data = new Uint8Array(await file.arrayBuffer())
@@ -227,13 +302,25 @@ const createExactWordFromPdf = async (file, onProgress) => {
   try {
     const pdf = await loadingTask.promise
     if (pdf.numPages > maximumExactWordPages) {
-      throw new Error(`Chế độ giữ nguyên hình thức xử lý tối đa ${maximumExactWordPages} trang mỗi lượt. Hãy tách PDF hoặc chọn chế độ có thể chỉnh sửa.`)
+      throw new Error(`Chế độ bố cục chính xác xử lý tối đa ${maximumExactWordPages} trang mỗi lượt. Hãy tách PDF hoặc chọn chế độ dòng chảy.`)
     }
     const pages = []
+    let textBoxCount = 0
+    const textPaintOperations = new Set([
+      pdfjs.OPS.showText,
+      pdfjs.OPS.showSpacedText,
+      pdfjs.OPS.nextLineShowText,
+      pdfjs.OPS.nextLineSetSpacingShowText,
+    ].filter(Number.isFinite))
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-      onProgress?.(`Đang giữ nguyên hình thức trang ${pageNumber}/${pdf.numPages}…`)
+      onProgress?.(`Đang tái dựng chữ và đồ họa trang ${pageNumber}/${pdf.numPages}…`)
       const page = await pdf.getPage(pageNumber)
       const sourceViewport = page.getViewport({ scale: 1 })
+      const content = await page.getTextContent({ disableNormalization: false })
+      const operatorList = await page.getOperatorList({ intent: 'print', annotationMode: pdfjs.AnnotationMode.ENABLE_STORAGE })
+      const textItems = makeExactTextItems(pdfjs, page, sourceViewport, content, collectExactTextColors(pdfjs, operatorList))
+      if (!textItems.length) throw new Error(`Trang ${pageNumber} không có lớp chữ. Chế độ bố cục chính xác chỉ dùng cho PDF số; PDF scan cần OCR trước.`)
+      textBoxCount += textItems.length
       const idealScale = exactWordDpi / 72
       const pixelLimitedScale = Math.sqrt(maximumExactWordPixelsPerPage / (sourceViewport.width * sourceViewport.height))
       const scale = Math.min(idealScale, pixelLimitedScale)
@@ -249,13 +336,14 @@ const createExactWordFromPdf = async (file, onProgress) => {
         background: '#fff',
         intent: 'print',
         annotationMode: pdfjs.AnnotationMode.ENABLE_STORAGE,
+        operationsFilter: index => !textPaintOperations.has(operatorList.fnArray[index]),
       }).promise
-      const image = await encodeExactWordPage(canvas)
+      const background = await encodeExactWordPage(canvas)
       pages.push({
-        data: await image.arrayBuffer(),
-        mimeType: image.type,
         width: sourceViewport.width,
         height: sourceViewport.height,
+        background: { data: await background.arrayBuffer(), mimeType: background.type },
+        textItems,
       })
       canvas.width = 1
       canvas.height = 1
@@ -265,8 +353,9 @@ const createExactWordFromPdf = async (file, onProgress) => {
     return {
       blob: await exactWord.createExactWordBlob(pages),
       pages: pdf.numPages,
+      textBoxes: textBoxCount,
       dpi: exactWordDpi,
-      imageFormats: [...new Set(pages.map(page => page.mimeType === 'image/png' ? 'PNG' : 'JPEG'))].join(' + '),
+      imageFormats: [...new Set(pages.map(page => page.background.mimeType === 'image/png' ? 'PNG' : 'JPEG'))].join(' + '),
     }
   } finally {
     await loadingTask.destroy().catch(() => null)
@@ -929,9 +1018,7 @@ function ToolModal({ mode, close }) {
         setTargetMb(String(Math.min(suggestedMb, Math.max(0.1, sourceMb - 0.1)).toFixed(1)))
       }
       setMessage(isPdfOffice && !extractedPreview
-        ? mode === 'pdf-to-word' && wordMode === 'exact'
-          ? 'PDF không có lớp chữ vẫn có thể chuyển sang Word bằng chế độ giữ nguyên hình thức.'
-          : 'Không thấy chữ có thể chọn. Nếu đây là PDF scan, cần OCR trước khi chuyển đổi.'
+        ? 'Không thấy chữ có thể chọn. PDF scan cần OCR trước khi tạo Word có thể chỉnh sửa.'
         : '')
     } catch (error) { setMessage(error.message || 'Không thể đọc tệp này.') }
     finally { setLoading(false) }
@@ -980,12 +1067,13 @@ function ToolModal({ mode, close }) {
       if (mode === 'pdf-to-word' && wordMode === 'exact') {
         const exactWord = await createExactWordFromPdf(files[0], setMessage)
         blob = exactWord.blob
-        name = `${files[0].name.replace(/\.[^/.]+$/, '')}-giu-nguyen-hinh-thuc.docx`
+        name = `${files[0].name.replace(/\.[^/.]+$/, '')}-bo-cuc-chinh-xac.docx`
         outputMetadata = {
           pages: exactWord.pages,
           pdfSourceKind: pdfDiagnosis?.sourceKind,
           pdfSignatures: pdfDiagnosis?.signatureCount || 0,
-          wordLayoutMode: 'exact-page-image',
+          wordLayoutMode: 'exact-text-boxes',
+          wordTextBoxes: exactWord.textBoxes,
           exactDpi: exactWord.dpi,
           exactImageFormats: exactWord.imageFormats,
         }
@@ -1052,7 +1140,7 @@ function ToolModal({ mode, close }) {
         }
       }
       const output = await analyze(blob, name)
-      setResult({ ...output, ...outputMetadata, previewText: output.previewText || (isPdfOffice ? pdfTextPreview : ''), outputLabel: mode === 'pdf-to-word' && wordMode === 'exact' ? 'Tệp Word giữ nguyên hình thức đã sẵn sàng' : isPdfOffice ? 'Tệp Office có thể chỉnh sửa đã sẵn sàng' : undefined, blob })
+      setResult({ ...output, ...outputMetadata, previewText: output.previewText || (isPdfOffice ? pdfTextPreview : ''), outputLabel: mode === 'pdf-to-word' && wordMode === 'exact' ? 'Word bố cục chính xác có thể chỉnh sửa đã sẵn sàng' : isPdfOffice ? 'Tệp Office có thể chỉnh sửa đã sẵn sàng' : undefined, blob })
       if (mode === 'pdf-compress' && pdfCompression === 'target') {
         const targetBytes = Number(targetMb) * 1024 * 1024
         const proximity = Math.max(0, (targetBytes - blob.size) / targetBytes * 100)
@@ -1065,7 +1153,7 @@ function ToolModal({ mode, close }) {
           : 'Tối ưu không mất dữ liệu hoàn tất — PDF gốc đã có cấu trúc tốt nên không thể giảm thêm mà vẫn giữ nguyên chữ, liên kết và biểu mẫu. Muốn giảm rõ rệt, hãy chọn “Đạt dung lượng mục tiêu”.')
       } else if (mode === 'pdf-to-word' && wordMode === 'exact') {
         const signatureNotice = outputMetadata.pdfSignatures ? `, gồm phần hiển thị của ${outputMetadata.pdfSignatures} chữ ký số` : ''
-        setMessage(`Chuyển đổi hoàn tất — đã giữ nguyên hình thức ${outputMetadata.pages} trang${signatureNotice}. Chữ ký nhìn giống PDF nhưng không còn hiệu lực xác thực trong DOCX.`)
+        setMessage(`Chuyển đổi hoàn tất — ${outputMetadata.wordTextBoxes.toLocaleString('vi-VN')} khối chữ có thể sửa đã được đặt theo đúng vị trí trên ${outputMetadata.pages} trang${signatureNotice}. Chữ ký nhìn giống PDF nhưng không còn hiệu lực xác thực trong DOCX.`)
       } else if (isPdfOffice) {
         const sourceLabel = pdfSourceLabels[outputMetadata.pdfSourceKind] || 'PDF có văn bản chọn được'
         const mixedNotice = outputMetadata.pdfImageOnlyPages ? `; ${outputMetadata.pdfImageOnlyPages} trang ảnh chưa có OCR` : ''
@@ -1092,7 +1180,7 @@ function ToolModal({ mode, close }) {
     <form className={`tool-modal ${files.length ? 'tool-modal-wide' : ''} ${isPdfOffice ? 'pdf-office-modal' : ''} ${mode === 'pdf-edit' ? 'pdf-edit-modal' : ''}`} onSubmit={submit}>
       <button className="close" type="button" onClick={close}>×</button>
       <div className="modal-heading"><i>✦</i><div><p>CÔNG CỤ PDFTOOLS</p><h2>{labels[mode]}</h2></div></div>
-      <p className="modal-copy">{isOrganize ? 'Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.' : isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : mode === 'pdf-to-word' ? 'Mặc định giữ nguyên hình thức từng trang, kể cả dấu và chữ ký; bạn vẫn có thể đổi sang Word có thể chỉnh sửa.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
+      <p className="modal-copy">{isOrganize ? 'Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.' : isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : mode === 'pdf-to-word' ? 'Mặc định tái dựng chữ thành text box Word đúng vị trí, đồng thời giữ đường kẻ, dấu và chữ ký ở lớp đồ họa.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
 
       {!files.length ? <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files) }}>
         <input ref={input} className="drop-file-input" aria-label="Chọn tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
@@ -1134,9 +1222,9 @@ function ToolModal({ mode, close }) {
             </>}
 
             {isPdfOffice && <>
-              {mode === 'pdf-to-word' && <div className="control-group word-mode-control"><span>Kiểu tệp Word</span><div className="option-cards"><button type="button" className={wordMode === 'exact' ? 'active' : ''} onClick={() => { setWordMode('exact'); setResult(null); setMessage('Chế độ này giữ nguyên hình thức từng trang, kể cả dấu và chữ ký hiển thị.') }}><b>Giữ nguyên hình thức <em>Khuyên dùng</em></b><small>Giống PDF từng trang · giữ dấu, chữ ký, font, lề; chữ nằm trong ảnh</small></button><button type="button" className={wordMode === 'editable' ? 'active' : ''} onClick={() => { setWordMode('editable'); setResult(null); setMessage(pdfTextPreview ? 'Chế độ này ưu tiên sửa chữ và bảng; bố cục chỉ gần đúng.' : 'PDF chưa có lớp chữ để tạo Word có thể chỉnh sửa. Hãy OCR trước.') }}><b>Có thể chỉnh sửa</b><small>Đoạn và bảng Word thật · bố cục gần đúng, không giữ nguyên dấu/chữ ký</small></button></div></div>}
-              {pdfDiagnosis && <div className={`pdf-diagnosis ${pdfDiagnosis.sourceKind}`}><strong>{pdfSourceLabels[pdfDiagnosis.sourceKind]}</strong><span>{mode === 'pdf-to-word' && wordMode === 'exact' ? pdfDiagnosis.signatureCount ? `Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Phần dấu và chữ ký nhìn thấy trên trang sẽ được giữ trong Word; hiệu lực xác thực mật mã không được chuyển sang DOCX.` : 'Mỗi trang sẽ được giữ nguyên hình thức, kể cả PDF scan; không cần OCR nếu bạn không cần sửa riêng từng chữ.' : pdfDiagnosis.sourceKind === 'word-export' ? 'Metadata cho thấy PDF có thể được xuất từ Word; hệ thống sẽ tái dựng bố cục nâng cao.' : pdfDiagnosis.sourceKind === 'signed-document' ? `Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Công cụ phục dựng phần tài liệu có thể chỉnh sửa; chữ ký số không còn hiệu lực khi đổi sang DOCX.` : pdfDiagnosis.sourceKind === 'scan' ? 'Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi chuyển.' : pdfDiagnosis.sourceKind === 'mixed' ? 'Một số trang có chữ, một số trang chỉ có ảnh; trang ảnh sẽ cần OCR.' : 'Có lớp chữ để tái dựng thành nội dung Office có thể chỉnh sửa.'}</span><small>Kiểm tra nhanh {pdfDiagnosis.sampledPages}/{pdfDiagnosis.totalPages} trang{pdfDiagnosis.producer ? ` · Trình tạo: ${pdfDiagnosis.producer}` : ''}{pdfDiagnosis.hasStructTree ? ' · Có cấu trúc PDF được gắn thẻ' : ''}</small></div>}
-              <div className="control-note office-note"><b>{mode === 'pdf-to-word' && wordMode === 'exact' ? 'Word giống hình thức PDF' : mode === 'pdf-to-word' ? 'Tái dựng Word có thể chỉnh sửa' : 'Chuyển đổi văn bản có thể chỉnh sửa'}</b><span>{mode === 'pdf-to-word' && wordMode === 'exact' ? `Kết xuất trang ở ${exactWordDpi} DPI rồi đặt vừa đúng khổ Word. Dấu đỏ, chữ ký, font, khoảng cách và lề cùng nằm trong ảnh toàn trang.` : mode === 'pdf-to-word' ? 'Gom lại đoạn văn, nhận diện bảng thành ô Word thật, giữ khổ giấy, căn lề, cỡ chữ và đậm/nghiêng khi PDF còn đủ dữ liệu.' : mode === 'pdf-to-excel' ? 'Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.' : mode === 'pdf-to-powerpoint' ? 'Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.' : 'Xuất văn bản UTF-8, phân tách rõ từng trang.'}</span><em>{mode === 'pdf-to-word' && wordMode === 'exact' ? `Tối đa ${maximumExactWordPages} trang/lượt. Không sửa riêng từng chữ và chữ ký số không còn giá trị xác thực trong Word.` : pdfTextPreview ? `Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString('vi-VN')} ký tự. Không thể khôi phục lịch sử sửa hoặc chữ ký số hợp lệ mà PDF đã loại bỏ.` : 'Chưa tìm thấy chữ có thể chọn trong phần xem trước.'}</em></div>
+              {mode === 'pdf-to-word' && <div className="control-group word-mode-control"><span>Kiểu tệp Word</span><div className="option-cards"><button type="button" className={wordMode === 'exact' ? 'active' : ''} onClick={() => { setWordMode('exact'); setResult(null); setMessage(pdfTextPreview ? 'Chữ sẽ là text box Word có thể sửa; dấu, chữ ký và đường kẻ được giữ ở nền.' : 'PDF chưa có lớp chữ. Hãy OCR trước khi dùng bố cục chính xác.') }}><b>Bố cục chính xác <em>Khuyên dùng</em></b><small>Chữ sửa được · giữ vị trí, font, lề, dấu và chữ ký hiển thị</small></button><button type="button" className={wordMode === 'editable' ? 'active' : ''} onClick={() => { setWordMode('editable'); setResult(null); setMessage(pdfTextPreview ? 'Chế độ này ưu tiên sửa nhiều chữ và bảng; bố cục chỉ gần đúng.' : 'PDF chưa có lớp chữ để tạo Word dòng chảy. Hãy OCR trước.') }}><b>Dòng chảy văn bản</b><small>Đoạn và bảng Word thật · dễ sửa nhiều, bố cục gần đúng</small></button></div></div>}
+              {pdfDiagnosis && <div className={`pdf-diagnosis ${pdfDiagnosis.sourceKind}`}><strong>{pdfSourceLabels[pdfDiagnosis.sourceKind]}</strong><span>{mode === 'pdf-to-word' && wordMode === 'exact' ? pdfDiagnosis.sourceKind === 'scan' ? 'Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi tạo Word có thể chỉnh sửa.' : pdfDiagnosis.sourceKind === 'mixed' ? 'Một số trang chỉ có ảnh. Hãy OCR các trang đó trước để toàn bộ chữ trong Word đều sửa được.' : pdfDiagnosis.signatureCount ? `Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Chữ được dựng thành text box; dấu và chữ ký nhìn thấy được giữ ở nền nhưng hiệu lực mật mã không chuyển sang DOCX.` : 'Có lớp chữ để tái dựng thành text box Word theo đúng tọa độ; đường kẻ và hình ảnh được giữ ở nền.' : pdfDiagnosis.sourceKind === 'word-export' ? 'Metadata cho thấy PDF có thể được xuất từ Word; hệ thống sẽ tái dựng bố cục dòng chảy nâng cao.' : pdfDiagnosis.sourceKind === 'signed-document' ? `Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Công cụ phục dựng phần tài liệu có thể chỉnh sửa; chữ ký số không còn hiệu lực khi đổi sang DOCX.` : pdfDiagnosis.sourceKind === 'scan' ? 'Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi chuyển.' : pdfDiagnosis.sourceKind === 'mixed' ? 'Một số trang có chữ, một số trang chỉ có ảnh; trang ảnh sẽ cần OCR.' : 'Có lớp chữ để tái dựng thành nội dung Office có thể chỉnh sửa.'}</span><small>Kiểm tra nhanh {pdfDiagnosis.sampledPages}/{pdfDiagnosis.totalPages} trang{pdfDiagnosis.producer ? ` · Trình tạo: ${pdfDiagnosis.producer}` : ''}{pdfDiagnosis.hasStructTree ? ' · Có cấu trúc PDF được gắn thẻ' : ''}</small></div>}
+              <div className="control-note office-note"><b>{mode === 'pdf-to-word' && wordMode === 'exact' ? 'Word chính xác và chỉnh sửa được' : mode === 'pdf-to-word' ? 'Tái dựng Word theo dòng chảy' : 'Chuyển đổi văn bản có thể chỉnh sửa'}</b><span>{mode === 'pdf-to-word' && wordMode === 'exact' ? `PDFTools tách chữ khỏi lớp đồ họa, đặt từng dòng chữ vào text box Word theo tọa độ, font, cỡ và độ rộng; dấu, chữ ký, ảnh và đường kẻ được giữ trong nền ${exactWordDpi} DPI.` : mode === 'pdf-to-word' ? 'Gom lại đoạn văn, nhận diện bảng thành ô Word thật, giữ khổ giấy, căn lề, cỡ chữ và đậm/nghiêng khi PDF còn đủ dữ liệu.' : mode === 'pdf-to-excel' ? 'Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.' : mode === 'pdf-to-powerpoint' ? 'Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.' : 'Xuất văn bản UTF-8, phân tách rõ từng trang.'}</span><em>{mode === 'pdf-to-word' && wordMode === 'exact' ? `Tối đa ${maximumExactWordPages} trang/lượt và chỉ dùng cho PDF có chữ chọn được. Một số font nhúng đặc biệt có thể được Word thay thế; chữ ký số không còn giá trị xác thực.` : pdfTextPreview ? `Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString('vi-VN')} ký tự. Không thể khôi phục lịch sử sửa hoặc chữ ký số hợp lệ mà PDF đã loại bỏ.` : 'Chưa tìm thấy chữ có thể chọn trong phần xem trước.'}</em></div>
             </>}
 
             {mode === 'pdf-compress' && <>
@@ -1156,13 +1244,13 @@ function ToolModal({ mode, close }) {
         </>}
       </>}
 
-      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isOrganize ? `Lưu PDF gồm ${pdfPages.length} trang  →` : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : mode === 'pdf-to-word' && wordMode === 'exact' ? 'Tạo Word giống hình thức PDF  →' : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : mode === 'pdf-compress' && pdfCompression === 'preserve' ? 'Tối ưu không mất dữ liệu  →' : 'Tạo bản xem trước kết quả  →'}</button>
+      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isOrganize ? `Lưu PDF gồm ${pdfPages.length} trang  →` : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : mode === 'pdf-to-word' && wordMode === 'exact' ? 'Tạo Word bố cục chính xác  →' : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : mode === 'pdf-compress' && pdfCompression === 'preserve' ? 'Tối ưu không mất dữ liệu  →' : 'Tạo bản xem trước kết quả  →'}</button>
       {message && <p className={`result ${message.includes('hoàn tất') ? 'success' : ''}`}>{message}</p>}
 
       {result && <div className="result-workspace">
         <div className="result-heading"><div><span>KẾT QUẢ</span><h3>{result.name}</h3></div><a className="primary download-result" href={result.url} download={result.name}>Tải xuống <b>↓</b></a></div>
-        <div className="result-comparison"><MediaPreview info={fileInfo[0]} title="Trước xử lý" /><MediaPreview info={result.wordLayoutMode === 'exact-page-image' ? fileInfo[0] : result} title={result.wordLayoutMode === 'exact-page-image' ? 'Sau xử lý · hình thức giữ nguyên' : 'Sau xử lý'} checkerboard={mode === 'remove-background'} /></div>
-        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}{result.pdfSourceKind && <span><small>Loại PDF</small><b>{pdfSourceLabels[result.pdfSourceKind] || result.pdfSourceKind}</b></span>}{result.wordLayoutMode && <span><small>Chế độ Word</small><b>{result.wordLayoutMode === 'exact-page-image' ? 'Giữ nguyên hình thức' : 'Dòng chảy + bảng thật'}</b></span>}{result.exactDpi && <span><small>Độ nét</small><b>{result.exactDpi} DPI · {result.exactImageFormats}</b></span>}{result.wordDetectedTables > 0 && <span><small>Bảng nhận diện</small><b>{result.wordDetectedTables} bảng Word</b></span>}{result.pdfSignatures > 0 && <span><small>Chữ ký PDF</small><b>{result.pdfSignatures} · giữ hình thức, không giữ hiệu lực</b></span>}{result.pdfImageOnlyPages > 0 && <span><small>Chưa OCR</small><b>{result.pdfImageOnlyPages} trang ảnh</b></span>}</div>
+        <div className="result-comparison"><MediaPreview info={fileInfo[0]} title="Trước xử lý" /><MediaPreview info={result.wordLayoutMode === 'exact-text-boxes' ? fileInfo[0] : result} title={result.wordLayoutMode === 'exact-text-boxes' ? 'Sau xử lý · bố cục chính xác' : 'Sau xử lý'} checkerboard={mode === 'remove-background'} /></div>
+        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}{result.pdfSourceKind && <span><small>Loại PDF</small><b>{pdfSourceLabels[result.pdfSourceKind] || result.pdfSourceKind}</b></span>}{result.wordLayoutMode && <span><small>Chế độ Word</small><b>{result.wordLayoutMode === 'exact-text-boxes' ? 'Text box chính xác' : 'Dòng chảy + bảng thật'}</b></span>}{result.wordTextBoxes > 0 && <span><small>Chữ chỉnh sửa</small><b>{result.wordTextBoxes.toLocaleString('vi-VN')} khối</b></span>}{result.exactDpi && <span><small>Nền đồ họa</small><b>{result.exactDpi} DPI · {result.exactImageFormats}</b></span>}{result.wordDetectedTables > 0 && <span><small>Bảng nhận diện</small><b>{result.wordDetectedTables} bảng Word</b></span>}{result.pdfSignatures > 0 && <span><small>Chữ ký PDF</small><b>{result.pdfSignatures} · giữ phần nhìn thấy, không giữ hiệu lực</b></span>}{result.pdfImageOnlyPages > 0 && <span><small>Chưa OCR</small><b>{result.pdfImageOnlyPages} trang ảnh</b></span>}</div>
       </div>}
     </form>
   </div>

@@ -22,7 +22,7 @@
 - Sắp xếp PDF độc lập: kéo-thả trang, xoay, nhân bản, đảo thứ tự, thêm hoặc xóa trang rồi preview kết quả.
 - Tách PDF bằng cách chọn trực tiếp thumbnail, hỗ trợ chọn tất cả, trang lẻ, trang chẵn và xoay trước khi xuất ZIP.
 - Chỉnh PDF bằng cách thêm chữ Unicode/watermark theo vị trí, phạm vi trang và độ trong suốt; có thể kéo chữ trực tiếp trên preview hoặc dùng tọa độ phần trăm, đồng thời hỗ trợ tự đánh số `Trang N / Tổng`.
-- **PDF sang Word có hai chế độ rõ ràng**: mặc định **Giữ nguyên hình thức** kết xuất từng trang ở 200 DPI để giữ dấu, chữ ký hiển thị, font, khoảng cách và lề; chế độ **Có thể chỉnh sửa** dùng tái dựng dòng chảy, gom đoạn, phục hồi bố cục hai cột và nhận diện bảng thành ô Word thật.
+- **PDF sang Word có hai chế độ rõ ràng**: mặc định **Bố cục chính xác** tách lớp chữ thành các text box Word có thể sửa theo đúng tọa độ/font/cỡ/màu, đồng thời giữ đường kẻ, ảnh, dấu và chữ ký ở nền đồ họa; chế độ **Dòng chảy văn bản** gom đoạn, phục hồi bố cục hai cột và nhận diện bảng thành ô Word thật để sửa nội dung dài thuận tiện hơn.
 - Chuyển phần chữ có thể chọn trong PDF sang **Excel, PowerPoint hoặc TXT**, có kiểm tra nhanh PDF scan, PDF hỗn hợp, PDF đã ký số và dấu hiệu được xuất từ Microsoft Word.
 - Chỉnh ảnh trực quan: độ sáng, tương phản, bão hòa, sắc độ, làm mờ, trắng-đen, xoay và lật; preview dùng cùng thông số với ảnh kết quả.
 - Bộ nhận diện PDFTools thống nhất trên thanh điều hướng, footer và tab trình duyệt; có SVG gốc, favicon PNG, Apple Touch Icon và icon PWA 192/512 px.
@@ -31,7 +31,7 @@
 - Footer hiển thị `Danh Phạm` và phiên bản dễ đọc, ví dụ `Phiên bản 1.1.0 · Bản dựng #14`; số bản dựng tự tăng theo Git commit.
 
 > [!NOTE]
-> PDF sang Word mặc định ưu tiên **giống hình thức PDF**: trang Word là ảnh toàn trang nên không sửa riêng từng chữ; dấu/chữ ký nhìn thấy được giữ nhưng chữ ký số không còn hiệu lực xác thực trong DOCX. Chế độ này chạy ngay trong trình duyệt, tối đa 40 trang/lượt. Nếu cần sửa chữ và bảng, chọn **Có thể chỉnh sửa**; bố cục chỉ gần đúng và PDF scan cần OCR trước. Các chuyển đổi Office có thể chỉnh sửa giới hạn 100 trang và 25 MB.
+> PDF sang Word mặc định dùng **Bố cục chính xác** theo nguyên tắc Exact của các bộ chuyển đổi chuyên dụng: chữ là text box Word có thể chỉnh sửa, còn đồ họa/dấu/chữ ký hiển thị nằm ở nền. Chế độ này chạy trong trình duyệt, tối đa 40 trang/lượt và yêu cầu PDF có lớp chữ; PDF scan phải OCR trước. Font nhúng đặc biệt có thể bị Word thay thế và chữ ký số không còn hiệu lực xác thực trong DOCX. Nếu cần sửa nhiều đoạn/bảng với reflow tự nhiên, chọn **Dòng chảy văn bản**; bố cục chỉ gần đúng. Các chuyển đổi Office phía API giới hạn 100 trang và 25 MB.
 
 ## 🚀 Hướng dẫn nhanh
 
@@ -302,14 +302,18 @@ ROADMAP.md        Ý tưởng đã phân loại theo giá trị, rủi ro và đ
 
 ## 📝 Nhật ký thay đổi gần đây
 
+### 2026-08-25
+
+- Thay chế độ PDF → Word dạng **ảnh toàn trang** bằng **Bố cục chính xác có thể chỉnh sửa**: PDF.js tách chữ khỏi lần render nền, `lib/exact-word.js` đặt từng dòng vào `WordprocessingShape` theo tọa độ trang, font, cỡ, đậm/nghiêng, màu và độ co ngang; đường kẻ, ảnh, dấu cùng chữ ký tiếp tục nằm trong nền PNG/JPEG 200 DPI.
+- Đổi giao diện thành hai lựa chọn trung thực: **Bố cục chính xác** cho PDF số cần giống bản gốc và **Dòng chảy văn bản** cho nhu cầu sửa nhiều đoạn/bảng. Exact-mode không còn nhận PDF scan; giao diện hướng dẫn OCR và cảnh báo font đặc biệt có thể bị thay thế, chữ ký số chỉ giữ phần nhìn thấy.
+- E2E semantic kiểm tra `wps:wsp`, `w:txbxContent`, chữ thật trong `document.xml`, neo theo trang, khổ/lề 0 và chỉ một media nền. Đường đi browser thật đã chuyển PDF số tiếng Việt thành 11 khối chữ, tải DOCX và render LibreOffice đúng 1 trang; màu đỏ, chữ nghiêng, khung, dấu/chữ ký đều còn, không trùng chữ và không có console error. Đã thêm khoảng đệm text box sau khi QA phát hiện LibreOffice cắt cuối dòng. `npm run verify` đã qua và `npm run audit:prod` báo 0 lỗ hổng; lượt này **chưa commit, chưa push và chưa deploy**.
+
 ### 2026-08-24
 
-- Thêm chế độ mặc định **PDF → Word giữ nguyên hình thức**: PDF.js kết xuất cả nội dung trang và annotation ở 200 DPI; DOCX đặt ảnh đúng khổ, gốc tọa độ và lề 0 nên giữ dấu đỏ, chữ ký hiển thị, font, khoảng cách và lề như PDF. Chế độ chạy trong browser, lazy-load gói `docx`, tối đa 40 trang và không gửi tệp lên API.
-- Giao diện tách rõ **Giữ nguyên hình thức** và **Có thể chỉnh sửa**, gắn nhãn khuyên dùng cho bản giống PDF, preview trước/sau dùng chính trang nguồn và kết quả báo số trang, DPI, PNG/JPEG. UI nói rõ trang là ảnh và chữ ký số chỉ được giữ hình thức, không giữ hiệu lực mật mã.
-- E2E kiểm tra OOXML exact-mode có ảnh neo theo `page`, khổ `pgSz`, lề 0 và media nhúng. DOCX fixture có dấu đỏ/chữ ký xanh đã render bằng LibreOffice đúng 1 trang, sát đủ bốn cạnh; browser local hoàn tất luồng chọn PDF → tạo DOCX → xem kết quả, không có console error. `npm run verify` đã qua, `npm run audit:prod` báo 0 lỗ hổng và chunk Word 358 KB chỉ tải khi dùng. Không thêm dependency; lượt này **chưa commit, chưa push và chưa deploy**.
+- Bản thử nghiệm ban đầu của chế độ PDF → Word giống hình thức từng dùng ảnh toàn trang 200 DPI; cách này đã được thay bằng text box Word có thể chỉnh sửa vào ngày 2026-08-25.
 - Nâng cấp **PDF đã ký số → Word** theo file công văn thực tế: phát hiện trường chữ ký `/Sig`, tách đúng với PDF scan và hiển thị rõ số chữ ký; DOCX không tuyên bố giữ hiệu lực mật mã của chữ ký PDF.
 - Thay cách đặt từng dòng bằng **tái dựng dòng chảy**: hai khối tiêu đề/chân trang dùng bố cục cột ổn định, các dòng thân bài được gom thành đoạn Word có thể reflow và bảng `STT` được dựng thành bảng Word thật với khung, ô gộp ngang/dọc, căn lề và độ rộng cột.
-- Nghiên cứu tài liệu công khai của Smallpdf: công cụ này hợp tác với Solid Documents và dùng các ý tưởng Flowing/Continuous/Exact, nhận diện bảng, header/footer; PDF scan mới đi qua OCR. PDFTools hiện áp dụng hướng Flowing cho PDF có chữ, không OCR lại file số để tránh giảm chất lượng.
+- Nghiên cứu tài liệu công khai của Smallpdf: công cụ này hợp tác với Solid Documents và dùng các ý tưởng Flowing/Continuous/Exact, nhận diện bảng, header/footer; PDF scan mới đi qua OCR. PDFTools dùng Flowing cho chế độ dòng chảy và từ 2026-08-25 bổ sung Exact dạng text box, không OCR lại PDF đã có lớp chữ.
 - E2E mới kiểm tra bảng semantic trong `document.xml` (`w:tbl`, `gridSpan`, `vMerge`) và header chẩn đoán. Baseline từ file mẫu đã xác nhận lỗi tràn thành 2 trang; fixture mô phỏng cùng cấu trúc sau nâng cấp render đúng 1 trang, không vỡ bảng hay đẩy nơi nhận/ký tên. Production smoke/E2E đã qua. Không thêm dependency; máy khác chỉ cần pull, chưa cần chạy lại `npm ci`.
 - Nâng cấp **PDF sang Word**: đọc metadata và lớp chữ để phân loại `word-export`, PDF số, PDF hỗn hợp hoặc scan; kết quả API trả số trang có chữ/trang ảnh để UI cảnh báo chính xác thay vì đoán theo tên tệp.
 - DOCX nay tái dựng theo từng khổ trang, lề suy ra, khoảng cách dọc, căn trái/giữa/phải, tab, cỡ chữ cùng đậm/nghiêng còn nhận diện được. Giao diện nói rõ đây là bản tái dựng có thể sửa, không phải file Word gốc đã được phục hồi 100%.
