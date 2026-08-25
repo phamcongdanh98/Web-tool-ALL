@@ -511,6 +511,31 @@ function BrandLogo() {
   </>
 }
 
+function WelcomeSplash({ phase }) {
+  return <div className={`welcome-splash ${phase === 'leaving' ? 'leaving' : ''}`} aria-label="Đang khởi động PDFTools">
+    <div className="welcome-orb orb-one" aria-hidden="true" />
+    <div className="welcome-orb orb-two" aria-hidden="true" />
+    <section className="welcome-panel">
+      <div className="welcome-brand brand"><BrandLogo /></div>
+      <p className="welcome-kicker"><span>✦</span> Chào mừng bạn</p>
+      <h1>Công cụ tài liệu<br />được phát triển bởi <strong>Danh Phạm</strong></h1>
+      <p className="welcome-description">PDF &amp; hình ảnh · Nhanh chóng · Trực quan · Dễ sử dụng</p>
+      <div className="welcome-contacts" aria-label="Thông tin liên hệ của Danh Phạm">
+        {footerContacts.map(contact => <a href={contact.href} key={contact.label} target="_blank" rel="noreferrer">
+          <i aria-hidden="true">{contact.label[0]}</i>
+          <span><small>{contact.label}</small><b>{contact.detail}</b></span>
+          <em aria-hidden="true">↗</em>
+        </a>)}
+      </div>
+      <div className="welcome-loading" aria-live="polite">
+        <div><span /></div>
+        <small>Đang chuẩn bị bộ công cụ cho bạn…</small>
+      </div>
+      <span className="welcome-version">Phiên bản {appVersion} · Bản dựng #{appBuildNumber}</span>
+    </section>
+  </div>
+}
+
 function ToolCard({ tool, open }) {
   const isReady = tool.mode !== 'soon'
   const prepare = () => { if (tool.mode.startsWith('pdf-')) warmPdfTools().catch(() => null) }
@@ -1265,7 +1290,21 @@ export default function App() {
   const [dark, setDark] = useState(() => localStorage.getItem('pdftools-theme') === 'dark')
   const [modal, setModal] = useState(null)
   const [query, setQuery] = useState('')
+  const [welcomePhase, setWelcomePhase] = useState('showing')
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('pdftools-theme', dark ? 'dark' : 'light') }, [dark])
+  useEffect(() => {
+    document.body.classList.add('welcome-active')
+    const beginExit = setTimeout(() => setWelcomePhase('leaving'), 1500)
+    const removeSplash = setTimeout(() => {
+      setWelcomePhase('hidden')
+      document.body.classList.remove('welcome-active')
+    }, 1900)
+    return () => {
+      clearTimeout(beginExit)
+      clearTimeout(removeSplash)
+      document.body.classList.remove('welcome-active')
+    }
+  }, [])
   useEffect(() => {
     if (navigator.connection?.saveData) return undefined
     const warm = () => { warmPdfTools().catch(() => null) }
@@ -1278,7 +1317,7 @@ export default function App() {
   }, [])
   const count = useMemo(() => [...pdfTools, ...imageTools].filter(tool => tool.name.toLowerCase().includes(query.toLowerCase())).length, [query])
 
-  return <div className="app redesigned"><header className="header"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><nav><a className="active" href="#home">Trang chủ</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#benefits">Vì sao chọn chúng tôi</a></nav><div className="header-actions"><button className="theme-toggle" aria-label="Đổi chế độ màu" onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="language">VI</button><a className="header-cta" href="#pdf">Dùng miễn phí <span>→</span></a></div></header><main id="home"><section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> Bộ công cụ tài liệu trực tuyến</div><h1>Làm việc với<br /><em>PDF &amp; hình ảnh</em><br />nhẹ nhàng hơn.</h1><p className="hero-text">Nén, chuyển đổi và xử lý tệp trong vài bước.<br />Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bạn muốn làm gì với tệp của mình?" /><small>{query && `${count} công cụ`}</small></label><div className="hero-trust"><span>✓ Không cần đăng ký</span><span>✓ Giao diện tiếng Việt</span><span>✓ Preview trước khi tải</span></div></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section><div className="content"><ToolSection title="Công cụ PDF" tools={pdfTools} id="pdf" open={setModal} query={query} /><ToolSection title="Công cụ Ảnh" tools={imageTools} id="images" open={setModal} query={query} /><section className="benefits" id="benefits"><Benefit icon="♢" title="Không lưu tệp lâu dài" text="Tệp chỉ được xử lý trong bộ nhớ hoặc ngay trên trình duyệt, không tạo hồ sơ lưu trữ trên máy chủ." /><Benefit icon="ϟ" title="Xử lý tối ưu" text="Mỗi luồng ảnh và PDF được tối ưu riêng, kèm trạng thái rõ ràng trong lúc chờ." /><Benefit icon="☁" title="Hỗ trợ mọi thiết bị" text="Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng." /><Benefit icon="✪" title="Dùng miễn phí" text="Các công cụ hiện tại được sử dụng miễn phí, không cần đăng ký tài khoản." /></section></div></main><footer><div className="footer-top"><div className="footer-brand"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><p>Một nơi đơn giản để xử lý mọi tài liệu và hình ảnh của bạn.</p></div><Footer title="Sản phẩm" items={footerProducts} /><Footer title="Liên hệ" items={footerContacts} /><div className="newsletter"><p>CẬP NHẬT SẢN PHẨM</p><h3>Theo dõi mã nguồn và phiên bản mới</h3><a className="newsletter-link" href="https://github.com/phamcongdanh98/Web-tool-ALL" target="_blank" rel="noreferrer">Mở GitHub <span>↗</span></a></div></div><div className="copyright"><span>© 2026 PDFTools · Làm việc thông minh hơn, mỗi ngày.</span><span className="footer-signature">Phát triển bởi <strong>Danh Phạm</strong><span className="version-badge" title={`Mã Git kỹ thuật: ${appRevision}`}>Phiên bản {appVersion}<i>•</i>Bản dựng #{appBuildNumber}</span></span></div></footer>{modal && <ToolModal mode={modal} close={() => setModal(null)} />}</div>
+  return <>{welcomePhase !== 'hidden' && <WelcomeSplash phase={welcomePhase} />}<div className="app redesigned"><header className="header"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><nav><a className="active" href="#home">Trang chủ</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#benefits">Vì sao chọn chúng tôi</a></nav><div className="header-actions"><button className="theme-toggle" aria-label="Đổi chế độ màu" onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="language">VI</button><a className="header-cta" href="#pdf">Dùng miễn phí <span>→</span></a></div></header><main id="home"><section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> Bộ công cụ tài liệu trực tuyến</div><h1>Làm việc với<br /><em>PDF &amp; hình ảnh</em><br />nhẹ nhàng hơn.</h1><p className="hero-text">Nén, chuyển đổi và xử lý tệp trong vài bước.<br />Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bạn muốn làm gì với tệp của mình?" /><small>{query && `${count} công cụ`}</small></label><div className="hero-trust"><span>✓ Không cần đăng ký</span><span>✓ Giao diện tiếng Việt</span><span>✓ Preview trước khi tải</span></div></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section><div className="content"><ToolSection title="Công cụ PDF" tools={pdfTools} id="pdf" open={setModal} query={query} /><ToolSection title="Công cụ Ảnh" tools={imageTools} id="images" open={setModal} query={query} /><section className="benefits" id="benefits"><Benefit icon="♢" title="Không lưu tệp lâu dài" text="Tệp chỉ được xử lý trong bộ nhớ hoặc ngay trên trình duyệt, không tạo hồ sơ lưu trữ trên máy chủ." /><Benefit icon="ϟ" title="Xử lý tối ưu" text="Mỗi luồng ảnh và PDF được tối ưu riêng, kèm trạng thái rõ ràng trong lúc chờ." /><Benefit icon="☁" title="Hỗ trợ mọi thiết bị" text="Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng." /><Benefit icon="✪" title="Dùng miễn phí" text="Các công cụ hiện tại được sử dụng miễn phí, không cần đăng ký tài khoản." /></section></div></main><footer><div className="footer-top"><div className="footer-brand"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><p>Một nơi đơn giản để xử lý mọi tài liệu và hình ảnh của bạn.</p></div><Footer title="Sản phẩm" items={footerProducts} /><Footer title="Liên hệ" items={footerContacts} /><div className="newsletter"><p>CẬP NHẬT SẢN PHẨM</p><h3>Theo dõi mã nguồn và phiên bản mới</h3><a className="newsletter-link" href="https://github.com/phamcongdanh98/Web-tool-ALL" target="_blank" rel="noreferrer">Mở GitHub <span>↗</span></a></div></div><div className="copyright"><span>© 2026 PDFTools · Làm việc thông minh hơn, mỗi ngày.</span><span className="footer-signature">Phát triển bởi <strong>Danh Phạm</strong><span className="version-badge" title={`Mã Git kỹ thuật: ${appRevision}`}>Phiên bản {appVersion}<i>•</i>Bản dựng #{appBuildNumber}</span></span></div></footer>{modal && <ToolModal mode={modal} close={() => setModal(null)} />}</div></>
 }
 
 function Benefit({ icon, title, text }) { return <div><i>{icon}</i><span><strong>{title}</strong><small>{text}</small></span></div> }
