@@ -159,6 +159,10 @@ app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes
       res.set({ 'X-Redaction-Regions': String(rectangles.length), 'X-Metadata-Stripped': 'yes' })
       return download(res, buffer, safeName(req.file.originalname, '-redacted.png'), 'image/png')
     } else if (action === 'remove-background') {
+      // Lưu ý: Đây là thuật toán flood-fill đơn giản từ viền ảnh — KHÔNG phải AI.
+      // Tính năng AI xóa nền thật chạy hoàn toàn trong browser qua @imgly/background-removal.
+      // Route này tồn tại như fallback kỹ thuật; không dùng cho production client-side flow.
+      res.set('X-Removal-Method', 'flood-fill-basic')
       const { data, info } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true })
       const { width, height, channels } = info
       const sample = (x, y) => {
@@ -186,6 +190,7 @@ app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes
       }
       return download(res, await sharp(data, { raw: info }).png().toBuffer(), safeName(req.file.originalname, '-no-background.png'), 'image/png')
     } else if (!['compress', 'convert'].includes(action)) return res.status(404).json({ message: 'Công cụ ảnh không tồn tại.' })
+
 
     const options = { quality: Math.max(10, Math.min(100, Number(quality) || 82)) }
     const buffer = await image.toFormat(imageFormat, options).toBuffer()

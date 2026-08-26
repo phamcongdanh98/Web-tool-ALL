@@ -1,14 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buildRenamedFileNames, parsePublicHttpUrl, transformRedactionRegion } from '../lib/browser-utility.js'
+import { buildRenamedFileNames, parsePublicHttpUrl, transformRedactionRegion, formatBytes } from '../lib/browser-utility.js'
 import { useLanguage } from './i18n.jsx'
 
+// formatBytes imported from lib/browser-utility.js
 const megabyte = 1024 * 1024
-const formatBytes = (bytes = 0) => {
-  if (!bytes) return '0 KB'
-  const units = ['B', 'KB', 'MB', 'GB']
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
-  return `${(bytes / 1024 ** index).toFixed(index ? 2 : 0)} ${units[index]}`
-}
+
 
 const colorLuminance = color => {
   const values = /^#([0-9a-f]{6})$/i.exec(color)?.[1].match(/.{2}/g)?.map(value => parseInt(value, 16) / 255) || [0, 0, 0]
