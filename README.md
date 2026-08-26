@@ -293,6 +293,20 @@ ROADMAP.md                  Ý tưởng đã phân loại và điều kiện tri
 
 ### 2026-08-26
 
+- **Nhánh `codex/claude-gemini`**:
+  - Gom hàm định dạng dung lượng `formatBytes` vào `lib/browser-utility.js` dùng chung (loại bỏ code trùng lặp ở `App.jsx` và `UtilityTools.jsx`).
+  - Hỗ trợ song ngữ chuẩn `(vi, en)` cho tiến độ `reportProgress` khi nén PDF và render Word.
+  - Thay thế regex bắt lỗi tiếng Việt mong manh bằng helper `containsVietnamese()` kiểm tra đầy đủ Unicode có dấu.
+  - Tự động dọn sạch cache `thumbnailPdfCache` và giải phóng PDF tasks khi đóng modal.
+  - Thêm comment và header `X-Removal-Method: flood-fill-basic` làm rõ cơ chế route xóa nền server.
+  - Thêm nút `↩ Làm mới / Start over` bên cạnh nút tải xuống để reset về màn hình chọn tệp nhanh chóng.
+  - Thêm `overscroll-behavior: contain` cho `.tool-modal` giúp cuộn mượt và chống trượt trang trên mobile/touch.
+  - Chuyển cổng dev local sang `3002` (API) và `5176` (Web) để không bị lỗi `EADDRINUSE` khi chạy `npm run dev`.
+  - Bổ sung Security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`) và sliding-window rate limiter bảo vệ VPS trong `server.js`.
+  - Hỗ trợ phím tắt `ESC` đóng modal nhanh; bổ sung test cases kiểm tra `formatBytes` và security headers trong E2E test suite.
+  - `npm run verify` đã kiểm tra toàn bộ cú pháp, sơ đồ, deploy portability, browser utilities, build production và smoke test đạt 100%.
+
+
 - Bổ sung giao diện song ngữ Việt/Anh cho trang chủ, toàn bộ công cụ PDF/ảnh/QR/tiện ích, preview, thông báo lỗi và kết quả; ngôn ngữ được lưu trên trình duyệt và cập nhật metadata trang.
 - Giảm lặp nhận diện cá nhân: gỡ tên tác giả khỏi header, hero, từng nhóm công cụ và modal; chỉ giữ signature trong splash theo kịch bản cũ, khối giới thiệu gần cuối trang và footer.
 - Kiểm thử thay đổi bằng `npm run verify` và kiểm tra trình duyệt ở desktop 2560×1440/mobile 390×844; không có tràn ngang hoặc lỗi console, modal PDF/QR đổi sang tiếng Anh đầy đủ.

@@ -483,7 +483,11 @@ assert.equal(mixedText.response.headers.get('x-pdf-text-pages'), '1')
 assert.equal(mixedText.response.headers.get('x-pdf-image-only-pages'), '1')
 assert.match(mixedText.body.toString('utf8'), /Selectable page before scanned page/)
 
+assert.equal(mixedText.response.headers.get('x-content-type-options'), 'nosniff', 'API phải trả header X-Content-Type-Options: nosniff.')
+assert.equal(mixedText.response.headers.get('x-frame-options'), 'SAMEORIGIN', 'API phải trả header X-Frame-Options: SAMEORIGIN.')
+
 const scannedPdf = await makeImagePdf(imageInput)
+
 const scannedForm = new FormData()
 scannedForm.append('file', new Blob([scannedPdf], { type: 'application/pdf' }), 'scan.pdf')
 const scannedError = await requestError('/api/tools/pdf/to-word', scannedForm, 422)

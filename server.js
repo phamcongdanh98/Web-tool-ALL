@@ -20,7 +20,42 @@ dotenv.config()
 const app = express()
 app.disable('x-powered-by')
 app.use(cors())
+
+// Standard security headers
+app.use((_req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  })
+  next()
+})
+
+// Sliding-window rate limiter cho các API xử lý tệp (120 requests / phút / IP)
+const apiHits = new Map()
+const rateLimitApi = (req, res, next) => {
+  const ip = req.ip || req.socket.remoteAddress || 'unknown'
+  const now = Date.now()
+  const windowMs = 60_000
+  const maxHits = 120
+  const timestamps = (apiHits.get(ip) || []).filter(time => now - time < windowMs)
+  if (timestamps.length >= maxHits) {
+    return res.status(429).json({ message: 'Quá nhiều yêu cầu xử lý tệp. Vui lòng chờ 1 phút trước khi thử lại.' })
+  }
+  timestamps.push(now)
+  apiHits.set(ip, timestamps)
+  if (apiHits.size > 1000) {
+    for (const [key, times] of apiHits.entries()) {
+      if (times.every(time => now - time >= windowMs)) apiHits.delete(key)
+    }
+  }
+  next()
+}
+app.use('/api/tools/', rateLimitApi)
+
 const megabyte = 1024 * 1024
+
 const defaultMaximumFileMb = 25
 const pdfCompressionMaximumFileMb = 50
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: defaultMaximumFileMb * megabyte } })

@@ -3,7 +3,14 @@ import jsQR from 'jsqr'
 import JSZip from 'jszip'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
-import { buildRenamedFileNames, parsePublicHttpUrl, redactionToPixels, sanitizeFileSegment, splitFileName, transformRedactionRegion } from '../lib/browser-utility.js'
+import { buildRenamedFileNames, formatBytes, parsePublicHttpUrl, redactionToPixels, sanitizeFileSegment, splitFileName, transformRedactionRegion } from '../lib/browser-utility.js'
+
+assert.equal(formatBytes(0), '0 KB')
+assert.equal(formatBytes(500), '500 B')
+assert.equal(formatBytes(1024), '1.00 KB')
+assert.equal(formatBytes(1024 * 1024 * 5.5), '5.50 MB')
+assert.equal(formatBytes(1024 * 1024 * 1024 * 1.2), '1.20 GB')
+
 
 const qrContent = 'PDFTools · Danh Phạm · https://congcuweb.duckdns.org'
 const qrPng = await QRCode.toBuffer(qrContent, { type: 'png', width: 512, margin: 4, errorCorrectionLevel: 'M' })

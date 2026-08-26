@@ -1544,6 +1544,16 @@ export default function App() {
   const closeModal = () => setModal(null)
   const skipWelcome = () => setWelcomePhase(current => current === 'showing' ? 'leaving' : current)
 
+  useEffect(() => {
+    if (!modal) return undefined
+    const handleKeyDown = event => {
+      if (event.key === 'Escape') closeModal()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [modal])
+
+
   return <>
     {welcomePhase !== 'hidden' && <WelcomeSplash phase={welcomePhase} onSkip={skipWelcome} />}
     <div className="app redesigned">
