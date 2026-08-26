@@ -127,18 +127,23 @@ npm run help
 
 ## 📝 Nhật Ký Thay Đổi (Changelog)
 
+> [!NOTE]
+> ### 📦 Lịch sử cập nhật và nâng cấp tính năng qua các phiên bản
+
 <details open>
 <summary><b>✨ Phiên bản v1.1.1 — Bản cải tiến toàn diện (2026-08-26 · Nhánh <code>codex/claude-gemini</code>)</b></summary>
 
 <br />
 
-- **Tối ưu Giao diện & Màu chữ:** Chuyển hệ màu sang Slate 900 (`#0f172a`) ở Light mode và Slate 400 (`#94a3b8`) ở Dark mode; nâng cấp độ đậm tiêu đề, thêm hiệu ứng focus ring cho ô tìm kiếm và zoom icon mượt mà.
-- **Tối ưu Dev Server:** Chuyển cổng phát triển sang `5176` (Web) và `3002` (API) để tránh lỗi bận cổng `EADDRINUSE`.
-- **Lệnh CLI Trợ Giúp:** Thêm lệnh `npm run help` hiển thị bảng tra cứu lệnh màu sắc trực quan trong terminal.
-- **Bảo mật & Rate Limit:** Bổ sung Security Headers chuẩn và Sliding-window Rate Limiter (120 req/phút/IP) trong `server.js`.
-- **Trải nghiệm UX:** Bổ sung phím tắt `ESC` đóng modal, thêm nút `↩ Làm mới` reset nhanh sau khi xử lý, cải thiện cuộn modal trên di động bằng `overscroll-behavior: contain`.
-- **Đa ngôn ngữ & Sạch mã:** Đồng bộ tiến độ nén/Word song ngữ `(vi, en)`, dùng chung `formatBytes` trong `lib/browser-utility.js`, dọn cache PDF task tránh rò rỉ RAM.
-- **Kiểm định chất lượng:** Toàn bộ test suite (`verify`, `test:browser-tools`, `test:smoke`, `check:diagrams`) đạt 100%.
+| Phân loại | Nội dung cải tiến chi tiết |
+|:---:|---|
+| 🎨 **Giao diện & Icon** | • Bổ sung bộ icon trực quan, dễ nhận diện cho toàn bộ 20 công cụ PDF, hình ảnh & tiện ích.<br>• Nâng cấp độ tương phản: chữ sắc nét Slate 900 (`#0f172a`) ở Light mode và Slate 400 (`#94a3b8`) ở Dark mode.<br>• Thêm viền sáng (focus ring) cho ô tìm kiếm và hiệu ứng hover phóng to icon. |
+| 💻 **Dev Server** | • Chuyển cổng phát triển sang `5176` (Web) và `3002` (API) để tránh xung đột cổng `EADDRINUSE`. |
+| 📖 **CLI Trợ Giúp** | • Thêm lệnh `npm run help` hiển thị bảng tra cứu tất cả các lệnh của dự án trong terminal. |
+| 🛡️ **Bảo mật & Rate Limit** | • Bổ sung Security Headers chuẩn (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).<br>• Tích hợp Sliding-window Rate Limiter (120 req/phút/IP) chống spam request trong `server.js`. |
+| ⚡ **Trải nghiệm UX** | • Phím tắt `ESC` đóng modal nhanh chóng.<br>• Thêm nút `↩ Làm mới` reset nhanh về màn hình chọn file sau khi xử lý xong.<br>• Chặn trượt trang nền khi cuộn modal trên di động (`overscroll-behavior: contain`). |
+| 🌐 **Song ngữ & RAM** | • Đồng bộ tiến độ nén PDF và render Word song ngữ chuẩn `(vi, en)`.<br>• Gom hàm `formatBytes` dùng chung trong `lib/browser-utility.js`.<br>• Tự động dọn sạch cache PDF task khi đóng modal tránh rò rỉ RAM. |
+| 🧪 **Kiểm định chất lượng** | • Toàn bộ test suite (`verify`, `test:browser-tools`, `test:smoke`, `check:diagrams`) đạt 100%. |
 
 </details>
 
@@ -151,4 +156,5 @@ npm run help
 - **v1.0.0 (2026-08-25):** Ra mắt 19 công cụ PDF & hình ảnh: Nén PDF đặt MB, PDF sang Word có cấu trúc / giữ vị trí từng dòng, Xóa phông nền AI, Che thông tin ảnh, Tạo & Đọc mã QR, Đổi tên tệp hàng loạt ZIP.
 
 </details>
+
 

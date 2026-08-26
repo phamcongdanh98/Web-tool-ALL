@@ -8,33 +8,34 @@ const appBuildNumber = import.meta.env.VITE_APP_BUILD_NUMBER
 const appRevision = import.meta.env.VITE_APP_REVISION
 
 const pdfTools = [
-  { icon: '✎', name: 'Chỉnh sửa PDF', description: 'Thêm chữ, watermark và đánh số trang', color: 'coral', mode: 'pdf-edit' },
-  { icon: '✳', name: 'Nén PDF', description: 'Đặt dung lượng MB và tự động nén sát mục tiêu', color: 'red', mode: 'pdf-compress' },
-  { icon: '⊕', name: 'Ghép PDF', description: 'Sắp xếp và ghép nhiều tệp PDF thành một', color: 'blue', mode: 'pdf-merge' },
-  { icon: '↕', name: 'Sắp xếp PDF', description: 'Kéo thả, xoay, nhân bản, thêm hoặc xóa trang', color: 'indigo', mode: 'pdf-organize' },
-  { icon: '◫', name: 'Tách PDF', description: 'Chọn trực tiếp thumbnail và tải kết quả dạng ZIP', color: 'purple', mode: 'pdf-split' },
-  { icon: 'W', name: 'PDF sang Word', description: 'Dựng đoạn, bảng, dấu và chữ ký thành Word dễ sửa', color: 'blue', mode: 'pdf-to-word' },
-  { icon: 'X', name: 'PDF sang Excel', description: 'Tách dòng và cột thành workbook XLSX', color: 'green', mode: 'pdf-to-excel' },
-  { icon: 'P', name: 'PDF sang PowerPoint', description: 'Mỗi trang thành slide với chữ có thể sửa', color: 'orange', mode: 'pdf-to-powerpoint' },
-  { icon: 'TXT', name: 'PDF sang văn bản', description: 'Xuất nội dung có thể chọn thành tệp TXT', color: 'teal', mode: 'pdf-to-text' },
+  { icon: '✏️', name: 'Chỉnh sửa PDF', description: 'Thêm chữ, watermark và đánh số trang', color: 'coral', mode: 'pdf-edit' },
+  { icon: '🗜️', name: 'Nén PDF', description: 'Đặt dung lượng MB và tự động nén sát mục tiêu', color: 'red', mode: 'pdf-compress' },
+  { icon: '📑', name: 'Ghép PDF', description: 'Sắp xếp và ghép nhiều tệp PDF thành một', color: 'blue', mode: 'pdf-merge' },
+  { icon: '🔀', name: 'Sắp xếp PDF', description: 'Kéo thả, xoay, nhân bản, thêm hoặc xóa trang', color: 'indigo', mode: 'pdf-organize' },
+  { icon: '✂️', name: 'Tách PDF', description: 'Chọn trực tiếp thumbnail và tải kết quả dạng ZIP', color: 'purple', mode: 'pdf-split' },
+  { icon: '📝', name: 'PDF sang Word', description: 'Dựng đoạn, bảng, dấu và chữ ký thành Word dễ sửa', color: 'blue', mode: 'pdf-to-word' },
+  { icon: '📊', name: 'PDF sang Excel', description: 'Tách dòng và cột thành workbook XLSX', color: 'green', mode: 'pdf-to-excel' },
+  { icon: '📽️', name: 'PDF sang PowerPoint', description: 'Mỗi trang thành slide với chữ có thể sửa', color: 'orange', mode: 'pdf-to-powerpoint' },
+  { icon: '📄', name: 'PDF sang văn bản', description: 'Xuất nội dung có thể chọn thành tệp TXT', color: 'teal', mode: 'pdf-to-text' },
 ]
 
 const imageTools = [
-  { icon: '♙', name: 'Xóa phông nền', description: 'AI xóa nền kèm preview trong suốt', color: 'blue', mode: 'remove-background' },
-  { icon: '▣', name: 'Chuyển đổi định dạng', description: 'Xem trước và đổi JPG, PNG, WebP, AVIF', color: 'teal', mode: 'convert' },
-  { icon: '⛶', name: 'Thay đổi kích thước', description: 'Nhập kích thước và xem kết quả trước khi tải', color: 'violet', mode: 'resize' },
-  { icon: '⌗', name: 'Cắt ảnh', description: 'Kéo, thả và thu phóng khung cắt trực tiếp', color: 'pink', mode: 'crop' },
-  { icon: '✳', name: 'Nén ảnh', description: 'Điều chỉnh chất lượng và so sánh dung lượng', color: 'yellow', mode: 'compress' },
-  { icon: '☷', name: 'Chỉnh sửa ảnh', description: 'Màu sắc, độ sáng, tương phản, xoay và lật', color: 'indigo', mode: 'edit' },
-  { icon: '▰', name: 'Che thông tin', description: 'Kéo vùng che đặc để bảo vệ dữ liệu nhạy cảm', color: 'coral', mode: 'image-redact' },
+  { icon: '🪄', name: 'Xóa phông nền', description: 'AI xóa nền kèm preview trong suốt', color: 'blue', mode: 'remove-background' },
+  { icon: '🔄', name: 'Chuyển đổi định dạng', description: 'Xem trước và đổi JPG, PNG, WebP, AVIF', color: 'teal', mode: 'convert' },
+  { icon: '📐', name: 'Thay đổi kích thước', description: 'Nhập kích thước và xem kết quả trước khi tải', color: 'violet', mode: 'resize' },
+  { icon: '✂️', name: 'Cắt ảnh', description: 'Kéo, thả và thu phóng khung cắt trực tiếp', color: 'pink', mode: 'crop' },
+  { icon: '⚡', name: 'Nén ảnh', description: 'Điều chỉnh chất lượng và so sánh dung lượng', color: 'yellow', mode: 'compress' },
+  { icon: '🎨', name: 'Chỉnh sửa ảnh', description: 'Màu sắc, độ sáng, tương phản, xoay và lật', color: 'indigo', mode: 'edit' },
+  { icon: '🛡️', name: 'Che thông tin', description: 'Kéo vùng che đặc để bảo vệ dữ liệu nhạy cảm', color: 'coral', mode: 'image-redact' },
 ]
 
 const utilityTools = [
-  { icon: '⌗', name: 'Tạo mã QR', description: 'Tạo, xem trước và kiểm tra QR ngay trên máy', color: 'indigo', mode: 'qr-create' },
-  { icon: '◉', name: 'Đọc mã QR', description: 'Đọc QR từ ảnh mà không tự mở liên kết', color: 'teal', mode: 'qr-read' },
-  { icon: 'Aa', name: 'Đổi tên file hàng loạt', description: 'Xem trước tên mới và tải về dạng ZIP', color: 'blue', mode: 'batch-rename' },
-  { icon: '↗', name: 'Rút gọn liên kết', description: 'Đang thiết kế lưu trữ và chống lạm dụng', color: 'orange', mode: 'link-shortener', ready: false },
+  { icon: '📱', name: 'Tạo mã QR', description: 'Tạo, xem trước và kiểm tra QR ngay trên máy', color: 'indigo', mode: 'qr-create' },
+  { icon: '🔍', name: 'Đọc mã QR', description: 'Đọc QR từ ảnh mà không tự mở liên kết', color: 'teal', mode: 'qr-read' },
+  { icon: '🏷️', name: 'Đổi tên file hàng loạt', description: 'Xem trước tên mới và tải về dạng ZIP', color: 'blue', mode: 'batch-rename' },
+  { icon: '🔗', name: 'Rút gọn liên kết', description: 'Đang thiết kế lưu trữ và chống lạm dụng', color: 'orange', mode: 'link-shortener', ready: false },
 ]
+
 
 const englishTools = {
   'pdf-edit': ['Edit PDF', 'Add text, watermarks and page numbers'],
