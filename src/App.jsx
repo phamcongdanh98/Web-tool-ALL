@@ -524,26 +524,53 @@ function BrandLogo() {
 }
 
 function WelcomeSplash({ phase }) {
+  const creatorName = 'Danh Phạm'
   return <div className={`welcome-splash ${phase === 'leaving' ? 'leaving' : ''}`} aria-label="Đang khởi động PDFTools">
     <div className="welcome-orb orb-one" aria-hidden="true" />
     <div className="welcome-orb orb-two" aria-hidden="true" />
     <section className="welcome-panel">
-      <div className="welcome-brand brand"><BrandLogo /></div>
-      <p className="welcome-kicker"><span>✦</span> Chào mừng bạn</p>
-      <h1>Công cụ tài liệu<br />được phát triển bởi <strong>Danh Phạm</strong></h1>
-      <p className="welcome-description">PDF &amp; hình ảnh · Nhanh chóng · Trực quan · Dễ sử dụng</p>
-      <div className="welcome-contacts" aria-label="Thông tin liên hệ của Danh Phạm">
-        {footerContacts.map(contact => <a href={contact.href} key={contact.label} target="_blank" rel="noreferrer">
-          <i aria-hidden="true">{contact.label[0]}</i>
-          <span><small>{contact.label}</small><b>{contact.detail}</b></span>
-          <em aria-hidden="true">↗</em>
-        </a>)}
+      <div className="welcome-visual" aria-hidden="true">
+        <div className="welcome-depth-grid" />
+        <div className="welcome-orbit orbit-outer"><span /><span /><span /></div>
+        <div className="welcome-orbit orbit-inner"><span /><span /></div>
+        <div className="welcome-logo-float">
+          <div className="welcome-logo-stack">
+            <span className="welcome-logo-layer layer-back" />
+            <span className="welcome-logo-layer layer-middle" />
+            <span className="welcome-logo-core"><img src="/favicon.svg" alt="" /></span>
+            <span className="welcome-logo-spark">✦</span>
+          </div>
+        </div>
+        <span className="welcome-data-card card-pdf"><b>PDF</b><small>Document</small></span>
+        <span className="welcome-data-card card-image"><b>IMG</b><small>Creative</small></span>
+        <span className="welcome-data-card card-qr"><b>QR</b><small>Utility</small></span>
       </div>
-      <div className="welcome-loading" aria-live="polite">
-        <div><span /></div>
-        <small>Đang chuẩn bị bộ công cụ cho bạn…</small>
+
+      <div className="welcome-content">
+        <div className="welcome-brand brand"><BrandLogo /></div>
+        <p className="welcome-kicker"><span>✦</span> Chào mừng bạn đến với PDFTools</p>
+        <h1><span>Công cụ tài liệu</span><small>được phát triển bởi</small><strong className="welcome-name" aria-label={creatorName}>
+          {Array.from(creatorName).map((letter, index) => <i
+            className={letter === ' ' ? 'space' : ''}
+            style={{ '--letter-index': index }}
+            aria-hidden="true"
+            key={`${letter}-${index}`}
+          >{letter === ' ' ? '\u00a0' : letter}</i>)}
+        </strong></h1>
+        <p className="welcome-description">PDF &amp; hình ảnh · Nhanh chóng · Trực quan · Dễ sử dụng</p>
+        <div className="welcome-contacts" aria-label="Thông tin liên hệ của Danh Phạm">
+          {footerContacts.map(contact => <a href={contact.href} key={contact.label} target="_blank" rel="noreferrer">
+            <i aria-hidden="true">{contact.label[0]}</i>
+            <span><small>{contact.label}</small><b>{contact.detail}</b></span>
+            <em aria-hidden="true">↗</em>
+          </a>)}
+        </div>
+        <div className="welcome-loading" aria-live="polite">
+          <div><span /></div>
+          <small>Đang khởi tạo không gian làm việc…</small>
+        </div>
+        <span className="welcome-version">Phiên bản {appVersion} · Bản dựng #{appBuildNumber}</span>
       </div>
-      <span className="welcome-version">Phiên bản {appVersion} · Bản dựng #{appBuildNumber}</span>
     </section>
   </div>
 }

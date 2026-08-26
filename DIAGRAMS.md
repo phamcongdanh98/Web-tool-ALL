@@ -96,7 +96,7 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    O["Mở / tải lại website"] --> W["Màn hình chào 4,5 giây<br/>Danh Phạm · Facebook · Zalo · Telegram"]
+    O["Mở / tải lại website"] --> W["Màn hình chào 4,5 giây<br/>logo nhiều lớp + quỹ đạo 3D<br/>Danh Phạm chạy từng ký tự · liên hệ"]
     W --> A["Chọn công cụ"]
     A --> A0{"Loại thao tác?"}
     A0 -->|"Tạo QR"| Q0["Nhập text/link · preview · kiểm tra đọc lại"]

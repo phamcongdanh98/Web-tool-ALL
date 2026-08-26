@@ -292,6 +292,7 @@ ROADMAP.md                  Ý tưởng đã phân loại và điều kiện tri
 
 ### 2026-08-26
 
+- Thiết kế lại màn hình chào 4,5 giây với logo nhiều lớp, quỹ đạo/thẻ công cụ 3D, nền chiều sâu và tên **Danh Phạm** chạy từng ký tự; chỉ dùng CSS + SVG sẵn có, có chế độ giảm chuyển động và layout mobile.
 - Sửa deploy báo nhầm `load 0.08` là VPS quá tải do dùng tên dựng sẵn `load` của GNU awk; lỗi tính ngưỡng nay được phân biệt với trạng thái quá tải thật.
 - Gói frontend từ macOS dùng `tar --no-xattrs`, không còn gửi header `LIBARCHIVE.xattr.com.apple.provenance` lên Ubuntu; thêm `npm run test:deploy` vào cổng `verify`.
 - Thêm QR tạo/đọc cục bộ với `qrcode` + `jsqr`; tạo QR có tự đọc lại, đọc QR không tự mở URL.
