@@ -74,8 +74,9 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - Không commit `.env`, `node_modules`, `dist` hoặc cấu hình IDE cục bộ.
 - Không bao giờ commit private key, nội dung `~/.ssh`, địa chỉ máy chủ riêng hoặc thông tin đăng nhập. Chỉ ghi hướng dẫn chung trong repository; cấu hình kết nối cụ thể phải nằm ngoài dự án trên từng máy.
 - Sau mỗi thay đổi code hoặc cấu hình runtime đáng kể, chạy `npm run verify`. Chỉ thay đổi tài liệu thuần túy mới có thể dùng kiểm tra hẹp hơn như `git diff --check`.
-- Sau mỗi công việc làm thay đổi code, cấu hình hoặc dependency, cập nhật mục **Nhật ký thay đổi gần đây** trong `README.md`. Ghi ngắn gọn ngày, nội dung đã làm, kiểm thử đã chạy và lưu ý cần thiết khi mở dự án trên máy khác.
+- Sau mỗi công việc làm thay đổi code, cấu hình hoặc dependency, cập nhật mục **Nhật ký thay đổi (Changelog)** trong `README.md` bằng khối thẻ đóng/mở `<details><summary>...</summary></details>` cho từng phiên bản để người đọc có thể mở rộng xem chi tiết hoặc thu gọn lại giúp tài liệu luôn gọn gàng và không rối mắt.
 - Footer luôn hiển thị `Danh Phạm`, phiên bản từ `package.json` và số bản dựng thân thiện lấy từ tổng số Git commit. Không sửa số bản dựng bằng tay: `vite.config.js` tự tính ở local/CI; `deploy/deploy.sh` truyền số bản dựng và mã commit chính xác của release. Mã Git chỉ nằm trong tooltip để chẩn đoán. Chỉ tăng phiên bản semantic trong `package.json` khi chủ động phát hành mốc mới.
+
 
 ## Đồng bộ khi dùng hai máy
 

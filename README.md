@@ -125,12 +125,30 @@ npm run help
 
 ---
 
-## 📝 Nhật Ký Thay Đổi Gần Đây
+## 📝 Nhật Ký Thay Đổi (Changelog)
 
-### 2026-08-26 (Bản v1.1.1 — Nhánh `codex/claude-gemini`)
+<details open>
+<summary><b>✨ Phiên bản v1.1.1 — Bản cải tiến toàn diện (2026-08-26 · Nhánh <code>codex/claude-gemini</code>)</b></summary>
+
+<br />
+
+- **Tối ưu Giao diện & Màu chữ:** Chuyển hệ màu sang Slate 900 (`#0f172a`) ở Light mode và Slate 400 (`#94a3b8`) ở Dark mode; nâng cấp độ đậm tiêu đề, thêm hiệu ứng focus ring cho ô tìm kiếm và zoom icon mượt mà.
 - **Tối ưu Dev Server:** Chuyển cổng phát triển sang `5176` (Web) và `3002` (API) để tránh lỗi bận cổng `EADDRINUSE`.
 - **Lệnh CLI Trợ Giúp:** Thêm lệnh `npm run help` hiển thị bảng tra cứu lệnh màu sắc trực quan trong terminal.
-- **Bảo mật & Rate Limit:** Bổ sung Security Headers chuẩn và Sliding-window Rate Limiter trong `server.js`.
-- **Trải nghiệm UX:** Bổ sung phím tắt `ESC` đóng modal, thêm nút `↩ Làm mới` reset nhanh sau khi xử lý, cải thiện cuộn modal trên di động.
-- **Đa ngôn ngữ & Sạch mã:** Đồng bộ tiến độ nén/Word song ngữ `(vi, en)`, dùng chung `formatBytes`, dọn cache PDF task tránh rò rỉ RAM.
+- **Bảo mật & Rate Limit:** Bổ sung Security Headers chuẩn và Sliding-window Rate Limiter (120 req/phút/IP) trong `server.js`.
+- **Trải nghiệm UX:** Bổ sung phím tắt `ESC` đóng modal, thêm nút `↩ Làm mới` reset nhanh sau khi xử lý, cải thiện cuộn modal trên di động bằng `overscroll-behavior: contain`.
+- **Đa ngôn ngữ & Sạch mã:** Đồng bộ tiến độ nén/Word song ngữ `(vi, en)`, dùng chung `formatBytes` trong `lib/browser-utility.js`, dọn cache PDF task tránh rò rỉ RAM.
 - **Kiểm định chất lượng:** Toàn bộ test suite (`verify`, `test:browser-tools`, `test:smoke`, `check:diagrams`) đạt 100%.
+
+</details>
+
+<details>
+<summary><b>📜 Các bản phát hành trước đó (v1.1.0 & v1.0.0)</b></summary>
+
+<br />
+
+- **v1.1.0 (2026-08-26):** Bổ sung giao diện song ngữ Việt/Anh toàn diện; nâng cấp màn hình chào công nghệ cinematic tech; thu gọn nhận diện cá nhân về khối creator và footer.
+- **v1.0.0 (2026-08-25):** Ra mắt 19 công cụ PDF & hình ảnh: Nén PDF đặt MB, PDF sang Word có cấu trúc / giữ vị trí từng dòng, Xóa phông nền AI, Che thông tin ảnh, Tạo & Đọc mã QR, Đổi tên tệp hàng loạt ZIP.
+
+</details>
+
