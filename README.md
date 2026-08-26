@@ -1,331 +1,136 @@
-# 🧰 PDFTools
+# 🧰 PDFTools — Bộ Công Cụ Tài Liệu Trực Tuyến
 
-Ứng dụng web song ngữ Việt/Anh để xử lý PDF, hình ảnh, QR và tệp ngay trên trình duyệt hoặc API nội bộ.
+<p align="left">
+  <img src="https://img.shields.io/badge/React-18.3-61DAFB?style=flat-square&logo=react&logoColor=111827" alt="React 18" />
+  <img src="https://img.shields.io/badge/Vite-6.4-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite 6" />
+  <img src="https://img.shields.io/badge/Node.js-22.12%2B-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 22+" />
+  <img src="https://img.shields.io/badge/Express-4.21-000000?style=flat-square&logo=express&logoColor=white" alt="Express" />
+  <img src="https://img.shields.io/badge/Nginx-Production-009639?style=flat-square&logo=nginx&logoColor=white" alt="Nginx" />
+  <img src="https://img.shields.io/badge/Song_ngữ-VI_%2F_EN-4F46E5?style=flat-square" alt="Bilingual VI/EN" />
+</p>
 
-![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=111827)
-![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Node.js 22+](https://img.shields.io/badge/Node.js-22.12%2B-339933?style=flat-square&logo=node.js&logoColor=white)
-![Nginx](https://img.shields.io/badge/Production-Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+Ứng dụng web hiện đại, song ngữ Việt/Anh hỗ trợ xử lý toàn diện các tác vụ PDF, hình ảnh, mã QR và tệp tin nhanh chóng, bảo mật ngay trên trình duyệt hoặc API bộ nhớ trong.
 
 > [!TIP]
-> 💻 **Local:** [http://localhost:5175](http://localhost:5175) · 🌐 **Website:** [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org)
-
-## ✨ Chức năng
-
-| Nhóm | Công cụ chính |
-| --- | --- |
-| 📄 **PDF** | Chỉnh sửa overlay, nén đặt MB/không mất dữ liệu, ghép, sắp xếp, tách, PDF → Word/Excel/PowerPoint/TXT. |
-| 🖼️ **Hình ảnh** | Xóa nền AI, đổi định dạng, resize, crop kéo-thả, nén, chỉnh màu/xoay/lật và che thông tin bằng khối màu đặc. |
-| 🧰 **Tiện ích** | Tạo QR, đọc QR từ ảnh và đổi tên tối đa 100 tệp rồi tải ZIP. |
-
-- QR được tạo/đọc cục bộ, không gửi nội dung lên máy chủ và không tự mở liên kết.
-- Che thông tin ảnh cho phép kéo/resize tối đa 20 vùng; Sharp ghi pixel thật vào PNG và loại EXIF/GPS.
-- Link rút gọn đang ở trạng thái nghiên cứu, chưa giả lập bằng bộ nhớ tạm vì link sẽ mất sau restart/deploy.
-- Footer hiển thị **Danh Phạm**, phiên bản semantic và số bản dựng tự lấy từ lịch sử Git.
-- Nút **VI → EN / EN → VI** trên header chuyển toàn bộ giao diện, modal và trạng thái xử lý; lựa chọn được nhớ cho lần mở sau.
-
-> [!NOTE]
-> Có **20 thẻ công cụ, 19 công cụ sẵn sàng**. Xem [DIAGRAMS.md](DIAGRAMS.md) để đọc sơ đồ luồng và [ROADMAP.md](ROADMAP.md) để biết hạng mục đang nghiên cứu.
-
-## 🚀 Bắt đầu nhanh trên Mac
-
-### 1. Kiểm tra công cụ
-
-```bash
-node --version
-npm --version
-git --version
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `node --version` | Phải từ **Node.js 22.12** trở lên. |
-| `npm --version` | Xác nhận npm đã đi cùng Node.js. |
-| `git --version` | Xác nhận máy đã cài Git. |
-
-### 2. Cài dự án lần đầu
-
-```bash
-git clone https://github.com/phamcongdanh98/Web-tool-ALL.git
-cd Web-tool-ALL
-npm ci
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `git clone ...` | Tải repository về máy. |
-| `cd Web-tool-ALL` | Đi vào thư mục vừa clone. |
-| `npm ci` | Cài đúng dependency trong `package-lock.json`, không tự nâng phiên bản. |
-
-Nếu dự án đã nằm ở đường dẫn hiện tại:
-
-```bash
-cd "/Users/danhpham/Documents/ChatGPT/Tool Web All"
-npm ci
-```
-
-### 3. Chạy localhost
-
-```bash
-npm run dev
-```
-
-Lệnh này chạy đồng thời **Vite `5175`** và **Express API `3001`**. Website đang chạy khi Terminal còn giữ tiến trình và hiện gần giống:
-
-```text
-Local: http://localhost:5175/
-ToolHub listening on http://127.0.0.1:3001
-```
-
-Mở [http://localhost:5175](http://localhost:5175). Nhấn `Control + C` tại đúng Terminal để dừng.
-
-### 4. Nếu cổng đang bị dùng
-
-```bash
-lsof -nP -iTCP:5175 -sTCP:LISTEN
-lsof -nP -iTCP:3001 -sTCP:LISTEN
-kill <PID>
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `lsof ...5175...` | Tìm PID đang giữ frontend. |
-| `lsof ...3001...` | Tìm PID đang giữ API. |
-| `kill <PID>` | Dừng mềm đúng PID sau khi đã kiểm tra tên tiến trình. |
-
-Không dùng `kill -9` hoặc tắt mọi tiến trình Node khi chưa xác định đúng PID.
-
-## 📚 Bảng lệnh đầy đủ
-
-### 💻 Chạy ứng dụng
-
-| Lệnh | Tác dụng |
-| --- | --- |
-| `npm run dev` | Chạy đầy đủ Vite + Express; dùng cho phát triển hằng ngày. |
-| `npm run client` | Chỉ chạy Vite; công cụ gọi API sẽ không hoạt động đầy đủ. |
-| `npm run server` | Chỉ chạy Express API tại `127.0.0.1:3001`. |
-| `npm run build` | Build production vào `dist` và sinh asset `.br`/`.gz`. |
-| `npm run start` | Chạy Express production; phải có sẵn thư mục `dist`. |
-| `npm run preview` | Chỉ preview frontend Vite; không thay thế `npm run dev`. |
-
-### 🧪 Kiểm tra chất lượng
-
-| Lệnh | Tác dụng |
-| --- | --- |
-| `npm run verify` | Cổng chuẩn trước commit: syntax, sơ đồ, shell, QR/ZIP, build, smoke và E2E ảnh/PDF thật. |
-| `npm run test:browser-tools` | Kiểm tra QR round-trip, ZIP giữ nguyên byte, URL an toàn và tọa độ vùng che. |
-| `npm run check:diagrams` | So danh sách/tên công cụ trong code với `DIAGRAMS.md`. |
-| `npm run check:shell` | Kiểm tra cú pháp toàn bộ script deploy/monitor/bảo trì. |
-| `npm run test:deploy` | Kiểm tra load guard tương thích GNU awk và gói Mac không chứa xattr. |
-| `npm run test:smoke` | Cần build trước; chạy production tạm, health, asset nén và E2E API. |
-| `npm run audit:prod` | Kiểm tra lỗ hổng dependency production mức `high`; lệnh này **không nằm trong `verify`**. |
-
-## 🔄 Git và làm việc trên hai máy
-
-Trước khi sửa code trên bất kỳ máy nào:
-
-```bash
-git status
-git pull --ff-only
-npm ci
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `git status` | Xem nhánh và file cục bộ chưa commit. |
-| `git pull --ff-only` | Nhận code mới mà không tự tạo merge commit. |
-| `npm ci` | Đồng bộ dependency theo lockfile, đặc biệt sau khi đổi máy. |
-
-Quy trình review và đưa code lên GitHub:
-
-```bash
-git status
-git diff
-npm run verify
-git add <file-can-commit>
-git diff --cached
-git commit -m "feat: mo ta thay doi"
-git push origin main
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `git diff` | Xem thay đổi chưa stage. |
-| `git add <file-can-commit>` | Stage có chủ đích, tránh đưa nhầm key/`.env`/file cá nhân. |
-| `git diff --cached` | Review chính xác nội dung sắp commit. |
-| `git commit -m "..."` | Tạo commit; footer sẽ có số bản dựng Git mới. |
-| `git push origin main` | Đồng bộ commit lên GitHub. |
-
-> [!IMPORTANT]
-> Không làm đồng thời trên cùng nhánh ở hai máy. GitHub là nguồn chuẩn; không sửa source trực tiếp trên VPS.
-
-## 🚀 Deploy code lên website
-
-Luồng ngắn gọn:
-
-```text
-verify → commit → push → CI xanh → status:vps → deploy:vps → status:vps
-```
-
-```bash
-npm run status:vps
-npm run deploy:vps
-npm run status:vps
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `npm run status:vps` | Chỉ đọc: so sánh Mac, GitHub, repo VPS, release đang chạy, public health và asset nén. |
-| `npm run deploy:vps` | Build ở Mac, checksum/upload, preflight, switch release, restart và tự rollback nếu health lỗi. |
-| `PDFTOOLS_SSH_HOST=alias-khac npm run deploy:vps` | Deploy bằng SSH alias khác `orace`. |
-
-`deploy:vps` chỉ nhận nhánh `main` sạch và commit đã trùng `origin/main`. Deploy code hằng ngày **không cần** chạy lại setup Ubuntu.
-
-## 📊 Kiểm tra CPU, RAM và VPS
-
-### Cách tiện nhất
-
-```bash
-npm run monitor:vps
-npm run monitor:vps -- --watch 5
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `npm run monitor:vps` | Chụp CPU/load, RAM, swap, disk, process, app, Nginx và health; chỉ đọc. |
-| `npm run monitor:vps -- --watch 5` | Tự làm mới sau 5 giây; dừng bằng `Control + C`. |
-
-### Lệnh SSH trực tiếp
-
-| Mục đích | Lệnh |
-| --- | --- |
-| Vào VPS | `ssh orace` |
-| CPU và load | `ssh orace 'uptime'` |
-| RAM và swap | `ssh orace 'free -m'` |
-| Dung lượng ổ đĩa | `ssh orace 'df -Pm /var/www/pdftools'` |
-| Trạng thái app | `ssh orace 'systemctl status pdftools --no-pager'` |
-| 100 dòng log app | `ssh orace 'journalctl -u pdftools -n 100 --no-pager'` |
-| Trạng thái Nginx | `ssh orace 'systemctl status nginx --no-pager'` |
-| Kiểm tra Nginx | `ssh orace 'sudo nginx -t'` |
-| Health nội bộ | `ssh orace 'curl -fsS http://127.0.0.1:3001/api/health'` |
-| Health public | `curl -fsS https://congcuweb.duckdns.org/api/health` |
-| Log các lần deploy | `ssh orace 'tail -n 20 /var/www/pdftools/.deploy/deployments.log'` |
-
-## 🛠️ Chế độ bảo trì
-
-```bash
-npm run maintenance:vps -- status
-npm run maintenance:vps -- on
-npm run maintenance:vps -- off
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `... status` | Chỉ xem public đang hoạt động hay trả trang bảo trì. |
-| `... on` | Bật HTTP 503 thủ công; chỉ dùng khi thật sự cần ngắt website. |
-| `... off` | Tắt bảo trì và xác nhận website public hoạt động lại. |
-
-Deploy code thông thường vẫn phục vụ release cũ trong lúc chuẩn bị release mới, vì vậy thường **không cần bật bảo trì**.
-
-## 🏗️ Cài VPS/domain một lần
-
-Chỉ dùng khi cài máy chủ mới hoặc chủ động đổi Nginx/systemd/firewall:
-
-```bash
-ssh orace 'cd /var/www/pdftools && sudo ./deploy/setup-ubuntu.sh'
-```
-
-Nếu Ubuntu đang chạy `unattended-upgrades` và muốn chờ apt lâu hơn:
-
-```bash
-ssh orace 'cd /var/www/pdftools && sudo APT_LOCK_TIMEOUT_SECONDS=900 ./deploy/setup-ubuntu.sh'
-```
-
-Sau khi DNS đã trỏ đúng IP và cloud firewall đã mở `80/443`, chạy trên VPS:
-
-```bash
-cd /var/www/pdftools
-sudo ./deploy/configure-domain.sh ten-mien-cua-ban email-cua-ban
-sudo /usr/local/bin/certbot renew --dry-run
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `setup-ubuntu.sh` | Cài/cập nhật Nginx, systemd, firewall cổng 80 và release đầu; script có thể chạy lặp an toàn. |
-| `APT_LOCK_TIMEOUT_SECONDS=900 ...` | Chờ khóa apt tối đa 15 phút; không xóa lock hoặc kill package manager. |
-| `configure-domain.sh ...` | Cấu hình domain, Certbot, HTTPS redirect và thử gia hạn. |
-| `certbot renew --dry-run` | Kiểm tra chứng chỉ có thể tự gia hạn. |
-
-Chi tiết rollback và cấu hình hạ tầng nằm trong [deploy/README.md](deploy/README.md).
-
-## 🗂️ Cấu trúc dự án
-
-```text
-src/App.jsx                 Giao diện chính và các công cụ PDF/ảnh hiện có
-src/UtilityTools.jsx        QR, đổi tên hàng loạt và che thông tin ảnh
-src/styles.css              Design system và responsive layout
-server.js                   Express API xử lý ảnh/PDF
-lib/browser-utility.js      Tên tệp, URL và tọa độ vùng che dùng chung
-lib/pdf-office.js           PDF → DOCX/XLSX/TXT
-lib/exact-word.js           Word giữ vị trí từng dòng
-lib/pptx.js                 PowerPoint OOXML có chữ sửa được
-scripts/                    Kiểm tra semantic, smoke và precompress
-deploy/                     Release, Nginx, systemd, monitor và bảo trì
-AGENTS.md                   Quy tắc phát triển và vận hành
-DIAGRAMS.md                 Sơ đồ kiến trúc/chức năng/production
-ROADMAP.md                  Ý tưởng đã phân loại và điều kiện triển khai
-```
-
-## 🔐 Giới hạn và riêng tư
-
-- Tổng request API tối đa **50 MB**, ảnh tối đa **30 megapixel**, PDF tối đa **500 trang**, tối đa **2 tác vụ** cùng lúc.
-- Nén PDF nhận riêng tối đa **50 MB/tệp**; công cụ khác mặc định **25 MB/tệp**.
-- QR và đổi tên tệp chạy trong browser. Ảnh/PDF gọi API chỉ xử lý trong bộ nhớ, không tạo kho lưu trữ lâu dài.
-- Không commit `.env`, private key, nội dung `~/.ssh`, `node_modules`, `dist` hoặc dữ liệu người dùng.
-
-## 💬 Liên hệ
-
-- Facebook: [Danh Phạm](https://www.facebook.com/danhpham100898)
-- Zalo: [0356 719 463](https://zalo.me/0356719463)
-- Telegram: [0356 719 463](https://t.me/+84356719463)
-
-## 📝 Nhật ký thay đổi gần đây
-
-### 2026-08-26
-
-- **Nhánh `codex/claude-gemini`**:
-  - Gom hàm định dạng dung lượng `formatBytes` vào `lib/browser-utility.js` dùng chung (loại bỏ code trùng lặp ở `App.jsx` và `UtilityTools.jsx`).
-  - Hỗ trợ song ngữ chuẩn `(vi, en)` cho tiến độ `reportProgress` khi nén PDF và render Word.
-  - Thay thế regex bắt lỗi tiếng Việt mong manh bằng helper `containsVietnamese()` kiểm tra đầy đủ Unicode có dấu.
-  - Tự động dọn sạch cache `thumbnailPdfCache` và giải phóng PDF tasks khi đóng modal.
-  - Thêm comment và header `X-Removal-Method: flood-fill-basic` làm rõ cơ chế route xóa nền server.
-  - Thêm nút `↩ Làm mới / Start over` bên cạnh nút tải xuống để reset về màn hình chọn tệp nhanh chóng.
-  - Thêm `overscroll-behavior: contain` cho `.tool-modal` giúp cuộn mượt và chống trượt trang trên mobile/touch.
-  - Chuyển cổng dev local sang `3002` (API) và `5176` (Web) để không bị lỗi `EADDRINUSE` khi chạy `npm run dev`.
-  - Bổ sung Security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`) và sliding-window rate limiter bảo vệ VPS trong `server.js`.
-  - Hỗ trợ phím tắt `ESC` đóng modal nhanh; bổ sung test cases kiểm tra `formatBytes` và security headers trong E2E test suite.
-  - `npm run verify` đã kiểm tra toàn bộ cú pháp, sơ đồ, deploy portability, browser utilities, build production và smoke test đạt 100%.
-
-
-- Bổ sung giao diện song ngữ Việt/Anh cho trang chủ, toàn bộ công cụ PDF/ảnh/QR/tiện ích, preview, thông báo lỗi và kết quả; ngôn ngữ được lưu trên trình duyệt và cập nhật metadata trang.
-- Giảm lặp nhận diện cá nhân: gỡ tên tác giả khỏi header, hero, từng nhóm công cụ và modal; chỉ giữ signature trong splash theo kịch bản cũ, khối giới thiệu gần cuối trang và footer.
-- Kiểm thử thay đổi bằng `npm run verify` và kiểm tra trình duyệt ở desktop 2560×1440/mobile 390×844; không có tràn ngang hoặc lỗi console, modal PDF/QR đổi sang tiếng Anh đầy đủ.
-
-- Nâng splash lên phong cách cinematic tech: HUD hệ thống, đường hầm dữ liệu phối cảnh, vòng năng lượng 3D, tia quét file, telemetry từng engine và cổng sáng chuyển vào homepage; vẫn giữ 6,7 giây, nút bỏ qua, responsive và reduced-motion nhẹ.
-- Xây dựng khối giới thiệu người sáng tạo kèm liên hệ và metadata/manifest thống nhất; sau rà soát trải nghiệm, nhận diện trên trang chính được thu gọn về khối creator gần cuối trang và footer để không lặp tên quá nhiều.
-- Nâng splash thành chuỗi cảnh 6,7 giây: file PDF phân rã thành dữ liệu, bốn engine khởi động, hội tụ thành **Công Cụ Web**, signature **Danh Phạm** rồi logo bay về header; thêm nút bỏ qua và chế độ giảm chuyển động khoảng 1,3 giây.
-- Sửa deploy báo nhầm `load 0.08` là VPS quá tải do dùng tên dựng sẵn `load` của GNU awk; lỗi tính ngưỡng nay được phân biệt với trạng thái quá tải thật.
-- Gói frontend từ macOS dùng `tar --no-xattrs`, không còn gửi header `LIBARCHIVE.xattr.com.apple.provenance` lên Ubuntu; thêm `npm run test:deploy` vào cổng `verify`.
-- Thêm QR tạo/đọc cục bộ với `qrcode` + `jsqr`; tạo QR có tự đọc lại, đọc QR không tự mở URL.
-- Thêm đổi tên tối đa 100 tệp/50 MB, preview tên mới và tải ZIP giữ nguyên byte nội dung.
-- Thêm che thông tin ảnh bằng vùng kéo/resize; Sharp làm phẳng màu đặc vào PNG và bỏ EXIF/GPS.
-- Gỡ khối giới thiệu mã nguồn/GitHub khỏi footer website chính; giữ thông tin Danh Phạm, phiên bản và liên hệ.
-- Viết lại README thành bảng lệnh local, Git, test, CPU/RAM, deploy, bảo trì, setup VPS/domain và giải thích ngắn gọn.
-- Dependency mới: `qrcode@1.5.4`, `jsqr@1.4.0`; máy khác phải chạy `git pull --ff-only` rồi `npm ci`.
-- Sửa production smoke test dùng `grep` trực tiếp trên biến thay vì pipe lớn, tránh báo sai `Broken pipe` khi bundle tăng kích thước.
-- `npm run verify` đã qua toàn bộ build, asset Brotli/Gzip, QR/ZIP semantic và E2E API ảnh/PDF; `npm run audit:prod` báo **0 lỗ hổng**.
-- Browser QA đã đi hết tạo QR tiếng Việt, đọc QR từ ảnh, preview/tạo ZIP đổi tên, kéo vùng che → ảnh kết quả, trạng thái link rút gọn và layout **2560×1440 / 390×844**; không có lỗi console hoặc tràn ngang.
+> 🌐 **Website trực tuyến:** [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org)  
+> 💻 **Môi trường phát triển:** [http://localhost:5176](http://localhost:5176) *(API: `http://localhost:3002`)*
 
 ---
 
-Phát triển bởi **Danh Phạm** · PDFTools phiên bản được lấy từ `package.json`, số bản dựng được lấy tự động từ Git.
+## ✨ 20 Công Cụ Sẵn Sàng
+
+| Nhóm | Công cụ nổi bật | Cơ chế xử lý |
+|---|---|---|
+| 📄 **PDF** | • **Chỉnh sửa PDF**: Thêm lớp chữ Unicode, watermark, đánh số trang theo tọa độ.<br>• **Nén PDF**: Tự động tinh chỉnh 4 lượt đạt dung lượng mục tiêu (DPI + Quality) hoặc tối ưu không mất dữ liệu.<br>• **Ghép / Sắp xếp / Tách PDF**: Kéo thả thumbnail, xoay, nhân bản, xóa và tải ZIP.<br>• **PDF sang Office**: Chuyển đổi sang Word (DOCX có cấu trúc/giữ vị trí), Excel (XLSX), PowerPoint (PPTX), Văn bản (TXT). | Browser + API in-memory (`pdf-lib`, `pdfjs-dist`, `docx`, `exceljs`) |
+| 🖼️ **Hình ảnh** | • **Xóa phông nền AI**: Tự động tách nền với preview trong suốt.<br>• **Che thông tin**: Kéo vùng che đặc bảo vệ dữ liệu nhạy cảm, loại bỏ EXIF/GPS.<br>• **Chuyển đổi / Nén / Cắt / Đổi cỡ**: Hỗ trợ WebP, JPG, PNG, AVIF với preview thời gian thực. | AI On-Device (`@imgly`) + Sharp API |
+| 🧰 **Tiện ích** | • **Tạo & Đọc mã QR**: Tạo QR kiểm tra độ tương phản, đọc QR từ ảnh an toàn (không tự mở URL).<br>• **Đổi tên hàng loạt**: Đổi tên tối đa 100 tệp theo mẫu `{name}-{n}` và tải về file ZIP. | Client-side 100% (Riêng tư tuyệt đối) |
+
+> 📌 Chi tiết sơ đồ luồng dữ liệu xem tại [**DIAGRAMS.md**](DIAGRAMS.md). Lộ trình nghiên cứu xem tại [**ROADMAP.md**](ROADMAP.md).
+
+---
+
+## 🚀 Bắt Đầu Nhanh
+
+### Yêu cầu môi trường
+- **Node.js:** `>= 22.12.0`
+- **npm:** Đi kèm Node.js
+- **Git:** Quản lý mã nguồn
+
+### Cài đặt và Chạy Local
+
+```bash
+# 1. Clone dự án và cài đặt đúng dependencies
+git clone https://github.com/phamcongdanh98/Web-tool-ALL.git
+cd Web-tool-ALL
+npm ci
+
+# 2. Khởi chạy môi trường phát triển
+npm run dev
+```
+
+Mở trình duyệt tại **[http://localhost:5176](http://localhost:5176)**.
+
+---
+
+## ⚡ Bảng Tra Cứu Lệnh Nhanh (`npm run help`)
+
+Để xem hướng dẫn tất cả các lệnh bất kỳ lúc nào trong terminal:
+
+```bash
+npm run help
+```
+
+```text
+💻 PHÁT TRIỂN & LOCAL
+  npm run dev                  Chạy đồng thời Web (cổng 5176) và API Express (cổng 3002).
+  npm run client               Chỉ chạy frontend Vite.
+  npm run server               Chỉ chạy backend Express.
+  npm start                    Khởi chạy server Express ở chế độ production.
+  npm run preview              Xem thử bản build production.
+
+🧪 KIỂM THỬ & CHẤT LƯỢNG
+  npm run verify               Cổng kiểm tra chuẩn: syntax, diagrams, shell, deploy, build và E2E smoke test.
+  npm run test:browser-tools   Kiểm tra tiện ích browser: QR round-trip, ZIP đổi tên, formatBytes.
+  npm run test:smoke           Chạy smoke test Express, asset nén Brotli/Gzip và E2E API thật.
+  npm run test:deploy          Kiểm tra tính tương thích GNU awk trên Ubuntu và gói tar không xattr.
+  npm run check:diagrams       Đối chiếu danh sách công cụ trong code với DIAGRAMS.md.
+  npm run check:shell          Kiểm tra cú pháp toàn bộ shell script.
+  npm run audit:prod           Quét lỗ hổng bảo mật dependency production.
+
+📦 ĐÓNG GÓI & DEPLOY
+  npm run build                Build frontend Vite và nén trước tài nguyên tĩnh (.br / .gz).
+  npm run deploy:vps           Build và triển khai release zero-downtime lên VPS Ubuntu.
+  npm run status:vps           So sánh commit giữa Mac, GitHub, VPS release và public health.
+  npm run monitor:vps          Chụp thông số CPU, RAM, disk, Nginx và health qua SSH.
+  npm run maintenance:vps      Bật/tắt hoặc kiểm tra trang bảo trì thủ công (status | on | off).
+```
+
+---
+
+## 🔒 Bảo Mật & Giới Hạn Tài Nguyên
+
+- **Xử lý an toàn trong bộ nhớ:** File upload chỉ tồn tại trong RAM tạm thời trong lúc xử lý, không lưu trữ dài hạn trên ổ cứng server.
+- **Giới hạn hệ thống:** Tổng request tối đa **50 MB**, file PDF tối đa **500 trang**, tối đa **2 tác vụ đồng thời**, kích thước ảnh tối đa **30 megapixel**.
+- **Bảo mật Header & Chống spam:** Tích hợp Security Headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`) và bộ giới hạn tần suất request (Rate Limiter).
+
+---
+
+## 🗂️ Cấu Trúc Dự Án
+
+```text
+├── src/
+│   ├── App.jsx                 Giao diện chính React & bộ điều khiển công cụ
+│   ├── UtilityTools.jsx        Modal chuyên biệt cho QR, Đổi tên tệp & Che thông tin
+│   ├── i18n.jsx                Context đa ngôn ngữ (Tiếng Việt / English)
+│   └── styles.css              Hệ thống CSS Design System & Responsive layout
+├── lib/
+│   ├── browser-utility.js      Tiện ích xử lý tên file, format dung lượng, URL & tọa độ
+│   ├── pdf-office.js           Engine trích xuất cấu trúc PDF → Word, Excel, TXT
+│   ├── exact-word.js           Engine dựng Word giữ vị trí tọa độ từng dòng
+│   └── pptx.js                 Engine sinh PowerPoint OOXML từ trang PDF
+├── deploy/                     Script cấu hình VPS, Nginx, Systemd, Zero-downtime deploy
+├── scripts/                    Bộ kiểm thử E2E, Smoke test, Kiểm tra sơ đồ & Nén asset
+└── server.js                   Express API trung tâm xử lý PDF & Hình ảnh
+```
+
+---
+
+## 💬 Liên Hệ & Tác Giả
+
+Ứng dụng được phát triển và tối ưu bởi **Danh Phạm**.
+
+- **Facebook:** [Danh Phạm](https://www.facebook.com/danhpham100898)
+- **Zalo:** `0356 719 463` ([https://zalo.me/0356719463](https://zalo.me/0356719463))
+- **Telegram:** `0356 719 463` ([https://t.me/+84356719463](https://t.me/+84356719463))
+
+---
+
+## 📝 Nhật Ký Thay Đổi Gần Đây
+
+### 2026-08-26 (Bản v1.1.1 — Nhánh `codex/claude-gemini`)
+- **Tối ưu Dev Server:** Chuyển cổng phát triển sang `5176` (Web) và `3002` (API) để tránh lỗi bận cổng `EADDRINUSE`.
+- **Lệnh CLI Trợ Giúp:** Thêm lệnh `npm run help` hiển thị bảng tra cứu lệnh màu sắc trực quan trong terminal.
+- **Bảo mật & Rate Limit:** Bổ sung Security Headers chuẩn và Sliding-window Rate Limiter trong `server.js`.
+- **Trải nghiệm UX:** Bổ sung phím tắt `ESC` đóng modal, thêm nút `↩ Làm mới` reset nhanh sau khi xử lý, cải thiện cuộn modal trên di động.
+- **Đa ngôn ngữ & Sạch mã:** Đồng bộ tiến độ nén/Word song ngữ `(vi, en)`, dùng chung `formatBytes`, dọn cache PDF task tránh rò rỉ RAM.
+- **Kiểm định chất lượng:** Toàn bộ test suite (`verify`, `test:browser-tools`, `test:smoke`, `check:diagrams`) đạt 100%.
