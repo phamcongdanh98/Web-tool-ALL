@@ -1503,6 +1503,153 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
 .planned-tool-card p { color: var(--muted); font-size: 13.5px; line-height: 1.65; }
 .planned-tool-card ul { max-width: 450px; margin: 16px auto 20px; padding-left: 22px; color: var(--text); font-size: 13px; line-height: 1.75; text-align: left; }
 
+/*
+ * Large-screen scale system
+ *
+ * Keep the 1366px layout compact, then increase typography, controls and
+ * icons in two measured steps. Scaling individual layout tokens keeps text
+ * sharp and preserves real hit areas; do not replace this with page zoom.
+ */
+@media (min-width: 1680px) and (min-height: 850px) {
+  .header { height: 84px; gap: 54px; padding-inline: max(4.5vw, 56px); }
+  .brand { gap: 11px; font-size: 24px; }
+  .brand-mark { width: 47px; height: 47px; }
+  nav { gap: 34px; }
+  nav a { font-size: 16px; }
+  .theme-toggle, .language { min-width: 44px; height: 44px; border-radius: 13px; }
+  .theme-toggle { font-size: 20px; }
+  .language { min-width: 98px; gap: 7px; padding-inline: 12px; }
+  .language > span { font-size: 17px; }
+  .language > b { font-size: 13px; }
+  .language > small { font-size: 10px; }
+  .header-cta { height: 47px; padding-inline: 20px; font-size: 15.5px; }
+
+  .hero { min-height: 590px; gap: 62px; padding: 72px max(6vw, 64px) 78px; }
+  .hero-copy { max-width: 760px; }
+  .hero-kicker { margin-bottom: 20px; padding: 8px 14px; font-size: 14.5px; }
+  .hero h1 { font-size: 74px; letter-spacing: -3.8px; }
+  .hero-text { margin-block: 24px 30px; font-size: 17px; }
+  .search { width: min(640px, 100%); min-height: 66px; padding-inline: 21px; border-radius: 18px; }
+  .search span { font-size: 32px; }
+  .search input { font-size: 16.5px; }
+  .search small { font-size: 14px; }
+  .hero-trust { gap: 18px 25px; margin-top: 19px; font-size: 14.5px; }
+  .hero-illustration { height: 420px; min-width: 490px; transform: scale(1.08); transform-origin: center; }
+
+  .content { max-width: 1900px; padding: 78px max(3.75vw, 52px) 88px; }
+  .tool-section { padding-bottom: 82px; }
+  .section-heading { margin-bottom: 29px; }
+  .section-heading > div > span { font-size: 13.5px; }
+  .section-heading h2 { font-size: 39px; }
+  .section-heading p { font-size: 17px; }
+  .section-heading > a { font-size: 15.5px; }
+  .section-heading > a span { font-size: 18px; }
+  .tools-grid { gap: 20px; }
+  .tool-card { min-height: 310px; padding: 26px; border-radius: 22px; }
+  .tool-status { margin-bottom: 13px; padding: 6px 10px; font-size: 12.5px; }
+  .tool-icon { width: 63px; height: 63px; margin-bottom: 19px; border-radius: 18px; font-size: 28px; }
+  .tool-card strong { font-size: 19.5px; }
+  .tool-card > small { margin-top: 9px; font-size: 15.5px; }
+  .tool-action, .tool-action b { font-size: 14.5px; }
+  .benefits > div { min-height: 155px; gap: 18px; padding: 31px 29px; }
+  .benefits i { width: 54px; height: 54px; border-radius: 16px; font-size: 29px; }
+  .benefits strong { font-size: 17px; }
+  .benefits small { font-size: 14.5px; }
+
+  .creator-showcase { min-height: 330px; grid-template-columns: 220px minmax(0, 1fr) minmax(250px, .45fr); gap: 44px; padding: 44px 50px; }
+  .creator-showcase-monogram { width: 205px; height: 205px; }
+  .creator-showcase-monogram span { font-size: 78px; }
+  .creator-eyebrow { font-size: 11.5px; }
+  .creator-showcase-copy h2 small { font-size: 15px; }
+  .creator-showcase-copy > p { max-width: 760px; font-size: 16px; }
+  .creator-values { font-size: 13px; }
+  .creator-connect > small { font-size: 10.5px; }
+  .creator-connect a { padding: 13px 15px; font-size: 13px; }
+
+  footer { padding: 53px max(7vw, 64px) 25px; }
+  .footer-top, .copyright { max-width: 1600px; }
+  .footer-brand .brand { font-size: 23px; }
+  .footer-brand .brand-mark { width: 40px; height: 40px; }
+  .footer-brand p, .footer-column a { font-size: 15px; }
+  .footer-column h3 { font-size: 17px; }
+  .contact-link small { font-size: 13.5px; }
+  .copyright { font-size: 13.5px; }
+  .version-badge { min-height: 34px; padding-inline: 13px; font-size: 12.5px; }
+
+  .modal-shade { padding: 24px; }
+  .tool-modal { width: min(620px, 100%); max-height: calc(100vh - 48px); padding: 36px; }
+  .tool-modal-wide { width: min(1500px, 100%); }
+  .tool-modal.intro { width: min(500px, 100%); }
+  .tool-modal.intro > i { width: 66px; height: 66px; font-size: 31px; }
+  .tool-modal.intro h2 { font-size: 24px; }
+  .tool-modal.intro p { font-size: 16px; }
+  .close { width: 39px; height: 39px; font-size: 24px; }
+  .modal-heading { gap: 15px; }
+  .modal-heading i { width: 50px; height: 50px; font-size: 22px; }
+  .modal-heading p, .utility-label, .result-heading span { font-size: 12.5px; }
+  .modal-heading h2 { font-size: 31px; }
+  .modal-copy { font-size: 17px; }
+  .drop-zone { min-height: 185px; padding: 20px; }
+  .drop-zone > span { width: 48px; height: 48px; font-size: 27px; }
+  .drop-zone b { font-size: 18px; }
+  .drop-zone small { font-size: 14.5px; }
+  .settings label, .dimensions label, .control-group > span, .control-group label { font-size: 14.5px; }
+  .settings select, .dimensions input, .control-group select, .control-group input:not([type='range']), .utility-modal .control-group textarea { font-size: 15.5px; }
+  .primary { padding: 14px 20px; font-size: 15.5px; }
+  .result { font-size: 14.5px; }
+  .selected-file-bar i { width: 48px; height: 48px; font-size: 13.5px; }
+  .selected-file-bar b { font-size: 16px; }
+  .selected-file-bar small, .selected-file-bar button, .file-change-button { font-size: 13.5px; }
+  .file-facts small { font-size: 13.5px; }
+  .file-facts b { font-size: 17px; }
+  .preview-label, .page-board-tip, .pdf-page-controls b, .range-label, .range-label b { font-size: 13.5px; }
+  .pdf-page-canvas > span, .pdf-edit-status { font-size: 15px; }
+  .pdf-edit-help, .control-group > small, .option-cards small, .target-summary small, .target-size-control > p { font-size: 13px; }
+  .control-note { font-size: 14px; }
+  .control-note b, .pdf-diagnosis strong { font-size: 15px; }
+  .pdf-diagnosis span { font-size: 14px; }
+  .pdf-diagnosis small { font-size: 13px; }
+  .option-cards b, .merge-files b { font-size: 14.5px; }
+  .edit-actions button, .crop-toolbar button, .secondary-button, .redact-toolbar button { font-size: 13.5px; }
+  .result-heading h3 { font-size: 17px; }
+  .result-stats span small, .utility-file-fact small, .safe-link-card small, .rename-preview-heading small, .redact-result small { font-size: 12.5px; }
+  .result-stats span b, .safe-link-card strong, .rename-preview-heading b { font-size: 15.5px; }
+  .qr-preview-card p, .rename-row, .safe-link-card a { font-size: 14px; }
+}
+
+@media (min-width: 2300px) and (min-height: 1200px) {
+  .header { height: 90px; }
+  .brand { font-size: 26px; }
+  .brand-mark { width: 52px; height: 52px; }
+  nav a { font-size: 17.5px; }
+  .theme-toggle, .language { height: 48px; }
+  .header-cta { height: 50px; font-size: 16.5px; }
+  .hero { min-height: 650px; padding-block: 80px 86px; }
+  .hero-copy { max-width: 840px; }
+  .hero h1 { font-size: 82px; letter-spacing: -4.2px; }
+  .hero-text { font-size: 18.5px; }
+  .hero-kicker, .hero-trust { font-size: 15.5px; }
+  .search { width: min(700px, 100%); min-height: 70px; }
+  .search input { font-size: 17.5px; }
+  .hero-illustration { height: 455px; min-width: 540px; transform: scale(1.16); }
+  .content { max-width: 1980px; padding-block: 88px 98px; }
+  .section-heading h2 { font-size: 42px; }
+  .section-heading p { font-size: 18px; }
+  .tool-card { min-height: 330px; padding: 29px; }
+  .tool-icon { width: 70px; height: 70px; border-radius: 20px; font-size: 31px; }
+  .tool-card strong { font-size: 21px; }
+  .tool-card > small { font-size: 16.5px; }
+  .tool-action, .tool-action b { font-size: 15.5px; }
+  .benefits strong { font-size: 18px; }
+  .benefits small { font-size: 15.5px; }
+  .footer-brand p, .footer-column a { font-size: 16px; }
+  .copyright { font-size: 14.5px; }
+  .tool-modal { width: min(680px, 100%); padding: 40px; }
+  .tool-modal-wide { width: min(1680px, 100%); }
+  .modal-heading h2 { font-size: 34px; }
+  .modal-copy { font-size: 18px; }
+}
+
 @media (max-width: 1180px) {
   .welcome-panel { grid-template-columns: minmax(255px, .72fr) minmax(0, 1.28fr); gap: 24px; padding-inline: 31px; }
   .welcome-visual { height: 370px; transform: scale(.92); }
