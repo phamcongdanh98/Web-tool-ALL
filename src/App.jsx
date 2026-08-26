@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import UtilityToolModal from './UtilityTools.jsx'
+import { useLanguage } from './i18n.jsx'
 
 const appVersion = import.meta.env.VITE_APP_VERSION
 const appBuildNumber = import.meta.env.VITE_APP_BUILD_NUMBER
@@ -34,6 +35,29 @@ const utilityTools = [
   { icon: '↗', name: 'Rút gọn liên kết', description: 'Đang thiết kế lưu trữ và chống lạm dụng', color: 'orange', mode: 'link-shortener', ready: false },
 ]
 
+const englishTools = {
+  'pdf-edit': ['Edit PDF', 'Add text, watermarks and page numbers'],
+  'pdf-compress': ['Compress PDF', 'Set a target size and compress close to it automatically'],
+  'pdf-merge': ['Merge PDF', 'Arrange and combine multiple PDF files'],
+  'pdf-organize': ['Organize PDF', 'Drag, rotate, duplicate, add or delete pages'],
+  'pdf-split': ['Split PDF', 'Select page thumbnails and download the result as ZIP'],
+  'pdf-to-word': ['PDF to Word', 'Rebuild paragraphs, tables, stamps and signatures in Word'],
+  'pdf-to-excel': ['PDF to Excel', 'Extract rows and columns into an XLSX workbook'],
+  'pdf-to-powerpoint': ['PDF to PowerPoint', 'Turn each page into a slide with editable text'],
+  'pdf-to-text': ['PDF to Text', 'Export selectable content as a TXT file'],
+  'remove-background': ['Remove Background', 'AI background removal with transparent preview'],
+  convert: ['Convert Image', 'Preview and convert JPG, PNG, WebP and AVIF'],
+  resize: ['Resize Image', 'Enter dimensions and preview before downloading'],
+  crop: ['Crop Image', 'Drag and resize the crop frame directly'],
+  compress: ['Compress Image', 'Adjust quality and compare file sizes'],
+  edit: ['Edit Image', 'Color, brightness, contrast, rotate and flip'],
+  'image-redact': ['Redact Information', 'Drag solid blocks over sensitive information'],
+  'qr-create': ['Create QR Code', 'Create, preview and verify QR codes on your device'],
+  'qr-read': ['Read QR Code', 'Read QR from an image without opening its link'],
+  'batch-rename': ['Batch Rename Files', 'Preview new names and download them as a ZIP'],
+  'link-shortener': ['Shorten Link', 'Storage and abuse prevention are being designed'],
+}
+
 const specialToolModes = new Set(['image-redact', ...utilityTools.map(tool => tool.mode)])
 
 const footerProducts = [
@@ -66,6 +90,8 @@ const labels = {
   edit: 'Chỉnh sửa ảnh',
   'remove-background': 'Xóa phông nền',
 }
+
+const labelsEn = Object.fromEntries(Object.entries(englishTools).map(([mode, [name]]) => [mode, name]))
 
 const imageModes = ['compress', 'convert', 'resize', 'crop', 'edit', 'remove-background']
 const pdfOfficeModes = ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-text']
@@ -129,6 +155,14 @@ const pdfSourceLabels = {
   digital: 'PDF có văn bản chọn được',
   mixed: 'PDF hỗn hợp: chữ và trang dạng ảnh',
   scan: 'Có thể là PDF scan',
+}
+
+const pdfSourceLabelsEn = {
+  'word-export': 'Likely exported from Microsoft Word',
+  'signed-document': 'Digitally signed text PDF',
+  digital: 'PDF with selectable text',
+  mixed: 'Mixed PDF: text and image-only pages',
+  scan: 'Possibly a scanned PDF',
 }
 
 const readPdfTextPreview = async file => {
@@ -523,25 +557,19 @@ function BrandLogo() {
   </>
 }
 
-function CreatorMark({ placement = 'default' }) {
-  return <span className={`creator-mark creator-mark-${placement}`}>
-    <span className="creator-monogram" aria-hidden="true">DP</span>
-    <span className="creator-mark-copy"><small>Thiết kế &amp; phát triển bởi</small><strong>Danh Phạm</strong></span>
-  </span>
-}
-
 function CreatorShowcase() {
+  const { tx } = useLanguage()
   return <section className="creator-showcase" id="creator" aria-labelledby="creator-title">
     <div className="creator-showcase-glow" aria-hidden="true" />
     <div className="creator-showcase-monogram" aria-hidden="true"><span>D</span><i>✦</i><span>P</span></div>
     <div className="creator-showcase-copy">
-      <span className="creator-eyebrow">DẤU ẤN NGƯỜI SÁNG TẠO</span>
-      <h2 id="creator-title"><small>Thiết kế &amp; phát triển bởi</small><strong>Danh Phạm</strong></h2>
-      <p>Mình xây dựng Công Cụ Web để những thao tác với PDF, hình ảnh và tệp hằng ngày trở nên rõ ràng, trực quan và dễ tiếp cận hơn với người Việt.</p>
-      <div className="creator-values" aria-label="Giá trị thiết kế"><span><i>01</i>Dễ thao tác</span><span><i>02</i>Preview rõ ràng</span><span><i>03</i>Không ngừng hoàn thiện</span></div>
+      <span className="creator-eyebrow">{tx('DẤU ẤN NGƯỜI SÁNG TẠO', 'CREATOR SIGNATURE')}</span>
+      <h2 id="creator-title"><small>{tx('Thiết kế & phát triển bởi', 'Designed & developed by')}</small><strong>Danh Phạm</strong></h2>
+      <p>{tx('Mình xây dựng Công Cụ Web để những thao tác với PDF, hình ảnh và tệp hằng ngày trở nên rõ ràng, trực quan và dễ tiếp cận hơn với người Việt.', 'I built Công Cụ Web to make everyday PDF, image and file tasks clearer, more visual and easier to use.')}</p>
+      <div className="creator-values" aria-label={tx('Giá trị thiết kế', 'Design values')}><span><i>01</i>{tx('Dễ thao tác', 'Easy to use')}</span><span><i>02</i>{tx('Preview rõ ràng', 'Clear previews')}</span><span><i>03</i>{tx('Không ngừng hoàn thiện', 'Always improving')}</span></div>
     </div>
     <div className="creator-connect">
-      <small>KẾT NỐI TRỰC TIẾP</small>
+      <small>{tx('KẾT NỐI TRỰC TIẾP', 'CONNECT DIRECTLY')}</small>
       <a className="creator-primary-link" href="https://www.facebook.com/danhpham100898" target="_blank" rel="noreferrer">Facebook <span>↗</span></a>
       <a href="https://zalo.me/0356719463" target="_blank" rel="noreferrer">Zalo · 0356 719 463 <span>↗</span></a>
       <a href="https://t.me/+84356719463" target="_blank" rel="noreferrer">Telegram · 0356 719 463 <span>↗</span></a>
@@ -550,6 +578,7 @@ function CreatorShowcase() {
 }
 
 function WelcomeSplash({ phase, onSkip }) {
+  const { tx } = useLanguage()
   const creatorName = 'Danh Phạm'
   const engines = [
     { code: 'PDF', name: 'PDF Engine', className: 'engine-pdf' },
@@ -557,7 +586,7 @@ function WelcomeSplash({ phase, onSkip }) {
     { code: 'IMAGE', name: 'Image Engine', className: 'engine-image' },
     { code: 'QR', name: 'Utility Tools', className: 'engine-qr' },
   ]
-  return <div className={`welcome-splash ${phase}`} aria-label="Đang khởi động Công Cụ Web">
+  return <div className={`welcome-splash ${phase}`} aria-label={tx('Đang khởi động Công Cụ Web', 'Starting Công Cụ Web')}>
     <div className="welcome-orb orb-one" aria-hidden="true" />
     <div className="welcome-orb orb-two" aria-hidden="true" />
     <div className="welcome-screen-noise" aria-hidden="true" />
@@ -566,7 +595,7 @@ function WelcomeSplash({ phase, onSkip }) {
       <b><i /><i /><i /></b>
       <span>LOCAL FIRST <i /> VI</span>
     </div>
-    <button className="welcome-skip" type="button" onClick={onSkip}>Bỏ qua <span>→</span></button>
+    <button className="welcome-skip" type="button" onClick={onSkip}>{tx('Bỏ qua', 'Skip')} <span>→</span></button>
     <section className="welcome-cinematic">
       <div className="welcome-depth-grid" aria-hidden="true" />
       <div className="welcome-data-tunnel" aria-hidden="true">
@@ -617,11 +646,11 @@ function WelcomeSplash({ phase, onSkip }) {
             <span className="welcome-brand-symbol"><img src="/favicon.svg" alt="" /><i>✦</i></span>
             <h1>Công Cụ Web</h1>
           </div>
-          <p>PDF <i>•</i> Ảnh <i>•</i> Văn phòng <i>•</i> Tiện ích</p>
+          <p>PDF <i>•</i> {tx('Ảnh', 'Images')} <i>•</i> {tx('Văn phòng', 'Office')} <i>•</i> {tx('Tiện ích', 'Utilities')}</p>
         </div>
 
         <div className="welcome-signature-phase">
-          <small>THIẾT KẾ &amp; PHÁT TRIỂN BỞI</small>
+          <small>{tx('THIẾT KẾ & PHÁT TRIỂN BỞI', 'DESIGNED & DEVELOPED BY')}</small>
           <strong className="welcome-name" aria-label={creatorName}>
             {Array.from(creatorName).map((letter, index) => <i
               className={letter === ' ' ? 'space' : ''}
@@ -631,7 +660,7 @@ function WelcomeSplash({ phase, onSkip }) {
             >{letter === ' ' ? '\u00a0' : letter}</i>)}
           </strong>
           <span className="welcome-signature-line" />
-          <p>Sáng tạo bằng tâm huyết · Phát triển cho trải nghiệm tốt hơn</p>
+          <p>{tx('Sáng tạo bằng tâm huyết · Phát triển cho trải nghiệm tốt hơn', 'Crafted with care · Built for a better experience')}</p>
           <em className="welcome-signature-code">DP / DIGITAL UTILITY SYSTEM / 2026</em>
         </div>
 
@@ -641,49 +670,58 @@ function WelcomeSplash({ phase, onSkip }) {
       <div className="welcome-portal" aria-hidden="true"><span /><span /><i /></div>
 
       <div className="welcome-status" aria-hidden="true">
-        <span className="status-file">Đang đọc cấu trúc tệp…</span>
-        <span className="status-engine">Đang khởi động hệ công cụ…</span>
-        <span className="status-brand">Công Cụ Web đã sẵn sàng</span>
-        <span className="status-home">Đang mở không gian làm việc…</span>
+        <span className="status-file">{tx('Đang đọc cấu trúc tệp…', 'Reading file structure…')}</span>
+        <span className="status-engine">{tx('Đang khởi động hệ công cụ…', 'Starting tool engines…')}</span>
+        <span className="status-brand">{tx('Công Cụ Web đã sẵn sàng', 'Công Cụ Web is ready')}</span>
+        <span className="status-home">{tx('Đang mở không gian làm việc…', 'Opening your workspace…')}</span>
       </div>
       <div className="welcome-loading" aria-hidden="true">
         <span />
       </div>
       <div className="welcome-meta">
-        <span>Phiên bản {appVersion} · Bản dựng #{appBuildNumber}</span>
-        <small>6,7 giây khởi tạo trải nghiệm</small>
+        <span>{tx('Phiên bản', 'Version')} {appVersion} · {tx('Bản dựng', 'Build')} #{appBuildNumber}</span>
+        <small>{tx('6,7 giây khởi tạo trải nghiệm', '6.7-second experience startup')}</small>
       </div>
       <div className="welcome-coordinates" aria-hidden="true"><span>10.8231° N</span><i>◆</i><span>106.6297° E</span></div>
-      <span className="welcome-announcement" aria-live="polite">Công Cụ Web đang khởi tạo. Bạn có thể chọn Bỏ qua để vào trang chủ.</span>
+      <span className="welcome-announcement" aria-live="polite">{tx('Công Cụ Web đang khởi tạo. Bạn có thể chọn Bỏ qua để vào trang chủ.', 'Công Cụ Web is starting. You can choose Skip to open the homepage.')}</span>
     </section>
   </div>
 }
 
 function ToolCard({ tool, open }) {
+  const { language, tx } = useLanguage()
   const isReady = tool.ready !== false
+  const [englishName, englishDescription] = englishTools[tool.mode] || [tool.name, tool.description]
+  const name = language === 'en' ? englishName : tool.name
+  const description = language === 'en' ? englishDescription : tool.description
   const prepare = () => { if (tool.mode.startsWith('pdf-')) warmPdfTools().catch(() => null) }
   return <button className="tool-card" onPointerEnter={prepare} onFocus={prepare} onTouchStart={prepare} onClick={() => { prepare(); open(tool.mode) }}>
-    <span className={`tool-status ${isReady ? 'ready' : 'soon'}`}>{isReady ? 'Sẵn sàng' : 'Đang hoàn thiện'}</span>
+    <span className={`tool-status ${isReady ? 'ready' : 'soon'}`}>{isReady ? tx('Sẵn sàng', 'Ready') : tx('Đang hoàn thiện', 'In development')}</span>
     <span className={`tool-icon ${tool.color}`}>{tool.icon}</span>
-    <strong>{tool.name}</strong>
-    <small>{tool.description}</small>
-    <span className="tool-action">{isReady ? 'Mở công cụ' : 'Xem thông tin'} <b>→</b></span>
+    <strong>{name}</strong>
+    <small>{description}</small>
+    <span className="tool-action">{isReady ? tx('Mở công cụ', 'Open tool') : tx('Xem thông tin', 'View details')} <b>→</b></span>
   </button>
 }
 
 function ToolSection({ title, eyebrow, description, tools, id, open, query }) {
-  const visible = tools.filter(tool => `${tool.name} ${tool.description}`.toLowerCase().includes(query.toLowerCase()))
+  const { tx } = useLanguage()
+  const visible = tools.filter(tool => {
+    const english = englishTools[tool.mode]?.join(' ') || ''
+    return `${tool.name} ${tool.description} ${english}`.toLowerCase().includes(query.toLowerCase())
+  })
   return <section className="tool-section" id={id}>
     <div className="section-heading">
-      <div><span>{eyebrow}</span><h2>{title}</h2><p>{description}</p><small className="section-creator-line"><i>DP</i> Một bộ công cụ được chăm chút bởi <strong>Danh Phạm</strong></small></div>
-      <a href={`#${id}`}>Khám phá tất cả <span>→</span></a>
+      <div><span>{eyebrow}</span><h2>{title}</h2><p>{description}</p></div>
+      <a href={`#${id}`}>{tx('Khám phá tất cả', 'Explore all')} <span>→</span></a>
     </div>
     <div className="tools-grid">{visible.map(tool => <ToolCard key={tool.name} tool={tool} open={open} />)}</div>
-    {!visible.length && <p className="empty">Chưa tìm thấy công cụ phù hợp.</p>}
+    {!visible.length && <p className="empty">{tx('Chưa tìm thấy công cụ phù hợp.', 'No matching tools found.')}</p>}
   </section>
 }
 
 function PdfCanvasPreview({ info }) {
+  const { tx } = useLanguage()
   const canvasRef = useRef(null)
   const [pageNumber, setPageNumber] = useState(1)
   const [rendering, setRendering] = useState(true)
@@ -725,7 +763,7 @@ function PdfCanvasPreview({ info }) {
     renderPage().catch(() => {
       if (!cancelled) {
         setRendering(false)
-        setError('Không thể hiển thị trang PDF này trong preview.')
+        setError(tx('Không thể hiển thị trang PDF này trong preview.', 'This PDF page cannot be displayed in the preview.'))
       }
     })
     return () => { cancelled = true; loadingTask?.destroy?.() }
@@ -733,16 +771,16 @@ function PdfCanvasPreview({ info }) {
 
   return <div className="pdf-canvas-preview">
     <div className="pdf-page-canvas">
-      {rendering && <span>{renderMode === 'canvas' ? 'Đang dựng trang PDF…' : 'Đang mở bản xem trước…'}</span>}
+      {rendering && <span>{renderMode === 'canvas' ? tx('Đang dựng trang PDF…', 'Rendering PDF page…') : tx('Đang mở bản xem trước…', 'Opening preview…')}</span>}
       {error && <span>{error}</span>}
-      <iframe className={renderMode === 'canvas' ? 'preview-hidden' : ''} key={previewUrl} src={previewUrl} title={`Xem trước trang ${pageNumber}`} onLoad={() => {
+      <iframe className={renderMode === 'canvas' ? 'preview-hidden' : ''} key={previewUrl} src={previewUrl} title={`${tx('Xem trước trang', 'Preview page')} ${pageNumber}`} onLoad={() => {
         if (renderMode !== 'native') return
         setRenderMode('viewer')
         setRendering(false)
       }} />
       <canvas className={renderMode === 'canvas' ? '' : 'preview-hidden'} ref={canvasRef} />
     </div>
-    <div className="pdf-page-controls"><button type="button" disabled={pageNumber <= 1} onClick={() => setPageNumber(page => page - 1)}>←</button><b>Trang {pageNumber} / {info.pages}</b><button type="button" disabled={pageNumber >= info.pages} onClick={() => setPageNumber(page => page + 1)}>→</button></div>
+    <div className="pdf-page-controls"><button type="button" disabled={pageNumber <= 1} onClick={() => setPageNumber(page => page - 1)}>←</button><b>{tx('Trang', 'Page')} {pageNumber} / {info.pages}</b><button type="button" disabled={pageNumber >= info.pages} onClick={() => setPageNumber(page => page + 1)}>→</button></div>
   </div>
 }
 
@@ -757,6 +795,7 @@ const pdfEditPresetPoints = {
 }
 
 function PdfEditPreview({ info, editType, text, position, setPosition, xPercent, setXPercent, yPercent, setYPercent, fontSize, color, opacity }) {
+  const { tx } = useLanguage()
   const canvasRef = useRef(null)
   const stageRef = useRef(null)
   const dragging = useRef(false)
@@ -766,8 +805,8 @@ function PdfEditPreview({ info, editType, text, position, setPosition, xPercent,
   const [error, setError] = useState('')
   const point = position === 'custom' ? { x: xPercent, y: yPercent } : (pdfEditPresetPoints[position] || pdfEditPresetPoints['bottom-center'])
   const label = editType === 'page-numbers'
-    ? `Trang ${pageNumber} / ${info.pages}`
-    : (text || 'Nội dung').replaceAll('{page}', String(pageNumber)).replaceAll('{pages}', String(info.pages))
+    ? `${tx('Trang', 'Page')} ${pageNumber} / ${info.pages}`
+    : (text || tx('Nội dung', 'Content')).replaceAll('{page}', String(pageNumber)).replaceAll('{pages}', String(info.pages))
 
   useEffect(() => { setPageNumber(1) }, [info.url])
   useEffect(() => {
@@ -792,7 +831,7 @@ function PdfEditPreview({ info, editType, text, position, setPosition, xPercent,
       await renderTask.promise
       page.cleanup?.()
     }
-    render().catch(() => { if (!cancelled) setError('Không thể dựng trang PDF để đặt nội dung.') })
+    render().catch(() => { if (!cancelled) setError(tx('Không thể dựng trang PDF để đặt nội dung.', 'The PDF page could not be rendered for content placement.')) })
       .finally(() => { if (!cancelled) setRendering(false) })
     return () => { cancelled = true; renderTask?.cancel?.(); loadingTask?.destroy?.() }
   }, [info.url, pageNumber])
@@ -806,7 +845,7 @@ function PdfEditPreview({ info, editType, text, position, setPosition, xPercent,
   }
 
   return <div className="pdf-edit-preview">
-    <div className="preview-label"><span>Đặt trực tiếp trên trang</span><b>Kéo nội dung để di chuyển</b></div>
+    <div className="preview-label"><span>{tx('Đặt trực tiếp trên trang', 'Place directly on page')}</span><b>{tx('Kéo nội dung để di chuyển', 'Drag content to move it')}</b></div>
     <div className="pdf-edit-viewport">
       <div className="pdf-edit-stage" ref={stageRef} style={{ aspectRatio: pageRatio }} onPointerDown={event => {
         if (event.target.closest?.('.pdf-edit-overlay')) return
@@ -814,22 +853,23 @@ function PdfEditPreview({ info, editType, text, position, setPosition, xPercent,
         event.currentTarget.setPointerCapture?.(event.pointerId)
         moveToPointer(event)
       }} onPointerMove={event => { if (dragging.current) moveToPointer(event) }} onPointerUp={() => { dragging.current = false }} onPointerCancel={() => { dragging.current = false }}>
-        {rendering && <span className="pdf-edit-status">Đang dựng trang PDF…</span>}
+        {rendering && <span className="pdf-edit-status">{tx('Đang dựng trang PDF…', 'Rendering PDF page…')}</span>}
         {error && <span className="pdf-edit-status error">{error}</span>}
         <canvas ref={canvasRef} />
         <button type="button" className="pdf-edit-overlay" style={{ left: `${point.x}%`, top: `${point.y}%`, color, opacity: opacity / 100, fontSize: `${clamp(fontSize * 0.9, 9, 44)}px` }} onPointerDown={event => {
           dragging.current = true
           event.currentTarget.setPointerCapture?.(event.pointerId)
           moveToPointer(event)
-        }} onPointerMove={event => { if (dragging.current) moveToPointer(event) }} onPointerUp={() => { dragging.current = false }} onPointerCancel={() => { dragging.current = false }} title="Giữ và kéo để đổi vị trí">{label}</button>
+        }} onPointerMove={event => { if (dragging.current) moveToPointer(event) }} onPointerUp={() => { dragging.current = false }} onPointerCancel={() => { dragging.current = false }} title={tx('Giữ và kéo để đổi vị trí', 'Hold and drag to reposition')}>{label}</button>
       </div>
     </div>
-    <div className="pdf-page-controls"><button type="button" disabled={pageNumber <= 1} onClick={() => setPageNumber(page => page - 1)}>←</button><b>Trang {pageNumber} / {info.pages}</b><button type="button" disabled={pageNumber >= info.pages} onClick={() => setPageNumber(page => page + 1)}>→</button></div>
-    <p className="pdf-edit-help">Preview dùng để đặt vị trí. PDF kết quả sẽ giữ nguyên nội dung gốc và thêm một lớp chữ mới lên trên.</p>
+    <div className="pdf-page-controls"><button type="button" disabled={pageNumber <= 1} onClick={() => setPageNumber(page => page - 1)}>←</button><b>{tx('Trang', 'Page')} {pageNumber} / {info.pages}</b><button type="button" disabled={pageNumber >= info.pages} onClick={() => setPageNumber(page => page + 1)}>→</button></div>
+    <p className="pdf-edit-help">{tx('Preview dùng để đặt vị trí. PDF kết quả sẽ giữ nguyên nội dung gốc và thêm một lớp chữ mới lên trên.', 'The preview is used for placement. The output PDF keeps the original content and adds a new text layer on top.')}</p>
   </div>
 }
 
 function PdfPageThumbnail({ item, info, number, selected, mode, onSelect, onDropPage, onDragPage, onDelete, onInsert }) {
+  const { tx } = useLanguage()
   const canvasRef = useRef(null)
   const [rendering, setRendering] = useState(true)
   const [error, setError] = useState(false)
@@ -861,21 +901,22 @@ function PdfPageThumbnail({ item, info, number, selected, mode, onSelect, onDrop
     return () => { cancelled = true; renderTask?.cancel?.() }
   }, [info.url, item.pageIndex, item.rotation])
 
-  const pageLabel = info.pages > 1 ? `${info.name} · trang ${item.pageIndex + 1}` : info.name
+  const pageLabel = info.pages > 1 ? `${info.name} · ${tx('trang', 'page')} ${item.pageIndex + 1}` : info.name
   const canEditPages = mode === 'pdf-merge' || mode === 'pdf-organize'
   return <article className={`pdf-page-card ${selected ? 'selected' : ''}`} draggable onDragStart={() => onDragPage(item.id)} onDragOver={event => event.preventDefault()} onDrop={() => onDropPage(item.id)}>
-    <button className="page-check" type="button" aria-label={`${selected ? 'Bỏ chọn' : 'Chọn'} trang ${number}`} aria-pressed={selected} onClick={() => onSelect(item.id)}>{selected ? '✓' : ''}</button>
+    <button className="page-check" type="button" aria-label={`${selected ? tx('Bỏ chọn', 'Deselect') : tx('Chọn', 'Select')} ${tx('trang', 'page')} ${number}`} aria-pressed={selected} onClick={() => onSelect(item.id)}>{selected ? '✓' : ''}</button>
     <button className="page-thumbnail" type="button" onClick={() => onSelect(item.id)}>
-      <span className="page-paper">{rendering && <i>Đang tải…</i>}{error && <i>Không thể xem</i>}<canvas ref={canvasRef} /></span>
+      <span className="page-paper">{rendering && <i>{tx('Đang tải…', 'Loading…')}</i>}{error && <i>{tx('Không thể xem', 'Preview unavailable')}</i>}<canvas ref={canvasRef} /></span>
       <span className="page-name" title={pageLabel}>{pageLabel}</span>
-      <small>Trang {number}</small>
+      <small>{tx('Trang', 'Page')} {number}</small>
     </button>
-    {canEditPages && <button className="page-delete" type="button" aria-label={`Xóa trang ${number}`} onClick={() => onDelete(item.id)}>×</button>}
-    {canEditPages && <label className="page-insert"><input type="file" accept=".pdf,application/pdf" multiple aria-label={`Chèn PDF sau trang ${number}`} onChange={event => { onInsert(event.target.files, number); event.target.value = '' }} /><span>+</span></label>}
+    {canEditPages && <button className="page-delete" type="button" aria-label={`${tx('Xóa trang', 'Delete page')} ${number}`} onClick={() => onDelete(item.id)}>×</button>}
+    {canEditPages && <label className="page-insert"><input type="file" accept=".pdf,application/pdf" multiple aria-label={`${tx('Chèn PDF sau trang', 'Insert PDF after page')} ${number}`} onChange={event => { onInsert(event.target.files, number); event.target.value = '' }} /><span>+</span></label>}
   </article>
 }
 
 function PdfPageBoard({ mode, pages, fileInfo, selectedPages, setSelectedPages, setPages, onAddFiles }) {
+  const { tx } = useLanguage()
   const draggedPage = useRef(null)
   const selectedCount = selectedPages.size
   const allSelected = pages.length > 0 && selectedCount === pages.length
@@ -936,42 +977,44 @@ function PdfPageBoard({ mode, pages, fileInfo, selectedPages, setSelectedPages, 
 
   return <section className="pdf-page-board">
     <div className="page-board-toolbar">
-      <label className="select-all-pages"><input type="checkbox" checked={allSelected} onChange={selectAll} /><span>{allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</span></label>
-      <span className="selection-count"><b>{selectedCount}</b> / {pages.length} trang được chọn</span>
+      <label className="select-all-pages"><input type="checkbox" checked={allSelected} onChange={selectAll} /><span>{allSelected ? tx('Bỏ chọn tất cả', 'Deselect all') : tx('Chọn tất cả', 'Select all')}</span></label>
+      <span className="selection-count"><b>{selectedCount}</b> / {pages.length} {tx('trang được chọn', 'pages selected')}</span>
       <div className="page-actions">
-        {canEditPages && <label className="add-pages-button"><input type="file" accept=".pdf,application/pdf" multiple aria-label="Thêm PDF vào cuối" onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><span>＋ Thêm PDF</span></label>}
-        {!canEditPages && <><button type="button" onClick={() => selectPreset('all')}>Tất cả</button><button type="button" onClick={() => selectPreset('odd')}>Trang lẻ</button><button type="button" onClick={() => selectPreset('even')}>Trang chẵn</button></>}
-        <button type="button" disabled={!selectedCount} onClick={() => rotateSelected(-90)} aria-label="Xoay trái các trang đã chọn">↶ Xoay trái</button>
-        <button type="button" disabled={!selectedCount} onClick={() => rotateSelected(90)} aria-label="Xoay phải các trang đã chọn">↷ Xoay phải</button>
-        {canEditPages && <><button type="button" disabled={!selectedCount} onClick={() => moveSelected(-1)}>← Dịch trái</button><button type="button" disabled={!selectedCount} onClick={() => moveSelected(1)}>Dịch phải →</button><button type="button" disabled={!selectedCount} onClick={duplicateSelected}>Nhân bản</button><button type="button" disabled={pages.length < 2} onClick={() => setPages(current => [...current].reverse())}>Đảo thứ tự</button><button className="danger" type="button" disabled={!selectedCount || selectedCount === pages.length} onClick={() => deletePages(selectedPages)}>Xóa</button></>}
+        {canEditPages && <label className="add-pages-button"><input type="file" accept=".pdf,application/pdf" multiple aria-label={tx('Thêm PDF vào cuối', 'Add PDF at the end')} onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><span>＋ {tx('Thêm PDF', 'Add PDF')}</span></label>}
+        {!canEditPages && <><button type="button" onClick={() => selectPreset('all')}>{tx('Tất cả', 'All')}</button><button type="button" onClick={() => selectPreset('odd')}>{tx('Trang lẻ', 'Odd pages')}</button><button type="button" onClick={() => selectPreset('even')}>{tx('Trang chẵn', 'Even pages')}</button></>}
+        <button type="button" disabled={!selectedCount} onClick={() => rotateSelected(-90)} aria-label={tx('Xoay trái các trang đã chọn', 'Rotate selected pages left')}>↶ {tx('Xoay trái', 'Rotate left')}</button>
+        <button type="button" disabled={!selectedCount} onClick={() => rotateSelected(90)} aria-label={tx('Xoay phải các trang đã chọn', 'Rotate selected pages right')}>↷ {tx('Xoay phải', 'Rotate right')}</button>
+        {canEditPages && <><button type="button" disabled={!selectedCount} onClick={() => moveSelected(-1)}>← {tx('Dịch trái', 'Move left')}</button><button type="button" disabled={!selectedCount} onClick={() => moveSelected(1)}>{tx('Dịch phải', 'Move right')} →</button><button type="button" disabled={!selectedCount} onClick={duplicateSelected}>{tx('Nhân bản', 'Duplicate')}</button><button type="button" disabled={pages.length < 2} onClick={() => setPages(current => [...current].reverse())}>{tx('Đảo thứ tự', 'Reverse order')}</button><button className="danger" type="button" disabled={!selectedCount || selectedCount === pages.length} onClick={() => deletePages(selectedPages)}>{tx('Xóa', 'Delete')}</button></>}
       </div>
     </div>
-    <div className="page-board-tip"><span>{canEditPages ? 'Giữ và kéo thumbnail để đổi thứ tự trang.' : 'Nhấp vào từng thumbnail để chọn trang cần tách.'}</span><b>{canEditPages ? (isOrganize ? 'Có thể xoay, nhân bản, thêm hoặc xóa trang trước khi lưu.' : 'PDF kết quả theo thứ tự từ trái sang phải.') : 'Mỗi trang đã chọn sẽ được xuất thành một PDF trong tệp ZIP.'}</b></div>
+    <div className="page-board-tip"><span>{canEditPages ? tx('Giữ và kéo thumbnail để đổi thứ tự trang.', 'Hold and drag thumbnails to reorder pages.') : tx('Nhấp vào từng thumbnail để chọn trang cần tách.', 'Click thumbnails to select pages to split.')}</span><b>{canEditPages ? (isOrganize ? tx('Có thể xoay, nhân bản, thêm hoặc xóa trang trước khi lưu.', 'Rotate, duplicate, add or delete pages before saving.') : tx('PDF kết quả theo thứ tự từ trái sang phải.', 'The output PDF follows the left-to-right order.')) : tx('Mỗi trang đã chọn sẽ được xuất thành một PDF trong tệp ZIP.', 'Each selected page is exported as a PDF inside a ZIP file.')}</b></div>
     <div className="page-thumbnail-grid">
       {pages.map((item, index) => <PdfPageThumbnail key={item.id} item={item} info={fileInfo[item.fileIndex]} number={index + 1} selected={selectedPages.has(item.id)} mode={mode} onSelect={id => setSelectedPages(current => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next })} onDragPage={id => { draggedPage.current = id }} onDropPage={dropPage} onDelete={id => deletePages(new Set([id]))} onInsert={onAddFiles} />)}
-      {canEditPages && <label className="add-pdf-tile"><input type="file" accept=".pdf,application/pdf" multiple aria-label="Thêm PDF vào cuối tài liệu" onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><i>＋</i><b>Thêm PDF</b><small>Chèn thêm trang vào tài liệu</small></label>}
+      {canEditPages && <label className="add-pdf-tile"><input type="file" accept=".pdf,application/pdf" multiple aria-label={tx('Thêm PDF vào cuối tài liệu', 'Add PDF at the end of the document')} onChange={event => { onAddFiles(event.target.files, pages.length); event.target.value = '' }} /><i>＋</i><b>{tx('Thêm PDF', 'Add PDF')}</b><small>{tx('Chèn thêm trang vào tài liệu', 'Insert more pages into the document')}</small></label>}
     </div>
   </section>
 }
 
 function MediaPreview({ info, title, checkerboard = false, imageStyle }) {
+  const { locale, tx } = useLanguage()
   if (!info) return null
   return <div className={`media-preview ${checkerboard ? 'checkerboard' : ''}`}>
     <div className="preview-label"><span>{title}</span><b>{formatBytes(info.size)}</b></div>
     {info.kind === 'image' && <img src={info.url} alt={title} style={imageStyle} />}
     {info.kind === 'pdf' && <PdfCanvasPreview info={info} />}
-    {info.kind === 'archive' && <div className="archive-preview"><i>ZIP</i><strong>Kết quả đã sẵn sàng</strong><small>Các trang PDF được đóng gói trong một tệp ZIP.</small></div>}
-    {info.kind === 'document' && <div className="document-preview"><i>{info.extension?.toUpperCase()}</i><strong>{info.outputLabel || 'Tệp đã sẵn sàng'}</strong>{info.pages && <small>{info.pages} trang · {Number(info.characters || 0).toLocaleString('vi-VN')} ký tự được trích xuất</small>}{info.previewText && <pre>{info.previewText}</pre>}</div>}
+    {info.kind === 'archive' && <div className="archive-preview"><i>ZIP</i><strong>{tx('Kết quả đã sẵn sàng', 'Your result is ready')}</strong><small>{tx('Các trang PDF được đóng gói trong một tệp ZIP.', 'PDF pages are packaged in one ZIP file.')}</small></div>}
+    {info.kind === 'document' && <div className="document-preview"><i>{info.extension?.toUpperCase()}</i><strong>{info.outputLabel || tx('Tệp đã sẵn sàng', 'File ready')}</strong>{info.pages && <small>{info.pages} {tx('trang', 'pages')} · {Number(info.characters || 0).toLocaleString(locale)} {tx('ký tự được trích xuất', 'characters extracted')}</small>}{info.previewText && <pre>{info.previewText}</pre>}</div>}
   </div>
 }
 
 function FileFacts({ info }) {
+  const { tx } = useLanguage()
   if (!info) return null
   return <div className="file-facts">
-    <span><small>Dung lượng</small><b>{formatBytes(info.size)}</b></span>
-    {info.width && <span><small>Kích thước</small><b>{info.width} × {info.height} px</b></span>}
-    {info.pages && <span><small>Số trang</small><b>{info.pages} trang</b></span>}
-    <span><small>Định dạng</small><b>{info.extension?.toUpperCase() || 'Tệp'}</b></span>
+    <span><small>{tx('Dung lượng', 'File size')}</small><b>{formatBytes(info.size)}</b></span>
+    {info.width && <span><small>{tx('Kích thước', 'Dimensions')}</small><b>{info.width} × {info.height} px</b></span>}
+    {info.pages && <span><small>{tx('Số trang', 'Pages')}</small><b>{info.pages} {tx('trang', 'pages')}</b></span>}
+    <span><small>{tx('Định dạng', 'Format')}</small><b>{info.extension?.toUpperCase() || tx('Tệp', 'File')}</b></span>
   </div>
 }
 
@@ -980,6 +1023,7 @@ function RangeControl({ label, value, setValue, min, max, step = 1, suffix = '' 
 }
 
 function CropPreview({ info, crop, setCrop, cropStageRef }) {
+  const { tx } = useLanguage()
   const drag = useRef(null)
   const pixels = info ? {
     left: Math.round(info.width * crop.x / 100),
@@ -1030,15 +1074,15 @@ function CropPreview({ info, crop, setCrop, cropStageRef }) {
 
   return <div className="crop-workspace">
     <div className="crop-toolbar">
-      <span>Tỷ lệ khung</span>
-      <button type="button" onClick={() => applyRatio('free')}>Tự do</button>
+      <span>{tx('Tỷ lệ khung', 'Aspect ratio')}</span>
+      <button type="button" onClick={() => applyRatio('free')}>{tx('Tự do', 'Free')}</button>
       <button type="button" onClick={() => applyRatio(1)}>1:1</button>
       <button type="button" onClick={() => applyRatio(4 / 3)}>4:3</button>
       <button type="button" onClick={() => applyRatio(16 / 9)}>16:9</button>
     </div>
     <div className="crop-viewport">
       <div className="crop-canvas" ref={cropStageRef}>
-        <img src={info.url} alt="Ảnh đang cắt" draggable="false" />
+        <img src={info.url} alt={tx('Ảnh đang cắt', 'Image being cropped')} draggable="false" />
         <div className="crop-box" style={{ left: `${crop.x}%`, top: `${crop.y}%`, width: `${crop.w}%`, height: `${crop.h}%` }} onPointerDown={begin} onPointerMove={move} onPointerUp={() => { drag.current = null }} onPointerCancel={() => { drag.current = null }}>
           <span className="crop-grid vertical one" /><span className="crop-grid vertical two" /><span className="crop-grid horizontal one" /><span className="crop-grid horizontal two" />
           {['nw', 'ne', 'sw', 'se'].map(handle => <i key={handle} className={`crop-handle ${handle}`} data-handle={handle} />)}
@@ -1046,11 +1090,12 @@ function CropPreview({ info, crop, setCrop, cropStageRef }) {
         </div>
       </div>
     </div>
-    <p className="crop-help">Kéo bên trong khung để di chuyển · Kéo bốn góc để thu phóng</p>
+    <p className="crop-help">{tx('Kéo bên trong khung để di chuyển · Kéo bốn góc để thu phóng', 'Drag inside the frame to move · Drag the corners to resize')}</p>
   </div>
 }
 
 function ToolModal({ mode, close }) {
+  const { language, locale, tx } = useLanguage()
   const [files, setFiles] = useState([])
   const [fileInfo, setFileInfo] = useState([])
   const [format, setFormat] = useState('webp')
@@ -1074,7 +1119,7 @@ function ToolModal({ mode, close }) {
   const [targetMb, setTargetMb] = useState('4')
   const [wordMode, setWordMode] = useState('editable')
   const [pdfEditType, setPdfEditType] = useState('text')
-  const [pdfEditText, setPdfEditText] = useState('Danh Phạm')
+  const [pdfEditText, setPdfEditText] = useState('PDFTools')
   const [pdfEditPages, setPdfEditPages] = useState('')
   const [pdfEditPosition, setPdfEditPosition] = useState('bottom-center')
   const [pdfEditX, setPdfEditX] = useState(50)
@@ -1113,7 +1158,7 @@ function ToolModal({ mode, close }) {
   }, [result?.url])
   const makeUrl = blob => { const url = URL.createObjectURL(blob); urlPool.current.add(url); return url }
 
-  const analyze = async (blob, name = blob.name || 'kết-quả') => {
+  const analyze = async (blob, name = blob.name || tx('kết-quả', 'result')) => {
     const url = makeUrl(blob)
     const extension = name.split('.').pop() || ''
     if (blob.type.startsWith('image/')) {
@@ -1138,17 +1183,17 @@ function ToolModal({ mode, close }) {
     const picked = Array.from(selected || [])
     if (!picked.length) return
     const nextFiles = isPageComposer ? picked : picked.slice(0, 1)
-    if (nextFiles.some(file => file.size > maximumSelectedFileBytes)) return setMessage(`Mỗi tệp không được vượt quá ${maximumSelectedFileMb} MB.`)
-    if (nextFiles.reduce((sum, file) => sum + file.size, 0) > maximumUploadBytes) return setMessage('Tổng dung lượng mỗi lượt không được vượt quá 50 MB.')
-    setLoading(true); setMessage('Đang đọc thông tin tệp…'); setResult(null)
+    if (nextFiles.some(file => file.size > maximumSelectedFileBytes)) return setMessage(tx(`Mỗi tệp không được vượt quá ${maximumSelectedFileMb} MB.`, `Each file must be ${maximumSelectedFileMb} MB or smaller.`))
+    if (nextFiles.reduce((sum, file) => sum + file.size, 0) > maximumUploadBytes) return setMessage(tx('Tổng dung lượng mỗi lượt không được vượt quá 50 MB.', 'The total size per operation must not exceed 50 MB.'))
+    setLoading(true); setMessage(tx('Đang đọc thông tin tệp…', 'Reading file information…')); setResult(null)
     try {
       let extractedPreview = ''
       const nextInfo = await Promise.all(nextFiles.map(file => analyze(file)))
-      if (isPageComposer && nextInfo.reduce((sum, info) => sum + (info.pages || 0), 0) > maximumPdfPages) throw new Error(`Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.`)
+      if (isPageComposer && nextInfo.reduce((sum, info) => sum + (info.pages || 0), 0) > maximumPdfPages) throw new Error(tx(`Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.`, `Each operation supports up to ${maximumPdfPages} PDF pages.`))
       setFiles(nextFiles); setFileInfo(nextInfo); setCrop({ x: 10, y: 10, w: 80, h: 80 })
       setBrightness(100); setContrast(100); setSaturation(100); setHue(0); setBlur(0); setRotation(0); setFlip(false); setFlop(false); setGrayscale(false)
       if (isPdfOffice) {
-        setMessage('Đang đọc trước phần văn bản có thể chuyển đổi…')
+        setMessage(tx('Đang đọc trước phần văn bản có thể chuyển đổi…', 'Scanning selectable text for conversion…'))
         const diagnosis = await readPdfTextPreview(nextFiles[0])
         extractedPreview = diagnosis.text
         setPdfTextPreview(extractedPreview)
@@ -1169,29 +1214,29 @@ function ToolModal({ mode, close }) {
         setTargetMb(String(Math.min(suggestedMb, Math.max(0.1, sourceMb - 0.1)).toFixed(1)))
       }
       setMessage(isPdfOffice && !extractedPreview
-        ? 'Không thấy chữ có thể chọn. PDF scan cần OCR trước khi tạo Word có thể chỉnh sửa.'
+        ? tx('Không thấy chữ có thể chọn. PDF scan cần OCR trước khi tạo Word có thể chỉnh sửa.', 'No selectable text was found. Scanned PDFs need OCR before an editable Word file can be created.')
         : '')
-    } catch (error) { setMessage(error.message || 'Không thể đọc tệp này.') }
+    } catch (error) { setMessage(language === 'en' && /[À-ỹ]/.test(error.message || '') ? 'Unable to read this file. Please check its format and limits.' : (error.message || tx('Không thể đọc tệp này.', 'Unable to read this file.'))) }
     finally { setLoading(false) }
   }
 
   const addMergeFiles = async (selected, insertionIndex = pdfPages.length) => {
     const picked = Array.from(selected || [])
     if (!picked.length) return
-    if (picked.some(file => file.size > maximumFileBytes)) return setMessage('Mỗi tệp không được vượt quá 25 MB.')
-    if ([...files, ...picked].reduce((sum, file) => sum + file.size, 0) > maximumUploadBytes) return setMessage('Tổng dung lượng các PDF không được vượt quá 50 MB.')
-    setLoading(true); setMessage('Đang thêm và dựng thumbnail PDF…'); setResult(null)
+    if (picked.some(file => file.size > maximumFileBytes)) return setMessage(tx('Mỗi tệp không được vượt quá 25 MB.', 'Each file must be 25 MB or smaller.'))
+    if ([...files, ...picked].reduce((sum, file) => sum + file.size, 0) > maximumUploadBytes) return setMessage(tx('Tổng dung lượng các PDF không được vượt quá 50 MB.', 'The combined PDF size must not exceed 50 MB.'))
+    setLoading(true); setMessage(tx('Đang thêm và dựng thumbnail PDF…', 'Adding PDFs and rendering thumbnails…')); setResult(null)
     try {
       const addedInfo = await Promise.all(picked.map(file => analyze(file)))
       const firstFileIndex = files.length
       const addedPages = makePageItems(addedInfo, firstFileIndex)
-      if (pdfPages.length + addedPages.length > maximumPdfPages) throw new Error(`Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.`)
+      if (pdfPages.length + addedPages.length > maximumPdfPages) throw new Error(tx(`Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.`, `Each operation supports up to ${maximumPdfPages} PDF pages.`))
       const insertion = clamp(insertionIndex, 0, pdfPages.length)
       setFiles(current => [...current, ...picked])
       setFileInfo(current => [...current, ...addedInfo])
       setPdfPages(current => [...current.slice(0, insertion), ...addedPages, ...current.slice(insertion)])
-      setMessage(`Đã thêm ${addedPages.length} trang. Kéo thumbnail để sắp xếp lại.`)
-    } catch (error) { setMessage(error.message || 'Không thể thêm PDF này.') }
+      setMessage(tx(`Đã thêm ${addedPages.length} trang. Kéo thumbnail để sắp xếp lại.`, `Added ${addedPages.length} pages. Drag thumbnails to reorder them.`))
+    } catch (error) { setMessage(error.message || tx('Không thể thêm PDF này.', 'Unable to add this PDF.')) }
     finally { setLoading(false) }
   }
 
@@ -1206,19 +1251,21 @@ function ToolModal({ mode, close }) {
     }
   }
 
+  const reportProgress = nextMessage => setMessage(language === 'vi' ? nextMessage : tx('', 'Processing document content and layout…'))
+
   const submit = async event => {
     event.preventDefault()
-    if (!files.length) return setMessage('Hãy chọn tệp trước khi xử lý.')
-    if (isPageComposer && !pdfPages.length) return setMessage('Tài liệu phải còn ít nhất một trang.')
-    if (mode === 'pdf-split' && !selectedPages.size) return setMessage('Hãy chọn ít nhất một trang cần tách.')
-    if (mode === 'pdf-edit' && pdfEditType === 'text' && !pdfEditText.trim()) return setMessage('Hãy nhập nội dung cần thêm vào PDF.')
-    setLoading(true); setMessage('Đang xử lý tệp…'); setResult(null)
+    if (!files.length) return setMessage(tx('Hãy chọn tệp trước khi xử lý.', 'Choose a file before processing.'))
+    if (isPageComposer && !pdfPages.length) return setMessage(tx('Tài liệu phải còn ít nhất một trang.', 'The document must contain at least one page.'))
+    if (mode === 'pdf-split' && !selectedPages.size) return setMessage(tx('Hãy chọn ít nhất một trang cần tách.', 'Select at least one page to split.'))
+    if (mode === 'pdf-edit' && pdfEditType === 'text' && !pdfEditText.trim()) return setMessage(tx('Hãy nhập nội dung cần thêm vào PDF.', 'Enter the content to add to the PDF.'))
+    setLoading(true); setMessage(tx('Đang xử lý tệp…', 'Processing file…')); setResult(null)
     try {
       let blob, name, outputMetadata = {}
       if (mode === 'pdf-to-word' && wordMode === 'exact') {
-        const exactWord = await createExactWordFromPdf(files[0], setMessage)
+        const exactWord = await createExactWordFromPdf(files[0], reportProgress)
         blob = exactWord.blob
-        name = `${files[0].name.replace(/\.[^/.]+$/, '')}-giu-vi-tri-tung-dong.docx`
+        name = `${files[0].name.replace(/\.[^/.]+$/, '')}-${tx('giu-vi-tri-tung-dong', 'line-positioned')}.docx`
         outputMetadata = {
           pages: exactWord.pages,
           pdfSourceKind: pdfDiagnosis?.sourceKind,
@@ -1229,19 +1276,19 @@ function ToolModal({ mode, close }) {
           exactImageFormats: exactWord.imageFormats,
         }
       } else if (mode === 'remove-background') {
-        setMessage('Đang chuẩn bị AI xóa phông…')
+        setMessage(tx('Đang chuẩn bị AI xóa phông…', 'Preparing background removal AI…'))
         const { removeBackground } = await import('@imgly/background-removal')
         const options = {
           model: backgroundQuality === 'high' ? 'isnet_fp16' : 'isnet_quint8',
           output: { format: 'image/png', quality: .95, type: 'foreground' },
-          progress: (_key, current, total) => total && setMessage(`Đang tải mô hình AI: ${Math.round(current / total * 100)}%…`),
+          progress: (_key, current, total) => total && setMessage(tx(`Đang tải mô hình AI: ${Math.round(current / total * 100)}%…`, `Downloading AI model: ${Math.round(current / total * 100)}%…`)),
         }
         const run = device => removeBackground(files[0], { ...options, device })
         try { blob = await run(globalThis.navigator?.gpu ? 'gpu' : 'cpu') }
-        catch (gpuError) { if (!globalThis.navigator?.gpu) throw gpuError; setMessage('GPU không khả dụng, đang chuyển sang CPU…'); blob = await run('cpu') }
+        catch (gpuError) { if (!globalThis.navigator?.gpu) throw gpuError; setMessage(tx('GPU không khả dụng, đang chuyển sang CPU…', 'GPU is unavailable; switching to CPU…')); blob = await run('cpu') }
         name = `${files[0].name.replace(/\.[^/.]+$/, '')}-no-background.png`
       } else if (mode === 'pdf-compress' && pdfCompression === 'target') {
-        const compressed = await compressPdfToTarget(files[0], targetMb, pdfContentProfile, setMessage)
+        const compressed = await compressPdfToTarget(files[0], targetMb, pdfContentProfile, reportProgress)
         blob = compressed.blob
         outputMetadata = { compression: compressed.compression }
         name = `${files[0].name.replace(/\.[^/.]+$/, '')}-under-${String(targetMb).replace('.', '-')}-mb.pdf`
@@ -1272,7 +1319,10 @@ function ToolModal({ mode, close }) {
         }
         const url = isImage ? `/api/tools/image/${mode}` : `/api/tools/pdf/${mode.replace('pdf-', '')}`
         const response = await fetch(url, { method: 'POST', body: form })
-        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || 'Không thể xử lý tệp.')
+        if (!response.ok) {
+          const serverMessage = (await response.json().catch(() => ({}))).message
+          throw new Error(language === 'en' ? 'The server could not process this file. Check the format, size and page limits.' : (serverMessage || 'Không thể xử lý tệp.'))
+        }
         blob = await response.blob()
         const disposition = response.headers.get('content-disposition') || ''
         name = /filename="?([^";]+)"?/i.exec(disposition)?.[1] || `pdftools-result.${blob.type.includes('pdf') ? 'pdf' : blob.type.includes('zip') ? 'zip' : format}`
@@ -1292,32 +1342,32 @@ function ToolModal({ mode, close }) {
         }
       }
       const output = await analyze(blob, name)
-      setResult({ ...output, ...outputMetadata, previewText: output.previewText || (isPdfOffice ? pdfTextPreview : ''), outputLabel: mode === 'pdf-to-word' && wordMode === 'exact' ? 'Word giữ vị trí từng dòng đã sẵn sàng' : mode === 'pdf-to-word' ? 'Word có cấu trúc và đồ họa đã sẵn sàng' : isPdfOffice ? 'Tệp Office có thể chỉnh sửa đã sẵn sàng' : undefined, blob })
+      setResult({ ...output, ...outputMetadata, previewText: output.previewText || (isPdfOffice ? pdfTextPreview : ''), outputLabel: mode === 'pdf-to-word' && wordMode === 'exact' ? tx('Word giữ vị trí từng dòng đã sẵn sàng', 'Line-positioned Word file is ready') : mode === 'pdf-to-word' ? tx('Word có cấu trúc và đồ họa đã sẵn sàng', 'Structured Word file with graphics is ready') : isPdfOffice ? tx('Tệp Office có thể chỉnh sửa đã sẵn sàng', 'Editable Office file is ready') : undefined, blob })
       if (mode === 'pdf-compress' && pdfCompression === 'target') {
         const targetBytes = Number(targetMb) * 1024 * 1024
         const proximity = Math.max(0, (targetBytes - blob.size) / targetBytes * 100)
         const { minimumDpi, maximumDpi } = outputMetadata.compression
         const dpiLabel = minimumDpi === maximumDpi ? `${minimumDpi} DPI` : `${minimumDpi}–${maximumDpi} DPI`
-        setMessage(`Xử lý hoàn tất — thấp hơn mục tiêu ${proximity.toFixed(1)}%, độ nét ${dpiLabel}. Hãy xem preview trước khi tải.`)
+        setMessage(tx(`Xử lý hoàn tất — thấp hơn mục tiêu ${proximity.toFixed(1)}%, độ nét ${dpiLabel}. Hãy xem preview trước khi tải.`, `Complete — ${proximity.toFixed(1)}% below the limit at ${dpiLabel}. Review the preview before downloading.`))
       } else if (mode === 'pdf-compress' && pdfCompression === 'preserve') {
         setMessage(outputMetadata.savedBytes > 0
-          ? `Tối ưu không mất dữ liệu hoàn tất — giữ nguyên chữ, liên kết và biểu mẫu; giảm ${formatBytes(outputMetadata.savedBytes)}.`
-          : 'Tối ưu không mất dữ liệu hoàn tất — PDF gốc đã có cấu trúc tốt nên không thể giảm thêm mà vẫn giữ nguyên chữ, liên kết và biểu mẫu. Muốn giảm rõ rệt, hãy chọn “Đạt dung lượng mục tiêu”.')
+          ? tx(`Tối ưu không mất dữ liệu hoàn tất — giữ nguyên chữ, liên kết và biểu mẫu; giảm ${formatBytes(outputMetadata.savedBytes)}.`, `Lossless optimization complete — text, links and forms were preserved; saved ${formatBytes(outputMetadata.savedBytes)}.`)
+          : tx('Tối ưu không mất dữ liệu hoàn tất — PDF gốc đã có cấu trúc tốt nên không thể giảm thêm mà vẫn giữ nguyên chữ, liên kết và biểu mẫu. Muốn giảm rõ rệt, hãy chọn “Đạt dung lượng mục tiêu”.', 'Lossless optimization complete — the PDF was already well optimized, so it could not be made smaller while preserving text, links and forms. Choose “Target file size” for a larger reduction.'))
       } else if (mode === 'pdf-to-word' && wordMode === 'exact') {
-        const signatureNotice = outputMetadata.pdfSignatures ? `, gồm phần hiển thị của ${outputMetadata.pdfSignatures} chữ ký số` : ''
-        setMessage(`Chuyển đổi hoàn tất — ${outputMetadata.wordTextBoxes.toLocaleString('vi-VN')} khối chữ đã được đặt theo vị trí trên ${outputMetadata.pages} trang${signatureNotice}. Đây là chế độ dự phòng; Word có cấu trúc thường dễ sửa và ổn định hơn.`)
+        const signatureNotice = outputMetadata.pdfSignatures ? tx(`, gồm phần hiển thị của ${outputMetadata.pdfSignatures} chữ ký số`, `, including the visible appearance of ${outputMetadata.pdfSignatures} digital signatures`) : ''
+        setMessage(tx(`Chuyển đổi hoàn tất — ${outputMetadata.wordTextBoxes.toLocaleString(locale)} khối chữ đã được đặt theo vị trí trên ${outputMetadata.pages} trang${signatureNotice}. Đây là chế độ dự phòng; Word có cấu trúc thường dễ sửa và ổn định hơn.`, `Conversion complete — ${outputMetadata.wordTextBoxes.toLocaleString(locale)} text boxes were positioned across ${outputMetadata.pages} pages${signatureNotice}. This is a fallback mode; structured Word is usually easier and more reliable to edit.`))
       } else if (isPdfOffice) {
-        const sourceLabel = pdfSourceLabels[outputMetadata.pdfSourceKind] || 'PDF có văn bản chọn được'
-        const mixedNotice = outputMetadata.pdfImageOnlyPages ? `; ${outputMetadata.pdfImageOnlyPages} trang ảnh chưa có OCR` : ''
-        const graphicsNotice = mode === 'pdf-to-word' && outputMetadata.wordEmbeddedGraphics ? `; giữ ${outputMetadata.wordEmbeddedGraphics} ảnh, dấu hoặc chữ ký hiển thị` : ''
-        setMessage(`Chuyển đổi hoàn tất — ${sourceLabel.toLowerCase()}, đã trích xuất ${Number(outputMetadata.characters || 0).toLocaleString('vi-VN')} ký tự từ ${outputMetadata.pages || 0} trang${graphicsNotice}${mixedNotice}.`)
+        const sourceLabel = (language === 'en' ? pdfSourceLabelsEn : pdfSourceLabels)[outputMetadata.pdfSourceKind] || tx('PDF có văn bản chọn được', 'PDF with selectable text')
+        const mixedNotice = outputMetadata.pdfImageOnlyPages ? tx(`; ${outputMetadata.pdfImageOnlyPages} trang ảnh chưa có OCR`, `; ${outputMetadata.pdfImageOnlyPages} image-only pages still need OCR`) : ''
+        const graphicsNotice = mode === 'pdf-to-word' && outputMetadata.wordEmbeddedGraphics ? tx(`; giữ ${outputMetadata.wordEmbeddedGraphics} ảnh, dấu hoặc chữ ký hiển thị`, `; preserved ${outputMetadata.wordEmbeddedGraphics} visible images, stamps or signatures`) : ''
+        setMessage(tx(`Chuyển đổi hoàn tất — ${sourceLabel.toLowerCase()}, đã trích xuất ${Number(outputMetadata.characters || 0).toLocaleString(locale)} ký tự từ ${outputMetadata.pages || 0} trang${graphicsNotice}${mixedNotice}.`, `Conversion complete — ${sourceLabel.toLowerCase()}; extracted ${Number(outputMetadata.characters || 0).toLocaleString(locale)} characters from ${outputMetadata.pages || 0} pages${graphicsNotice}${mixedNotice}.`))
       }
-      else setMessage('Xử lý hoàn tất — hãy xem preview và tải xuống khi đã hài lòng.')
-    } catch (error) { setMessage(error.message || 'Không thể xử lý tệp này. Hãy thử lại.') }
+      else setMessage(tx('Xử lý hoàn tất — hãy xem preview và tải xuống khi đã hài lòng.', 'Processing complete — review the preview and download when you are satisfied.'))
+    } catch (error) { setMessage(language === 'en' && /[À-ỹ]/.test(error.message || '') ? 'Unable to process this file. Please try again.' : (error.message || tx('Không thể xử lý tệp này. Hãy thử lại.', 'Unable to process this file. Please try again.'))) }
     finally { setLoading(false) }
   }
 
-  if (mode === 'soon') return <div className="modal-shade"><div className="tool-modal intro"><button className="close" onClick={close}>×</button><i>✦</i><h2>Tính năng đang hoàn thiện</h2><p>Công cụ này cần backend chuyên dụng để bảo toàn bố cục và nội dung. Chúng tôi chưa gắn nhãn hoạt động cho đến khi kiểm thử được toàn bộ luồng xử lý và tải xuống.</p><button className="primary" onClick={close}>Khám phá công cụ khác</button></div></div>
+  if (mode === 'soon') return <div className="modal-shade"><div className="tool-modal intro"><button className="close" onClick={close}>×</button><i>✦</i><h2>{tx('Tính năng đang hoàn thiện', 'Feature in development')}</h2><p>{tx('Công cụ này cần backend chuyên dụng để bảo toàn bố cục và nội dung. Chúng tôi chưa gắn nhãn hoạt động cho đến khi kiểm thử được toàn bộ luồng xử lý và tải xuống.', 'This tool needs a dedicated backend to preserve layout and content. It will not be marked ready until the complete processing and download flow has been verified.')}</p><button className="primary" onClick={close}>{tx('Khám phá công cụ khác', 'Explore other tools')}</button></div></div>
 
   const source = fileInfo[0]
   const inputSize = files.reduce((sum, file) => sum + file.size, 0)
@@ -1328,19 +1378,39 @@ function ToolModal({ mode, close }) {
     filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%) hue-rotate(${hue}deg) blur(${blur}px) grayscale(${grayscale ? 100 : 0}%)`,
     transform: `rotate(${rotation}deg) scaleX(${flop ? -1 : 1}) scaleY(${flip ? -1 : 1})`,
   } : undefined
+  const sourceLabels = language === 'en' ? pdfSourceLabelsEn : pdfSourceLabels
+  const diagnosisMessage = pdfDiagnosis ? (() => {
+    if (mode === 'pdf-to-word' && wordMode === 'exact') {
+      if (pdfDiagnosis.sourceKind === 'scan') return tx('Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi tạo Word có thể chỉnh sửa.', 'No text layer was found on the sampled pages. Run OCR before creating an editable Word file.')
+      if (pdfDiagnosis.sourceKind === 'mixed') return tx('Một số trang chỉ có ảnh. Hãy OCR các trang đó trước để toàn bộ chữ trong Word đều sửa được.', 'Some pages contain images only. OCR those pages first so all text in Word can be edited.')
+      if (pdfDiagnosis.signatureCount) return tx(`Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Chế độ dự phòng đặt chữ thành text box và giữ phần nhìn thấy của chữ ký ở nền; hiệu lực mật mã không chuyển sang DOCX.`, `${pdfDiagnosis.signatureCount} digital signatures detected. Fallback mode positions text in boxes and preserves the visible signature appearance in the background; cryptographic validity does not carry into DOCX.`)
+      return tx('Có lớp chữ để đặt lại từng dòng theo tọa độ; chế độ này khó chỉnh sửa hơn Word có cấu trúc.', 'A text layer is available for line-by-line positioning; this mode is harder to edit than structured Word.')
+    }
+    if (pdfDiagnosis.sourceKind === 'word-export') return tx('Metadata cho thấy PDF có thể được xuất từ Word; hệ thống sẽ dựng lại đoạn, cột và bảng Word thật.', 'Metadata suggests this PDF may have been exported from Word; real Word paragraphs, columns and tables will be rebuilt.')
+    if (pdfDiagnosis.sourceKind === 'signed-document') return tx(`Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Công cụ giữ phần dấu/chữ ký nhìn thấy được và dựng nội dung thành Word có cấu trúc; hiệu lực chữ ký số không chuyển sang DOCX.`, `${pdfDiagnosis.signatureCount} digital signatures detected. The tool preserves their visible appearance and rebuilds structured Word content; signature validity does not carry into DOCX.`)
+    if (pdfDiagnosis.sourceKind === 'scan') return tx('Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi chuyển.', 'No text layer was found on the sampled pages. Run OCR before converting.')
+    if (pdfDiagnosis.sourceKind === 'mixed') return tx('Một số trang có chữ, một số trang chỉ có ảnh; trang ảnh sẽ cần OCR.', 'Some pages have text while others contain images only; image-only pages need OCR.')
+    return tx('Có lớp chữ để tái dựng thành đoạn văn, bảng và hình ảnh trong Word.', 'A text layer is available to rebuild paragraphs, tables and images in Word.')
+  })() : ''
+  const officeDescription = mode === 'pdf-to-word' && wordMode === 'exact'
+    ? tx(`PDFTools đặt từng dòng chữ vào text box theo tọa độ và giữ lớp đồ họa nền ${exactWordDpi} DPI. Cách này ưu tiên vị trí nhưng khó sửa đoạn dài và có thể khác nhau giữa Word/LibreOffice.`, `PDFTools places each line in a coordinate-based text box and preserves a ${exactWordDpi} DPI graphics layer. This prioritizes position but makes long edits harder and can vary between Word and LibreOffice.`)
+    : mode === 'pdf-to-word' ? tx('Dựng lại đoạn văn, tiêu đề hai cột và bảng thành phần tử Word thật; ảnh, dấu và chữ ký được tách khỏi PDF rồi neo theo tọa độ trang.', 'Rebuilds paragraphs, two-column headings and tables as real Word elements; images, stamps and signatures are extracted and anchored to page coordinates.')
+      : mode === 'pdf-to-excel' ? tx('Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.', 'Each page becomes a worksheet; large gaps are separated into columns.')
+        : mode === 'pdf-to-powerpoint' ? tx('Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.', 'Each page becomes a slide with text placed near its original position.')
+          : tx('Xuất văn bản UTF-8, phân tách rõ từng trang.', 'Exports UTF-8 text with clear page separation.')
 
   return <div className="modal-shade" role="dialog" aria-modal="true">
     <form className={`tool-modal ${files.length ? 'tool-modal-wide' : ''} ${isPdfOffice ? 'pdf-office-modal' : ''} ${mode === 'pdf-edit' ? 'pdf-edit-modal' : ''}`} onSubmit={submit}>
       <button className="close" type="button" onClick={close}>×</button>
-      <div className="modal-heading"><i>✦</i><div><p>CÔNG CỤ PDFTOOLS</p><h2>{labels[mode]}</h2></div><span className="modal-creator">by <strong>Danh Phạm</strong></span></div>
-      <p className="modal-copy">{isOrganize ? 'Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.' : isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : mode === 'pdf-to-word' ? 'Mặc định dựng lại đoạn văn, bảng và cột Word thật; ảnh, con dấu và chữ ký nhìn thấy được neo lại theo vị trí trên trang.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
+      <div className="modal-heading"><i>✦</i><div><p>{tx('CÔNG CỤ PDFTOOLS', 'PDFTOOLS')}</p><h2>{language === 'en' ? labelsEn[mode] : labels[mode]}</h2></div></div>
+      <p className="modal-copy">{isOrganize ? tx('Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.', 'Drag to reorder; rotate, duplicate, add or delete pages, then review the PDF before downloading.') : isMerge ? tx('Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.', 'Preview every page, drag to reorder and insert more PDFs exactly where needed.') : mode === 'pdf-split' ? tx('Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.', 'Select page thumbnails directly—no page numbers to remember or type.') : mode === 'crop' ? tx('Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.', 'Position the frame directly on the image; the bright area is what will be kept.') : mode === 'pdf-compress' ? tx('Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.', 'Enter a size limit and PDFTools will tune several passes to finish just below it.') : mode === 'pdf-edit' ? tx('Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.', 'Add Unicode text, a watermark or page numbers at your chosen position, then preview the result.') : mode === 'pdf-to-word' ? tx('Mặc định dựng lại đoạn văn, bảng và cột Word thật; ảnh, con dấu và chữ ký nhìn thấy được neo lại theo vị trí trên trang.', 'By default, real Word paragraphs, tables and columns are rebuilt while visible images, stamps and signatures are anchored to the page.') : isPdfOffice ? tx('Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.', 'Extract selectable text into an Office file; scanned PDFs need OCR first.') : mode === 'edit' ? tx('Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.', 'Adjust the live preview, then create the real image with the same settings.') : tx('Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.', 'The file becomes downloadable after you review its preview.')}</p>
 
       {!files.length ? <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files) }}>
-        <input ref={input} className="drop-file-input" aria-label="Chọn tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
-        <span>⇧</span><b>Kéo thả {isPageComposer ? 'các tệp' : 'tệp'} vào đây</b><small>hoặc nhấp để chọn từ máy tính · tối đa {maximumSelectedFileMb} MB mỗi tệp, 50 MB mỗi lượt{isPdf ? ' · 500 trang PDF' : ''}</small>
+        <input ref={input} className="drop-file-input" aria-label={tx('Chọn tệp từ máy tính', 'Choose files from your computer')} type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
+        <span>⇧</span><b>{tx(`Kéo thả ${isPageComposer ? 'các tệp' : 'tệp'} vào đây`, `Drop ${isPageComposer ? 'files' : 'a file'} here`)}</b><small>{tx(`hoặc nhấp để chọn từ máy tính · tối đa ${maximumSelectedFileMb} MB mỗi tệp, 50 MB mỗi lượt${isPdf ? ' · 500 trang PDF' : ''}`, `or click to browse · up to ${maximumSelectedFileMb} MB per file and 50 MB per operation${isPdf ? ' · 500 PDF pages' : ''}`)}</small>
       </div> : <>
-        <input ref={input} className="file-input" aria-label="Đổi tệp từ máy tính" type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
-        <div className="selected-file-bar"><div><i>{isPdf ? 'PDF' : 'IMG'}</i><span><b>{files.length > 1 ? `${files.length} tệp đã chọn` : files[0].name}</b><small>{files.length > 1 ? `${formatBytes(files.reduce((sum, file) => sum + file.size, 0))} tổng cộng` : formatBytes(files[0].size)}</small></span></div><button type="button" onClick={() => input.current?.click()}>Đổi tệp</button></div>
+        <input ref={input} className="file-input" aria-label={tx('Đổi tệp từ máy tính', 'Replace files from your computer')} type="file" accept={fileAccept} multiple={isPageComposer} onChange={event => choose(event.target.files)} />
+        <div className="selected-file-bar"><div><i>{isPdf ? 'PDF' : 'IMG'}</i><span><b>{files.length > 1 ? tx(`${files.length} tệp đã chọn`, `${files.length} files selected`) : files[0].name}</b><small>{files.length > 1 ? tx(`${formatBytes(files.reduce((sum, file) => sum + file.size, 0))} tổng cộng`, `${formatBytes(files.reduce((sum, file) => sum + file.size, 0))} total`) : formatBytes(files[0].size)}</small></span></div><button type="button" onClick={() => input.current?.click()}>{tx('Đổi tệp', 'Replace')}</button></div>
 
         {mode === 'pdf-split' && <FileFacts info={source} />}
         {(isPageComposer || mode === 'pdf-split') ? <PdfPageBoard mode={mode} pages={pdfPages} fileInfo={fileInfo} selectedPages={selectedPages} setSelectedPages={setSelectedPages} setPages={setPdfPages} onAddFiles={addMergeFiles} /> : <>
@@ -1349,47 +1419,47 @@ function ToolModal({ mode, close }) {
           <div className="editor-preview">
             {mode === 'crop' ? <CropPreview info={source} crop={crop} setCrop={setCrop} cropStageRef={cropStageRef} />
               : mode === 'pdf-edit' ? <PdfEditPreview info={source} editType={pdfEditType} text={pdfEditText} position={pdfEditPosition} setPosition={setPdfEditPosition} xPercent={pdfEditX} setXPercent={setPdfEditX} yPercent={pdfEditY} setYPercent={setPdfEditY} fontSize={pdfEditFontSize} color={pdfEditColor} opacity={pdfEditOpacity} />
-                : <MediaPreview info={source} title={mode === 'edit' ? 'Preview chỉnh sửa' : 'Bản gốc'} imageStyle={imageEditStyle} />}
+                : <MediaPreview info={source} title={mode === 'edit' ? tx('Preview chỉnh sửa', 'Edit preview') : tx('Bản gốc', 'Original')} imageStyle={imageEditStyle} />}
           </div>
           <div className="editor-controls">
-            {mode === 'remove-background' && <div className="control-group"><span>Chế độ AI</span><div className="option-cards"><button type="button" className={backgroundQuality === 'balanced' ? 'active' : ''} onClick={() => setBackgroundQuality('balanced')}><b>Nhanh</b><small>~40 MB · ảnh thông thường</small></button><button type="button" className={backgroundQuality === 'high' ? 'active' : ''} onClick={() => setBackgroundQuality('high')}><b>Chất lượng cao</b><small>~80 MB · viền tóc tốt hơn</small></button></div></div>}
+            {mode === 'remove-background' && <div className="control-group"><span>{tx('Chế độ AI', 'AI mode')}</span><div className="option-cards"><button type="button" className={backgroundQuality === 'balanced' ? 'active' : ''} onClick={() => setBackgroundQuality('balanced')}><b>{tx('Nhanh', 'Fast')}</b><small>{tx('~40 MB · ảnh thông thường', '~40 MB · everyday images')}</small></button><button type="button" className={backgroundQuality === 'high' ? 'active' : ''} onClick={() => setBackgroundQuality('high')}><b>{tx('Chất lượng cao', 'High quality')}</b><small>{tx('~80 MB · viền tóc tốt hơn', '~80 MB · finer hair edges')}</small></button></div></div>}
 
             {isImage && mode !== 'remove-background' && <>
-              <div className="control-group"><label>Định dạng kết quả<select value={format} onChange={event => setFormat(event.target.value)}><option value="webp">WebP — nhẹ, hiện đại</option><option value="jpeg">JPG — tương thích cao</option><option value="png">PNG — không mất dữ liệu</option><option value="avif">AVIF — dung lượng thấp</option></select></label></div>
-              <div className="control-group"><div className="range-label"><span>Chất lượng</span><b>{quality}%</b></div><input type="range" min="20" max="100" value={quality} onChange={event => setQuality(event.target.value)} /><small>Chất lượng thấp hơn thường tạo tệp nhẹ hơn. PNG có thể ít thay đổi.</small></div>
-              {mode === 'resize' && <div className="control-group"><div className="dimensions"><label>Rộng (px)<input inputMode="numeric" value={width} onChange={event => resizeValue('width', event.target.value)} /></label><label>Cao (px)<input inputMode="numeric" value={height} onChange={event => resizeValue('height', event.target.value)} /></label></div><button className={`ratio-lock ${lockRatio ? 'active' : ''}`} type="button" onClick={() => setLockRatio(!lockRatio)}>{lockRatio ? '🔗 Đang khóa tỷ lệ' : 'Mở khóa tỷ lệ'}</button></div>}
+              <div className="control-group"><label>{tx('Định dạng kết quả', 'Output format')}<select value={format} onChange={event => setFormat(event.target.value)}><option value="webp">{tx('WebP — nhẹ, hiện đại', 'WebP — compact and modern')}</option><option value="jpeg">{tx('JPG — tương thích cao', 'JPG — widely compatible')}</option><option value="png">{tx('PNG — không mất dữ liệu', 'PNG — lossless')}</option><option value="avif">{tx('AVIF — dung lượng thấp', 'AVIF — smallest files')}</option></select></label></div>
+              <div className="control-group"><div className="range-label"><span>{tx('Chất lượng', 'Quality')}</span><b>{quality}%</b></div><input type="range" min="20" max="100" value={quality} onChange={event => setQuality(event.target.value)} /><small>{tx('Chất lượng thấp hơn thường tạo tệp nhẹ hơn. PNG có thể ít thay đổi.', 'Lower quality usually creates a smaller file. PNG may change very little.')}</small></div>
+              {mode === 'resize' && <div className="control-group"><div className="dimensions"><label>{tx('Rộng (px)', 'Width (px)')}<input inputMode="numeric" value={width} onChange={event => resizeValue('width', event.target.value)} /></label><label>{tx('Cao (px)', 'Height (px)')}<input inputMode="numeric" value={height} onChange={event => resizeValue('height', event.target.value)} /></label></div><button className={`ratio-lock ${lockRatio ? 'active' : ''}`} type="button" onClick={() => setLockRatio(!lockRatio)}>{lockRatio ? tx('🔗 Đang khóa tỷ lệ', '🔗 Aspect ratio locked') : tx('Mở khóa tỷ lệ', 'Unlock aspect ratio')}</button></div>}
               {mode === 'edit' && <>
-                <div className="control-group adjustment-stack"><span>Màu sắc và hiệu ứng</span><RangeControl label="Độ sáng" value={brightness} setValue={setBrightness} min={20} max={180} suffix="%" /><RangeControl label="Tương phản" value={contrast} setValue={setContrast} min={20} max={180} suffix="%" /><RangeControl label="Độ bão hòa" value={saturation} setValue={setSaturation} min={0} max={200} suffix="%" /><RangeControl label="Sắc độ" value={hue} setValue={setHue} min={-180} max={180} suffix="°" /><RangeControl label="Làm mờ" value={blur} setValue={setBlur} min={0} max={8} step={0.2} suffix="px" /></div>
-                <div className="control-group"><span>Xoay và lật</span><div className="edit-actions"><button type="button" onClick={() => setRotation(value => (value + 270) % 360)}>↶ Xoay trái</button><button type="button" onClick={() => setRotation(value => (value + 90) % 360)}>↷ Xoay phải</button><button type="button" className={flop ? 'active' : ''} onClick={() => setFlop(!flop)}>↔ Lật ngang</button><button type="button" className={flip ? 'active' : ''} onClick={() => setFlip(!flip)}>↕ Lật dọc</button><button type="button" className={grayscale ? 'active' : ''} onClick={() => setGrayscale(!grayscale)}>◐ Trắng đen</button></div></div>
+                <div className="control-group adjustment-stack"><span>{tx('Màu sắc và hiệu ứng', 'Color and effects')}</span><RangeControl label={tx('Độ sáng', 'Brightness')} value={brightness} setValue={setBrightness} min={20} max={180} suffix="%" /><RangeControl label={tx('Tương phản', 'Contrast')} value={contrast} setValue={setContrast} min={20} max={180} suffix="%" /><RangeControl label={tx('Độ bão hòa', 'Saturation')} value={saturation} setValue={setSaturation} min={0} max={200} suffix="%" /><RangeControl label={tx('Sắc độ', 'Hue')} value={hue} setValue={setHue} min={-180} max={180} suffix="°" /><RangeControl label={tx('Làm mờ', 'Blur')} value={blur} setValue={setBlur} min={0} max={8} step={0.2} suffix="px" /></div>
+                <div className="control-group"><span>{tx('Xoay và lật', 'Rotate and flip')}</span><div className="edit-actions"><button type="button" onClick={() => setRotation(value => (value + 270) % 360)}>↶ {tx('Xoay trái', 'Rotate left')}</button><button type="button" onClick={() => setRotation(value => (value + 90) % 360)}>↷ {tx('Xoay phải', 'Rotate right')}</button><button type="button" className={flop ? 'active' : ''} onClick={() => setFlop(!flop)}>↔ {tx('Lật ngang', 'Flip horizontally')}</button><button type="button" className={flip ? 'active' : ''} onClick={() => setFlip(!flip)}>↕ {tx('Lật dọc', 'Flip vertically')}</button><button type="button" className={grayscale ? 'active' : ''} onClick={() => setGrayscale(!grayscale)}>◐ {tx('Trắng đen', 'Grayscale')}</button></div></div>
               </>}
             </>}
 
             {mode === 'pdf-edit' && <>
-              <div className="control-group"><span>Nội dung thêm</span><div className="option-cards"><button type="button" className={pdfEditType === 'text' ? 'active' : ''} onClick={() => setPdfEditType('text')}><b>Chữ / watermark</b><small>Hỗ trợ {`{page}`} và {`{pages}`}</small></button><button type="button" className={pdfEditType === 'page-numbers' ? 'active' : ''} onClick={() => setPdfEditType('page-numbers')}><b>Đánh số trang</b><small>Tự tạo Trang 1 / N</small></button></div></div>
-              {pdfEditType === 'text' && <div className="control-group"><label>Nội dung<input maxLength="120" value={pdfEditText} onChange={event => setPdfEditText(event.target.value)} placeholder="Ví dụ: Danh Phạm · Trang {page}" /></label></div>}
-              <div className="control-group"><label>Áp dụng cho trang<input value={pdfEditPages} onChange={event => setPdfEditPages(event.target.value)} placeholder="Để trống = tất cả · Ví dụ 1-3, 5" /></label></div>
-              <div className="control-group"><label>Vị trí<select value={pdfEditPosition} onChange={event => setPdfEditPosition(event.target.value)}><option value="custom">Tự kéo trên trang</option><option value="top-left">Trên trái</option><option value="top-center">Trên giữa</option><option value="top-right">Trên phải</option><option value="center">Chính giữa</option><option value="bottom-left">Dưới trái</option><option value="bottom-center">Dưới giữa</option><option value="bottom-right">Dưới phải</option></select></label><small>Kéo nội dung ngay trên preview để chuyển sang vị trí tùy chỉnh.</small></div>
-              {pdfEditPosition === 'custom' && <div className="control-group adjustment-stack"><span>Tọa độ chính xác</span><RangeControl label="Ngang" value={pdfEditX} setValue={setPdfEditX} min={2} max={98} step={0.5} suffix="%" /><RangeControl label="Dọc" value={pdfEditY} setValue={setPdfEditY} min={2} max={98} step={0.5} suffix="%" /></div>}
-              <div className="control-group adjustment-stack"><span>Kiểu hiển thị</span><RangeControl label="Cỡ chữ" value={pdfEditFontSize} setValue={setPdfEditFontSize} min={8} max={48} suffix=" pt" /><RangeControl label="Độ đậm" value={pdfEditOpacity} setValue={setPdfEditOpacity} min={10} max={100} suffix="%" /><label className="color-control">Màu chữ<input type="color" value={pdfEditColor} onChange={event => setPdfEditColor(event.target.value)} /></label></div>
-              <div className="control-note"><b>Phạm vi chỉnh sửa thực tế</b><span>Công cụ thêm lớp chữ mới lên PDF; chưa sửa hoặc xóa trực tiếp chữ gốc. Preview vị trí được đồng bộ bằng phần trăm với tệp kết quả.</span></div>
+              <div className="control-group"><span>{tx('Nội dung thêm', 'Content to add')}</span><div className="option-cards"><button type="button" className={pdfEditType === 'text' ? 'active' : ''} onClick={() => setPdfEditType('text')}><b>{tx('Chữ / watermark', 'Text / watermark')}</b><small>{tx('Hỗ trợ', 'Supports')} {`{page}`} {tx('và', 'and')} {`{pages}`}</small></button><button type="button" className={pdfEditType === 'page-numbers' ? 'active' : ''} onClick={() => setPdfEditType('page-numbers')}><b>{tx('Đánh số trang', 'Page numbers')}</b><small>{tx('Tự tạo Trang 1 / N', 'Automatically creates Page 1 / N')}</small></button></div></div>
+              {pdfEditType === 'text' && <div className="control-group"><label>{tx('Nội dung', 'Content')}<input maxLength="120" value={pdfEditText} onChange={event => setPdfEditText(event.target.value)} placeholder={tx('Ví dụ: PDFTools · Trang {page}', 'Example: PDFTools · Page {page}')} /></label></div>}
+              <div className="control-group"><label>{tx('Áp dụng cho trang', 'Apply to pages')}<input value={pdfEditPages} onChange={event => setPdfEditPages(event.target.value)} placeholder={tx('Để trống = tất cả · Ví dụ 1-3, 5', 'Leave blank = all · Example: 1-3, 5')} /></label></div>
+              <div className="control-group"><label>{tx('Vị trí', 'Position')}<select value={pdfEditPosition} onChange={event => setPdfEditPosition(event.target.value)}><option value="custom">{tx('Tự kéo trên trang', 'Drag on page')}</option><option value="top-left">{tx('Trên trái', 'Top left')}</option><option value="top-center">{tx('Trên giữa', 'Top center')}</option><option value="top-right">{tx('Trên phải', 'Top right')}</option><option value="center">{tx('Chính giữa', 'Center')}</option><option value="bottom-left">{tx('Dưới trái', 'Bottom left')}</option><option value="bottom-center">{tx('Dưới giữa', 'Bottom center')}</option><option value="bottom-right">{tx('Dưới phải', 'Bottom right')}</option></select></label><small>{tx('Kéo nội dung ngay trên preview để chuyển sang vị trí tùy chỉnh.', 'Drag the content on the preview to switch to a custom position.')}</small></div>
+              {pdfEditPosition === 'custom' && <div className="control-group adjustment-stack"><span>{tx('Tọa độ chính xác', 'Exact coordinates')}</span><RangeControl label={tx('Ngang', 'Horizontal')} value={pdfEditX} setValue={setPdfEditX} min={2} max={98} step={0.5} suffix="%" /><RangeControl label={tx('Dọc', 'Vertical')} value={pdfEditY} setValue={setPdfEditY} min={2} max={98} step={0.5} suffix="%" /></div>}
+              <div className="control-group adjustment-stack"><span>{tx('Kiểu hiển thị', 'Appearance')}</span><RangeControl label={tx('Cỡ chữ', 'Font size')} value={pdfEditFontSize} setValue={setPdfEditFontSize} min={8} max={48} suffix=" pt" /><RangeControl label={tx('Độ đậm', 'Opacity')} value={pdfEditOpacity} setValue={setPdfEditOpacity} min={10} max={100} suffix="%" /><label className="color-control">{tx('Màu chữ', 'Text color')}<input type="color" value={pdfEditColor} onChange={event => setPdfEditColor(event.target.value)} /></label></div>
+              <div className="control-note"><b>{tx('Phạm vi chỉnh sửa thực tế', 'What this editor changes')}</b><span>{tx('Công cụ thêm lớp chữ mới lên PDF; chưa sửa hoặc xóa trực tiếp chữ gốc. Preview vị trí được đồng bộ bằng phần trăm với tệp kết quả.', 'The tool adds a new text layer to the PDF; it does not directly edit or delete original text. Preview positions are synchronized to the output using percentages.')}</span></div>
             </>}
 
             {isPdfOffice && <>
-              {mode === 'pdf-to-word' && <div className="control-group word-mode-control"><span>Kiểu tệp Word</span><div className="option-cards"><button type="button" className={wordMode === 'editable' ? 'active' : ''} onClick={() => { setWordMode('editable'); setResult(null); setMessage(pdfTextPreview ? 'Word sẽ có đoạn văn, cột và bảng thật; ảnh, dấu và chữ ký nhìn thấy được giữ theo vị trí.' : 'PDF chưa có lớp chữ để tạo Word có cấu trúc. Hãy OCR trước.') }}><b>Word có cấu trúc <em>Khuyên dùng</em></b><small>Đoạn và bảng thật · giữ ảnh, dấu, chữ ký · dễ chỉnh sửa</small></button><button type="button" className={wordMode === 'exact' ? 'active' : ''} onClick={() => { setWordMode('exact'); setResult(null); setMessage(pdfTextPreview ? 'Mỗi dòng chữ sẽ thành text box theo tọa độ; phù hợp làm phương án dự phòng khi bố cục đặc biệt.' : 'PDF chưa có lớp chữ. Hãy OCR trước khi dùng chế độ giữ vị trí.') }}><b>Giữ vị trí từng dòng</b><small>Text box theo tọa độ · khó sửa dài · có thể lệch giữa các phần mềm Word</small></button></div></div>}
-              {pdfDiagnosis && <div className={`pdf-diagnosis ${pdfDiagnosis.sourceKind}`}><strong>{pdfSourceLabels[pdfDiagnosis.sourceKind]}</strong><span>{mode === 'pdf-to-word' && wordMode === 'exact' ? pdfDiagnosis.sourceKind === 'scan' ? 'Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi tạo Word có thể chỉnh sửa.' : pdfDiagnosis.sourceKind === 'mixed' ? 'Một số trang chỉ có ảnh. Hãy OCR các trang đó trước để toàn bộ chữ trong Word đều sửa được.' : pdfDiagnosis.signatureCount ? `Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Chế độ dự phòng đặt chữ thành text box và giữ phần nhìn thấy của chữ ký ở nền; hiệu lực mật mã không chuyển sang DOCX.` : 'Có lớp chữ để đặt lại từng dòng theo tọa độ; chế độ này khó chỉnh sửa hơn Word có cấu trúc.' : pdfDiagnosis.sourceKind === 'word-export' ? 'Metadata cho thấy PDF có thể được xuất từ Word; hệ thống sẽ dựng lại đoạn, cột và bảng Word thật.' : pdfDiagnosis.sourceKind === 'signed-document' ? `Phát hiện ${pdfDiagnosis.signatureCount} chữ ký số. Công cụ giữ phần dấu/chữ ký nhìn thấy được và dựng nội dung thành Word có cấu trúc; hiệu lực chữ ký số không chuyển sang DOCX.` : pdfDiagnosis.sourceKind === 'scan' ? 'Không thấy lớp chữ trong các trang đã kiểm tra. Cần OCR trước khi chuyển.' : pdfDiagnosis.sourceKind === 'mixed' ? 'Một số trang có chữ, một số trang chỉ có ảnh; trang ảnh sẽ cần OCR.' : 'Có lớp chữ để tái dựng thành đoạn văn, bảng và hình ảnh trong Word.'}</span><small>Kiểm tra nhanh {pdfDiagnosis.sampledPages}/{pdfDiagnosis.totalPages} trang{pdfDiagnosis.producer ? ` · Trình tạo: ${pdfDiagnosis.producer}` : ''}{pdfDiagnosis.hasStructTree ? ' · Có cấu trúc PDF được gắn thẻ' : ''}</small></div>}
-              <div className="control-note office-note"><b>{mode === 'pdf-to-word' && wordMode === 'exact' ? 'Giữ vị trí từng dòng — phương án dự phòng' : mode === 'pdf-to-word' ? 'Word có cấu trúc gần bản PDF' : 'Chuyển đổi văn bản có thể chỉnh sửa'}</b><span>{mode === 'pdf-to-word' && wordMode === 'exact' ? `PDFTools đặt từng dòng chữ vào text box theo tọa độ và giữ lớp đồ họa nền ${exactWordDpi} DPI. Cách này ưu tiên vị trí nhưng khó sửa đoạn dài và có thể khác nhau giữa Word/LibreOffice.` : mode === 'pdf-to-word' ? 'Dựng lại đoạn văn, tiêu đề hai cột và bảng thành phần tử Word thật; ảnh, dấu và chữ ký được tách khỏi PDF rồi neo theo tọa độ trang.' : mode === 'pdf-to-excel' ? 'Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.' : mode === 'pdf-to-powerpoint' ? 'Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.' : 'Xuất văn bản UTF-8, phân tách rõ từng trang.'}</span><em>{mode === 'pdf-to-word' && wordMode === 'exact' ? `Tối đa ${maximumExactWordPages} trang/lượt và chỉ dùng cho PDF có chữ chọn được. Một số font nhúng đặc biệt có thể được Word thay thế; chữ ký số không còn giá trị xác thực.` : pdfTextPreview ? `Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString('vi-VN')} ký tự. Kết quả giữ phần nhìn thấy của chữ ký nhưng không thể khôi phục file Word gốc hay hiệu lực chữ ký số.` : 'Chưa tìm thấy chữ có thể chọn trong phần xem trước.'}</em></div>
+              {mode === 'pdf-to-word' && <div className="control-group word-mode-control"><span>{tx('Kiểu tệp Word', 'Word output type')}</span><div className="option-cards"><button type="button" className={wordMode === 'editable' ? 'active' : ''} onClick={() => { setWordMode('editable'); setResult(null); setMessage(pdfTextPreview ? tx('Word sẽ có đoạn văn, cột và bảng thật; ảnh, dấu và chữ ký nhìn thấy được giữ theo vị trí.', 'Word will contain real paragraphs, columns and tables while visible images, stamps and signatures keep their positions.') : tx('PDF chưa có lớp chữ để tạo Word có cấu trúc. Hãy OCR trước.', 'The PDF has no text layer for structured Word. Run OCR first.')) }}><b>{tx('Word có cấu trúc', 'Structured Word')} <em>{tx('Khuyên dùng', 'Recommended')}</em></b><small>{tx('Đoạn và bảng thật · giữ ảnh, dấu, chữ ký · dễ chỉnh sửa', 'Real paragraphs and tables · preserves images, stamps and signatures · easier to edit')}</small></button><button type="button" className={wordMode === 'exact' ? 'active' : ''} onClick={() => { setWordMode('exact'); setResult(null); setMessage(pdfTextPreview ? tx('Mỗi dòng chữ sẽ thành text box theo tọa độ; phù hợp làm phương án dự phòng khi bố cục đặc biệt.', 'Each line becomes a coordinate-based text box; useful as a fallback for unusual layouts.') : tx('PDF chưa có lớp chữ. Hãy OCR trước khi dùng chế độ giữ vị trí.', 'The PDF has no text layer. Run OCR before using line-positioned mode.')) }}><b>{tx('Giữ vị trí từng dòng', 'Keep each line positioned')}</b><small>{tx('Text box theo tọa độ · khó sửa dài · có thể lệch giữa các phần mềm Word', 'Coordinate-based text boxes · harder for long edits · may vary across Word apps')}</small></button></div></div>}
+              {pdfDiagnosis && <div className={`pdf-diagnosis ${pdfDiagnosis.sourceKind}`}><strong>{sourceLabels[pdfDiagnosis.sourceKind]}</strong><span>{diagnosisMessage}</span><small>{tx(`Kiểm tra nhanh ${pdfDiagnosis.sampledPages}/${pdfDiagnosis.totalPages} trang`, `Quick check: ${pdfDiagnosis.sampledPages}/${pdfDiagnosis.totalPages} pages`)}{pdfDiagnosis.producer ? tx(` · Trình tạo: ${pdfDiagnosis.producer}`, ` · Producer: ${pdfDiagnosis.producer}`) : ''}{pdfDiagnosis.hasStructTree ? tx(' · Có cấu trúc PDF được gắn thẻ', ' · Tagged PDF structure found') : ''}</small></div>}
+              <div className="control-note office-note"><b>{mode === 'pdf-to-word' && wordMode === 'exact' ? tx('Giữ vị trí từng dòng — phương án dự phòng', 'Keep each line positioned — fallback') : mode === 'pdf-to-word' ? tx('Word có cấu trúc gần bản PDF', 'Structured Word close to the PDF') : tx('Chuyển đổi văn bản có thể chỉnh sửa', 'Editable text conversion')}</b><span>{officeDescription}</span><em>{mode === 'pdf-to-word' && wordMode === 'exact' ? tx(`Tối đa ${maximumExactWordPages} trang/lượt và chỉ dùng cho PDF có chữ chọn được. Một số font nhúng đặc biệt có thể được Word thay thế; chữ ký số không còn giá trị xác thực.`, `Up to ${maximumExactWordPages} pages per operation and only for PDFs with selectable text. Word may substitute some embedded fonts; digital signatures lose their cryptographic validity.`) : pdfTextPreview ? tx(`Đã đọc trước ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString(locale)} ký tự. Kết quả giữ phần nhìn thấy của chữ ký nhưng không thể khôi phục file Word gốc hay hiệu lực chữ ký số.`, `Previewed ${pdfTextPreview.replace(/\s/g, '').length.toLocaleString(locale)} characters. The result preserves visible signatures but cannot recover the original Word file or digital signature validity.`) : tx('Chưa tìm thấy chữ có thể chọn trong phần xem trước.', 'No selectable text was found in the preview.')}</em></div>
             </>}
 
             {mode === 'pdf-compress' && <>
-              <div className="control-group"><span>Kiểu nén</span><div className="option-cards"><button type="button" className={pdfCompression === 'target' ? 'active' : ''} onClick={() => setPdfCompression('target')}><b>Đạt dung lượng mục tiêu</b><small>Nén từng trang, tự cân bằng độ nét để bám sát số MB</small></button><button type="button" className={pdfCompression === 'preserve' ? 'active' : ''} onClick={() => setPdfCompression('preserve')}><b>Không mất dữ liệu</b><small>Giữ chữ, liên kết và biểu mẫu; có thể giảm 0%</small></button></div></div>
+              <div className="control-group"><span>{tx('Kiểu nén', 'Compression mode')}</span><div className="option-cards"><button type="button" className={pdfCompression === 'target' ? 'active' : ''} onClick={() => setPdfCompression('target')}><b>{tx('Đạt dung lượng mục tiêu', 'Target file size')}</b><small>{tx('Nén từng trang, tự cân bằng độ nét để bám sát số MB', 'Compresses each page and balances clarity to stay close to the MB limit')}</small></button><button type="button" className={pdfCompression === 'preserve' ? 'active' : ''} onClick={() => setPdfCompression('preserve')}><b>{tx('Không mất dữ liệu', 'Lossless')}</b><small>{tx('Giữ chữ, liên kết và biểu mẫu; có thể giảm 0%', 'Preserves text, links and forms; reduction may be 0%')}</small></button></div></div>
               {pdfCompression === 'target' ? <>
-                <div className="control-group"><span>Nội dung PDF</span><div className="option-cards"><button type="button" className={pdfContentProfile === 'document' ? 'active' : ''} onClick={() => setPdfContentProfile('document')}><b>Tài liệu / chữ</b><small>Ưu tiên DPI cao để chữ nhỏ và nét mảnh rõ hơn</small></button><button type="button" className={pdfContentProfile === 'photo' ? 'active' : ''} onClick={() => setPdfContentProfile('photo')}><b>Ảnh / màu sắc</b><small>Ưu tiên chuyển sắc và giảm vỡ màu ở ảnh chụp</small></button></div></div>
+                <div className="control-group"><span>{tx('Nội dung PDF', 'PDF content')}</span><div className="option-cards"><button type="button" className={pdfContentProfile === 'document' ? 'active' : ''} onClick={() => setPdfContentProfile('document')}><b>{tx('Tài liệu / chữ', 'Document / text')}</b><small>{tx('Ưu tiên DPI cao để chữ nhỏ và nét mảnh rõ hơn', 'Prioritizes higher DPI for small text and fine lines')}</small></button><button type="button" className={pdfContentProfile === 'photo' ? 'active' : ''} onClick={() => setPdfContentProfile('photo')}><b>{tx('Ảnh / màu sắc', 'Photos / color')}</b><small>{tx('Ưu tiên chuyển sắc và giảm vỡ màu ở ảnh chụp', 'Prioritizes gradients and reduces color artifacts in photos')}</small></button></div></div>
                 <div className="control-group target-size-control">
-                  <label>Dung lượng tối đa<input type="number" min="0.1" max={files[0] ? Math.max(0.1, files[0].size / 1024 / 1024 - 0.01).toFixed(2) : undefined} step="0.1" value={targetMb} onChange={event => setTargetMb(event.target.value)} /></label><b>MB</b>
-                  <div className="target-summary"><span>Mục tiêu tối ưu</span><strong>{Number(targetMb) > 0 ? `${(Number(targetMb) * 0.95).toFixed(2)}–${(Number(targetMb) * 0.99).toFixed(2)} MB` : '—'}</strong><small>{targetRatio > 0 ? `Khoảng ${targetRatio}% tệp gốc · luôn ưu tiên không vượt ${targetMb || 0} MB` : 'Nhập dung lượng cần đạt'}</small></div>
-                  <p>Chế độ này làm phẳng mỗi trang thành ảnh PNG/JPEG: hình thức được giữ, nhưng chữ, liên kết và biểu mẫu sẽ không còn chọn hoặc chỉnh sửa được.</p>
+                  <label>{tx('Dung lượng tối đa', 'Maximum size')}<input type="number" min="0.1" max={files[0] ? Math.max(0.1, files[0].size / 1024 / 1024 - 0.01).toFixed(2) : undefined} step="0.1" value={targetMb} onChange={event => setTargetMb(event.target.value)} /></label><b>MB</b>
+                  <div className="target-summary"><span>{tx('Mục tiêu tối ưu', 'Optimized range')}</span><strong>{Number(targetMb) > 0 ? `${(Number(targetMb) * 0.95).toFixed(2)}–${(Number(targetMb) * 0.99).toFixed(2)} MB` : '—'}</strong><small>{targetRatio > 0 ? tx(`Khoảng ${targetRatio}% tệp gốc · luôn ưu tiên không vượt ${targetMb || 0} MB`, `About ${targetRatio}% of the original · always prioritizes staying below ${targetMb || 0} MB`) : tx('Nhập dung lượng cần đạt', 'Enter the desired file size')}</small></div>
+                  <p>{tx('Chế độ này làm phẳng mỗi trang thành ảnh PNG/JPEG: hình thức được giữ, nhưng chữ, liên kết và biểu mẫu sẽ không còn chọn hoặc chỉnh sửa được.', 'This mode flattens every page into a PNG/JPEG image: the appearance is preserved, but text, links and forms will no longer be selectable or editable.')}</p>
                 </div>
-              </> : <div className="control-note"><b>Tối ưu không mất dữ liệu là gì?</b><span>Không biến trang thành ảnh: chữ vẫn chọn/copy được, liên kết và biểu mẫu được giữ nguyên. Chế độ này chỉ tối ưu cấu trúc PDF, nên tệp đã nén tốt có thể giảm 0% — đây không phải lỗi.</span></div>}
+              </> : <div className="control-note"><b>{tx('Tối ưu không mất dữ liệu là gì?', 'What is lossless optimization?')}</b><span>{tx('Không biến trang thành ảnh: chữ vẫn chọn/copy được, liên kết và biểu mẫu được giữ nguyên. Chế độ này chỉ tối ưu cấu trúc PDF, nên tệp đã nén tốt có thể giảm 0% — đây không phải lỗi.', 'Pages are not turned into images: text remains selectable and copyable, and links and forms are preserved. This mode only optimizes PDF structure, so a well-optimized file may shrink by 0%—that is expected.')}</span></div>}
             </>}
 
           </div>
@@ -1397,19 +1467,20 @@ function ToolModal({ mode, close }) {
         </>}
       </>}
 
-      <button className="primary process" disabled={loading}>{loading ? 'Đang xử lý…' : !files.length ? 'Chọn tệp để bắt đầu' : isOrganize ? `Lưu PDF gồm ${pdfPages.length} trang  →` : isMerge ? `Ghép ${pdfPages.length} trang  →` : mode === 'pdf-split' ? `Tách ${selectedPages.size} trang  →` : mode === 'pdf-to-word' && wordMode === 'exact' ? 'Tạo Word giữ vị trí  →' : mode === 'pdf-to-word' ? 'Tạo Word có cấu trúc  →' : isPdfOffice ? 'Chuyển đổi và xem kết quả  →' : mode === 'pdf-compress' && pdfCompression === 'preserve' ? 'Tối ưu không mất dữ liệu  →' : 'Tạo bản xem trước kết quả  →'}</button>
-      {message && <p className={`result ${message.includes('hoàn tất') ? 'success' : ''}`}>{message}</p>}
+      <button className="primary process" disabled={loading}>{loading ? tx('Đang xử lý…', 'Processing…') : !files.length ? tx('Chọn tệp để bắt đầu', 'Choose a file to begin') : isOrganize ? tx(`Lưu PDF gồm ${pdfPages.length} trang  →`, `Save ${pdfPages.length}-page PDF  →`) : isMerge ? tx(`Ghép ${pdfPages.length} trang  →`, `Merge ${pdfPages.length} pages  →`) : mode === 'pdf-split' ? tx(`Tách ${selectedPages.size} trang  →`, `Split ${selectedPages.size} pages  →`) : mode === 'pdf-to-word' && wordMode === 'exact' ? tx('Tạo Word giữ vị trí  →', 'Create positioned Word  →') : mode === 'pdf-to-word' ? tx('Tạo Word có cấu trúc  →', 'Create structured Word  →') : isPdfOffice ? tx('Chuyển đổi và xem kết quả  →', 'Convert and review result  →') : mode === 'pdf-compress' && pdfCompression === 'preserve' ? tx('Tối ưu không mất dữ liệu  →', 'Optimize losslessly  →') : tx('Tạo bản xem trước kết quả  →', 'Create result preview  →')}</button>
+      {message && <p className={`result ${result ? 'success' : ''}`}>{message}</p>}
 
       {result && <div className="result-workspace">
-        <div className="result-heading"><div><span>KẾT QUẢ</span><h3>{result.name}</h3></div><a className="primary download-result" href={result.url} download={result.name}>Tải xuống <b>↓</b></a></div>
-        <div className="result-comparison"><MediaPreview info={fileInfo[0]} title="Trước xử lý" /><MediaPreview info={result.wordLayoutMode === 'exact-text-boxes' ? fileInfo[0] : result} title={result.wordLayoutMode === 'exact-text-boxes' ? 'Sau xử lý · bố cục chính xác' : 'Sau xử lý'} checkerboard={mode === 'remove-background'} /></div>
-        <div className="result-stats"><span><small>Trước</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>Sau</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? `Giảm ${reduction}%` : `Tăng ${Math.abs(reduction)}%`}</strong>}{result.width && <span><small>Kích thước mới</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>Số trang</small><b>{result.pages} trang</b></span>}{result.compression && <span><small>Độ nét trang</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>Mã hóa ảnh</small><b>{result.compression.losslessPages ? `${result.compression.losslessPages} trang PNG` : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>Nội dung</small><b>Giữ chữ · link · form</b></span>}{result.pdfSourceKind && <span><small>Loại PDF</small><b>{pdfSourceLabels[result.pdfSourceKind] || result.pdfSourceKind}</b></span>}{result.wordLayoutMode && <span><small>Chế độ Word</small><b>{result.wordLayoutMode === 'exact-text-boxes' ? 'Giữ vị trí từng dòng' : 'Đoạn + bảng + đồ họa'}</b></span>}{result.wordTextBoxes > 0 && <span><small>Chữ chỉnh sửa</small><b>{result.wordTextBoxes.toLocaleString('vi-VN')} khối</b></span>}{result.exactDpi && <span><small>Nền đồ họa</small><b>{result.exactDpi} DPI · {result.exactImageFormats}</b></span>}{result.wordDetectedTables > 0 && <span><small>Bảng nhận diện</small><b>{result.wordDetectedTables} bảng Word</b></span>}{result.wordEmbeddedGraphics > 0 && <span><small>Đồ họa giữ lại</small><b>{result.wordEmbeddedGraphics} ảnh/dấu/chữ ký</b></span>}{result.pdfSignatures > 0 && <span><small>Chữ ký PDF</small><b>{result.pdfSignatures} · giữ phần nhìn thấy, không giữ hiệu lực</b></span>}{result.pdfImageOnlyPages > 0 && <span><small>Chưa OCR</small><b>{result.pdfImageOnlyPages} trang ảnh</b></span>}</div>
+        <div className="result-heading"><div><span>{tx('KẾT QUẢ', 'RESULT')}</span><h3>{result.name}</h3></div><a className="primary download-result" href={result.url} download={result.name}>{tx('Tải xuống', 'Download')} <b>↓</b></a></div>
+        <div className="result-comparison"><MediaPreview info={fileInfo[0]} title={tx('Trước xử lý', 'Before')} /><MediaPreview info={result.wordLayoutMode === 'exact-text-boxes' ? fileInfo[0] : result} title={result.wordLayoutMode === 'exact-text-boxes' ? tx('Sau xử lý · bố cục chính xác', 'After · positioned layout') : tx('Sau xử lý', 'After')} checkerboard={mode === 'remove-background'} /></div>
+        <div className="result-stats"><span><small>{tx('Trước', 'Before')}</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>{tx('Sau', 'After')}</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? tx(`Giảm ${reduction}%`, `${reduction}% smaller`) : tx(`Tăng ${Math.abs(reduction)}%`, `${Math.abs(reduction)}% larger`)}</strong>}{result.width && <span><small>{tx('Kích thước mới', 'New dimensions')}</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>{tx('Số trang', 'Pages')}</small><b>{tx(`${result.pages} trang`, `${result.pages} pages`)}</b></span>}{result.compression && <span><small>{tx('Độ nét trang', 'Page clarity')}</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>{tx('Mã hóa ảnh', 'Image encoding')}</small><b>{result.compression.losslessPages ? tx(`${result.compression.losslessPages} trang PNG`, `${result.compression.losslessPages} PNG pages`) : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>{tx('Nội dung', 'Content')}</small><b>{tx('Giữ chữ · link · form', 'Text · links · forms preserved')}</b></span>}{result.pdfSourceKind && <span><small>{tx('Loại PDF', 'PDF type')}</small><b>{sourceLabels[result.pdfSourceKind] || result.pdfSourceKind}</b></span>}{result.wordLayoutMode && <span><small>{tx('Chế độ Word', 'Word mode')}</small><b>{result.wordLayoutMode === 'exact-text-boxes' ? tx('Giữ vị trí từng dòng', 'Positioned lines') : tx('Đoạn + bảng + đồ họa', 'Paragraphs + tables + graphics')}</b></span>}{result.wordTextBoxes > 0 && <span><small>{tx('Chữ chỉnh sửa', 'Editable text')}</small><b>{tx(`${result.wordTextBoxes.toLocaleString(locale)} khối`, `${result.wordTextBoxes.toLocaleString(locale)} boxes`)}</b></span>}{result.exactDpi && <span><small>{tx('Nền đồ họa', 'Graphics layer')}</small><b>{result.exactDpi} DPI · {result.exactImageFormats}</b></span>}{result.wordDetectedTables > 0 && <span><small>{tx('Bảng nhận diện', 'Detected tables')}</small><b>{tx(`${result.wordDetectedTables} bảng Word`, `${result.wordDetectedTables} Word tables`)}</b></span>}{result.wordEmbeddedGraphics > 0 && <span><small>{tx('Đồ họa giữ lại', 'Preserved graphics')}</small><b>{tx(`${result.wordEmbeddedGraphics} ảnh/dấu/chữ ký`, `${result.wordEmbeddedGraphics} images/stamps/signatures`)}</b></span>}{result.pdfSignatures > 0 && <span><small>{tx('Chữ ký PDF', 'PDF signatures')}</small><b>{tx(`${result.pdfSignatures} · giữ phần nhìn thấy, không giữ hiệu lực`, `${result.pdfSignatures} · visible appearance kept, validity not preserved`)}</b></span>}{result.pdfImageOnlyPages > 0 && <span><small>{tx('Chưa OCR', 'Needs OCR')}</small><b>{tx(`${result.pdfImageOnlyPages} trang ảnh`, `${result.pdfImageOnlyPages} image pages`)}</b></span>}</div>
       </div>}
     </form>
   </div>
 }
 
 export default function App() {
+  const { language, toggleLanguage, tx } = useLanguage()
   const [dark, setDark] = useState(() => localStorage.getItem('pdftools-theme') === 'dark')
   const [modal, setModal] = useState(null)
   const [query, setQuery] = useState('')
@@ -1447,7 +1518,7 @@ export default function App() {
     const timer = setTimeout(warm, 2500)
     return () => clearTimeout(timer)
   }, [])
-  const count = useMemo(() => [...pdfTools, ...imageTools, ...utilityTools].filter(tool => `${tool.name} ${tool.description}`.toLowerCase().includes(query.toLowerCase())).length, [query])
+  const count = useMemo(() => [...pdfTools, ...imageTools, ...utilityTools].filter(tool => `${tool.name} ${tool.description} ${(englishTools[tool.mode] || []).join(' ')}`.toLowerCase().includes(query.toLowerCase())).length, [query])
   const closeModal = () => setModal(null)
   const skipWelcome = () => setWelcomePhase(current => current === 'showing' ? 'leaving' : current)
 
@@ -1455,21 +1526,21 @@ export default function App() {
     {welcomePhase !== 'hidden' && <WelcomeSplash phase={welcomePhase} onSkip={skipWelcome} />}
     <div className="app redesigned">
       <header className="header">
-        <div className="header-brand-group"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><a href="#creator" aria-label="Giới thiệu người phát triển Danh Phạm"><CreatorMark placement="header" /></a></div>
-        <nav><a className="active" href="#home">Trang chủ</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#utilities">Tiện ích</a><a href="#benefits">Lợi ích</a></nav>
-        <div className="header-actions"><button className="theme-toggle" aria-label="Đổi chế độ màu" onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="language">VI</button><a className="header-cta" href="#pdf">Dùng miễn phí <span>→</span></a></div>
+        <div className="header-brand-group"><a className="brand" href="#home" aria-label={tx('PDFTools — Trang chủ', 'PDFTools — Home')}><BrandLogo /></a></div>
+        <nav><a className="active" href="#home">{tx('Trang chủ', 'Home')}</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#utilities">{tx('Tiện ích', 'Utilities')}</a><a href="#benefits">{tx('Lợi ích', 'Benefits')}</a></nav>
+        <div className="header-actions"><button className="theme-toggle" aria-label={tx('Đổi chế độ màu', 'Toggle color theme')} onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="language" type="button" onClick={toggleLanguage} aria-label={language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'} title={language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'}><span aria-hidden="true">◎</span><b>{language === 'vi' ? 'VI' : 'EN'}</b><small>→ {language === 'vi' ? 'EN' : 'VI'}</small></button><a className="header-cta" href="#pdf">{tx('Dùng miễn phí', 'Use for free')} <span>→</span></a></div>
       </header>
       <main id="home">
-        <section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> Bộ công cụ tài liệu trực tuyến</div><h1>Làm việc với<br /><em>PDF &amp; hình ảnh</em><br />nhẹ nhàng hơn.</h1><p className="hero-text">Nén, chuyển đổi và xử lý tệp trong vài bước.<br />Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bạn muốn làm gì với tệp của mình?" /><small>{query && `${count} công cụ`}</small></label><div className="hero-trust"><span>✓ Không cần đăng ký</span><span>✓ Giao diện tiếng Việt</span><span>✓ Preview trước khi tải</span></div><a className="hero-creator-link" href="#creator"><CreatorMark placement="hero" /><span className="hero-creator-arrow" aria-hidden="true">↘</span></a></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section>
+        <section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> {tx('Bộ công cụ tài liệu trực tuyến', 'Online document toolkit')}</div><h1>{tx('Làm việc với', 'Work with')}<br /><em>{tx('PDF & hình ảnh', 'PDFs & images')}</em><br />{tx('nhẹ nhàng hơn.', 'with less effort.')}</h1><p className="hero-text">{tx('Nén, chuyển đổi và xử lý tệp trong vài bước.', 'Compress, convert and process files in a few steps.')}<br />{tx('Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.', 'Fast, transparent and always respectful of your data.')}</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder={tx('Bạn muốn làm gì với tệp của mình?', 'What would you like to do with your file?')} /><small>{query && `${count} ${tx('công cụ', count === 1 ? 'tool' : 'tools')}`}</small></label><div className="hero-trust"><span>✓ {tx('Không cần đăng ký', 'No sign-up')}</span><span>✓ {tx('Tiếng Việt & English', 'English & Vietnamese')}</span><span>✓ {tx('Preview trước khi tải', 'Preview before download')}</span></div></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section>
         <div className="content">
-          <ToolSection title="Công cụ PDF" eyebrow="TÀI LIỆU" description="Các tác vụ PDF thiết yếu, dễ dùng và an toàn." tools={pdfTools} id="pdf" open={setModal} query={query} />
-          <ToolSection title="Công cụ Ảnh" eyebrow="HÌNH ẢNH" description="Tối ưu và bảo vệ hình ảnh với preview trực quan." tools={imageTools} id="images" open={setModal} query={query} />
-          <ToolSection title="Công cụ Tiện ích" eyebrow="QR & TỆP" description="Các thao tác nhỏ hữu ích, ưu tiên xử lý riêng tư ngay trên máy." tools={utilityTools} id="utilities" open={setModal} query={query} />
-          <section className="benefits" id="benefits"><Benefit icon="♢" title="Không lưu tệp lâu dài" text="Tệp chỉ được xử lý trong bộ nhớ hoặc ngay trên trình duyệt, không tạo hồ sơ lưu trữ trên máy chủ." /><Benefit icon="ϟ" title="Xử lý tối ưu" text="Mỗi luồng ảnh và PDF được tối ưu riêng, kèm trạng thái rõ ràng trong lúc chờ." /><Benefit icon="☁" title="Hỗ trợ mọi thiết bị" text="Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng." /><Benefit icon="✪" title="Dùng miễn phí" text="Các công cụ hiện tại được sử dụng miễn phí, không cần đăng ký tài khoản." /></section>
+          <ToolSection title={tx('Công cụ PDF', 'PDF Tools')} eyebrow={tx('TÀI LIỆU', 'DOCUMENTS')} description={tx('Các tác vụ PDF thiết yếu, dễ dùng và an toàn.', 'Essential PDF tasks that are simple and safe to use.')} tools={pdfTools} id="pdf" open={setModal} query={query} />
+          <ToolSection title={tx('Công cụ Ảnh', 'Image Tools')} eyebrow={tx('HÌNH ẢNH', 'IMAGES')} description={tx('Tối ưu và bảo vệ hình ảnh với preview trực quan.', 'Optimize and protect images with visual previews.')} tools={imageTools} id="images" open={setModal} query={query} />
+          <ToolSection title={tx('Công cụ Tiện ích', 'Utility Tools')} eyebrow={tx('QR & TỆP', 'QR & FILES')} description={tx('Các thao tác nhỏ hữu ích, ưu tiên xử lý riêng tư ngay trên máy.', 'Useful everyday tasks with private, on-device processing whenever possible.')} tools={utilityTools} id="utilities" open={setModal} query={query} />
+          <section className="benefits" id="benefits"><Benefit icon="♢" title={tx('Không lưu tệp lâu dài', 'No long-term file storage')} text={tx('Tệp chỉ được xử lý trong bộ nhớ hoặc ngay trên trình duyệt, không tạo hồ sơ lưu trữ trên máy chủ.', 'Files are processed in memory or directly in your browser without creating a server-side archive.')} /><Benefit icon="ϟ" title={tx('Xử lý tối ưu', 'Optimized processing')} text={tx('Mỗi luồng ảnh và PDF được tối ưu riêng, kèm trạng thái rõ ràng trong lúc chờ.', 'Each image and PDF workflow is optimized separately with clear progress feedback.')} /><Benefit icon="☁" title={tx('Hỗ trợ mọi thiết bị', 'Works on every device')} text={tx('Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng.', 'Easy to use across devices and platforms.')} /><Benefit icon="✪" title={tx('Dùng miễn phí', 'Free to use')} text={tx('Các công cụ hiện tại được sử dụng miễn phí, không cần đăng ký tài khoản.', 'Current tools are free to use with no account required.')} /></section>
           <CreatorShowcase />
         </div>
       </main>
-      <footer><div className="footer-top"><div className="footer-brand"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><p>Một nơi đơn giản để xử lý tài liệu, hình ảnh và các tác vụ tệp hằng ngày.</p></div><Footer title="Sản phẩm" items={footerProducts} /><Footer title="Liên hệ" items={footerContacts} /></div><div className="copyright"><span>© 2026 PDFTools · Làm việc thông minh hơn, mỗi ngày.</span><span className="footer-signature">Phát triển bởi <strong>Danh Phạm</strong><span className="version-badge" title={`Mã Git kỹ thuật: ${appRevision}`}>Phiên bản {appVersion}<i>•</i>Bản dựng #{appBuildNumber}</span></span></div></footer>
+      <footer><div className="footer-top"><div className="footer-brand"><a className="brand" href="#home" aria-label={tx('PDFTools — Trang chủ', 'PDFTools — Home')}><BrandLogo /></a><p>{tx('Một nơi đơn giản để xử lý tài liệu, hình ảnh và các tác vụ tệp hằng ngày.', 'One simple place for documents, images and everyday file tasks.')}</p></div><Footer title={tx('Sản phẩm', 'Products')} items={footerProducts.map(item => item.href === '#utilities' ? { ...item, label: tx('Tiện ích', 'Utilities') } : item.href === '#benefits' ? { ...item, label: tx('Vì sao chọn chúng tôi', 'Why choose us') } : item)} /><Footer title={tx('Liên hệ', 'Contact')} items={footerContacts} /></div><div className="copyright"><span>© 2026 PDFTools · {tx('Làm việc thông minh hơn, mỗi ngày.', 'Work smarter, every day.')}</span><span className="footer-signature">{tx('Phát triển bởi', 'Developed by')} <strong>Danh Phạm</strong><span className="version-badge" data-build-label="Bản dựng #" title={`${tx('Mã Git kỹ thuật', 'Technical Git revision')}: ${appRevision}`}>{tx('Phiên bản', 'Version')} {appVersion}<i>•</i>{tx('Bản dựng', 'Build')} #{appBuildNumber}</span></span></div></footer>
       {modal && (specialToolModes.has(modal) ? <UtilityToolModal mode={modal} close={closeModal} /> : <ToolModal mode={modal} close={closeModal} />)}
     </div>
   </>

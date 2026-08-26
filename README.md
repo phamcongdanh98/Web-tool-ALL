@@ -1,6 +1,6 @@
 # 🧰 PDFTools
 
-Ứng dụng web tiếng Việt để xử lý PDF, hình ảnh, QR và tệp ngay trên trình duyệt hoặc API nội bộ.
+Ứng dụng web song ngữ Việt/Anh để xử lý PDF, hình ảnh, QR và tệp ngay trên trình duyệt hoặc API nội bộ.
 
 ![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=111827)
 ![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
@@ -22,6 +22,7 @@
 - Che thông tin ảnh cho phép kéo/resize tối đa 20 vùng; Sharp ghi pixel thật vào PNG và loại EXIF/GPS.
 - Link rút gọn đang ở trạng thái nghiên cứu, chưa giả lập bằng bộ nhớ tạm vì link sẽ mất sau restart/deploy.
 - Footer hiển thị **Danh Phạm**, phiên bản semantic và số bản dựng tự lấy từ lịch sử Git.
+- Nút **VI → EN / EN → VI** trên header chuyển toàn bộ giao diện, modal và trạng thái xử lý; lựa chọn được nhớ cho lần mở sau.
 
 > [!NOTE]
 > Có **20 thẻ công cụ, 19 công cụ sẵn sàng**. Xem [DIAGRAMS.md](DIAGRAMS.md) để đọc sơ đồ luồng và [ROADMAP.md](ROADMAP.md) để biết hạng mục đang nghiên cứu.
@@ -292,8 +293,12 @@ ROADMAP.md                  Ý tưởng đã phân loại và điều kiện tri
 
 ### 2026-08-26
 
+- Bổ sung giao diện song ngữ Việt/Anh cho trang chủ, toàn bộ công cụ PDF/ảnh/QR/tiện ích, preview, thông báo lỗi và kết quả; ngôn ngữ được lưu trên trình duyệt và cập nhật metadata trang.
+- Giảm lặp nhận diện cá nhân: gỡ tên tác giả khỏi header, hero, từng nhóm công cụ và modal; chỉ giữ signature trong splash theo kịch bản cũ, khối giới thiệu gần cuối trang và footer.
+- Kiểm thử thay đổi bằng `npm run verify` và kiểm tra trình duyệt ở desktop 2560×1440/mobile 390×844; không có tràn ngang hoặc lỗi console, modal PDF/QR đổi sang tiếng Anh đầy đủ.
+
 - Nâng splash lên phong cách cinematic tech: HUD hệ thống, đường hầm dữ liệu phối cảnh, vòng năng lượng 3D, tia quét file, telemetry từng engine và cổng sáng chuyển vào homepage; vẫn giữ 6,7 giây, nút bỏ qua, responsive và reduced-motion nhẹ.
-- Xây dựng hệ nhận diện cá nhân xuyên suốt: `by Danh Phạm` ở header và mọi modal, creator badge trong hero, monogram `DP` trên card, khối giới thiệu người sáng tạo kèm liên hệ và metadata/manifest thống nhất; tên lớn chỉ dùng ở splash và creator showcase để không lấn át công cụ.
+- Xây dựng khối giới thiệu người sáng tạo kèm liên hệ và metadata/manifest thống nhất; sau rà soát trải nghiệm, nhận diện trên trang chính được thu gọn về khối creator gần cuối trang và footer để không lặp tên quá nhiều.
 - Nâng splash thành chuỗi cảnh 6,7 giây: file PDF phân rã thành dữ liệu, bốn engine khởi động, hội tụ thành **Công Cụ Web**, signature **Danh Phạm** rồi logo bay về header; thêm nút bỏ qua và chế độ giảm chuyển động khoảng 1,3 giây.
 - Sửa deploy báo nhầm `load 0.08` là VPS quá tải do dùng tên dựng sẵn `load` của GNU awk; lỗi tính ngưỡng nay được phân biệt với trạng thái quá tải thật.
 - Gói frontend từ macOS dùng `tar --no-xattrs`, không còn gửi header `LIBARCHIVE.xattr.com.apple.provenance` lên Ubuntu; thêm `npm run test:deploy` vào cổng `verify`.
