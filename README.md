@@ -1,85 +1,54 @@
-# 🧰 PDFTools
+# 🧰 PDFTools — Công Cụ Web
 
-Ứng dụng web song ngữ Việt/Anh để xử lý PDF, hình ảnh, QR và tệp ngay trên trình duyệt hoặc API nội bộ.
+<p>
+  <img src="https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=111827" alt="React 18" />
+  <img src="https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white" alt="Vite 6" />
+  <img src="https://img.shields.io/badge/Node.js-22.12%2B-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js 22.12+" />
+  <img src="https://img.shields.io/badge/Ngôn_ngữ-VI_%2F_EN-4F46E5?style=flat-square" alt="Vietnamese and English" />
+  <img src="https://img.shields.io/badge/Production-Nginx-009639?style=flat-square&logo=nginx&logoColor=white" alt="Nginx" />
+</p>
 
-![React 18](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react&logoColor=111827)
-![Vite 6](https://img.shields.io/badge/Vite-6-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Node.js 22+](https://img.shields.io/badge/Node.js-22.12%2B-339933?style=flat-square&logo=node.js&logoColor=white)
-![Nginx](https://img.shields.io/badge/Production-Nginx-009639?style=flat-square&logo=nginx&logoColor=white)
+Bộ công cụ song ngữ Việt/Anh để xử lý PDF, hình ảnh, QR và tệp. Tác vụ nhẹ chạy ngay trong trình duyệt; tác vụ ảnh/PDF gọi Express API và chỉ xử lý tạm trong bộ nhớ.
 
 > [!TIP]
-> 💻 **Local:** [http://localhost:5175](http://localhost:5175) · 🌐 **Website:** [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org)
+> 💻 **Local:** [http://localhost:5175](http://localhost:5175) · API `127.0.0.1:3001`<br>
+> 🌐 **Website:** [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org)
 
 ## ✨ Chức năng
 
-| Nhóm | Công cụ chính |
+| Nhóm | Công cụ |
 | --- | --- |
-| 📄 **PDF** | Chỉnh sửa overlay, nén đặt MB/không mất dữ liệu, ghép, sắp xếp, tách, PDF → Word/Excel/PowerPoint/TXT. |
-| 🖼️ **Hình ảnh** | Xóa nền AI, đổi định dạng, resize, crop kéo-thả, nén, chỉnh màu/xoay/lật và che thông tin bằng khối màu đặc. |
-| 🧰 **Tiện ích** | Tạo QR, đọc QR từ ảnh và đổi tên tối đa 100 tệp rồi tải ZIP. |
+| 📄 **PDF** | Chỉnh overlay, nén đặt MB/không mất dữ liệu, ghép, sắp xếp, tách, PDF → Word/Excel/PowerPoint/TXT. |
+| 🖼️ **Hình ảnh** | Xóa nền AI, đổi định dạng, resize, crop kéo-thả, nén, chỉnh màu/xoay/lật và che thông tin. |
+| 🧰 **Tiện ích** | Tạo/đọc QR cục bộ và đổi tên tối đa 100 tệp rồi tải ZIP. |
 
-- QR được tạo/đọc cục bộ, không gửi nội dung lên máy chủ và không tự mở liên kết.
-- Che thông tin ảnh cho phép kéo/resize tối đa 20 vùng; Sharp ghi pixel thật vào PNG và loại EXIF/GPS.
-- Link rút gọn đang ở trạng thái nghiên cứu, chưa giả lập bằng bộ nhớ tạm vì link sẽ mất sau restart/deploy.
-- Footer hiển thị **Danh Phạm**, phiên bản semantic và số bản dựng tự lấy từ lịch sử Git.
-- Nút **VI → EN / EN → VI** trên header chuyển toàn bộ giao diện, modal và trạng thái xử lý; lựa chọn được nhớ cho lần mở sau.
+Có **20 thẻ công cụ, 19 công cụ sẵn sàng**. Link rút gọn vẫn ở giai đoạn nghiên cứu vì chưa có database, chống lạm dụng và backup bền vững.
 
-> [!NOTE]
-> Có **20 thẻ công cụ, 19 công cụ sẵn sàng**. Xem [DIAGRAMS.md](DIAGRAMS.md) để đọc sơ đồ luồng và [ROADMAP.md](ROADMAP.md) để biết hạng mục đang nghiên cứu.
+Xem [DIAGRAMS.md](DIAGRAMS.md) để đọc sơ đồ hoạt động và [ROADMAP.md](ROADMAP.md) để biết hạng mục đang nghiên cứu.
 
 ## 🚀 Bắt đầu nhanh trên Mac
-
-### 1. Kiểm tra công cụ
-
-```bash
-node --version
-npm --version
-git --version
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `node --version` | Phải từ **Node.js 22.12** trở lên. |
-| `npm --version` | Xác nhận npm đã đi cùng Node.js. |
-| `git --version` | Xác nhận máy đã cài Git. |
-
-### 2. Cài dự án lần đầu
 
 ```bash
 git clone https://github.com/phamcongdanh98/Web-tool-ALL.git
 cd Web-tool-ALL
 npm ci
-```
-
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `git clone ...` | Tải repository về máy. |
-| `cd Web-tool-ALL` | Đi vào thư mục vừa clone. |
-| `npm ci` | Cài đúng dependency trong `package-lock.json`, không tự nâng phiên bản. |
-
-Nếu dự án đã nằm ở đường dẫn hiện tại:
-
-```bash
-cd "/Users/danhpham/Documents/ChatGPT/Tool Web All"
-npm ci
-```
-
-### 3. Chạy localhost
-
-```bash
 npm run dev
 ```
 
-Lệnh này chạy đồng thời **Vite `5175`** và **Express API `3001`**. Website đang chạy khi Terminal còn giữ tiến trình và hiện gần giống:
+| Lệnh | Ý nghĩa |
+| --- | --- |
+| `npm ci` | Cài đúng dependency trong `package-lock.json`; dùng sau khi clone hoặc đổi máy. |
+| `npm run dev` | Chạy đồng thời Web `5175` và API `3001`. |
+| `Control + C` | Dừng đúng tiến trình đang chạy trong Terminal. |
+
+Website chạy thành công khi Terminal hiện:
 
 ```text
 Local: http://localhost:5175/
 ToolHub listening on http://127.0.0.1:3001
 ```
 
-Mở [http://localhost:5175](http://localhost:5175). Nhấn `Control + C` tại đúng Terminal để dừng.
-
-### 4. Nếu cổng đang bị dùng
+Nếu báo `EADDRINUSE`, tìm đúng tiến trình đang giữ cổng rồi dừng mềm:
 
 ```bash
 lsof -nP -iTCP:5175 -sTCP:LISTEN
@@ -87,42 +56,36 @@ lsof -nP -iTCP:3001 -sTCP:LISTEN
 kill <PID>
 ```
 
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `lsof ...5175...` | Tìm PID đang giữ frontend. |
-| `lsof ...3001...` | Tìm PID đang giữ API. |
-| `kill <PID>` | Dừng mềm đúng PID sau khi đã kiểm tra tên tiến trình. |
+## ⚡ Bảng lệnh nhanh
 
-Không dùng `kill -9` hoặc tắt mọi tiến trình Node khi chưa xác định đúng PID.
+```bash
+npm run help
+```
 
-## 📚 Bảng lệnh đầy đủ
-
-### 💻 Chạy ứng dụng
+Lệnh trên hiển thị bảng lệnh có màu ngay trong Terminal. Các lệnh quan trọng nhất:
 
 | Lệnh | Tác dụng |
 | --- | --- |
-| `npm run dev` | Chạy đầy đủ Vite + Express; dùng cho phát triển hằng ngày. |
-| `npm run client` | Chỉ chạy Vite; công cụ gọi API sẽ không hoạt động đầy đủ. |
-| `npm run server` | Chỉ chạy Express API tại `127.0.0.1:3001`. |
-| `npm run build` | Build production vào `dist` và sinh asset `.br`/`.gz`. |
-| `npm run start` | Chạy Express production; phải có sẵn thư mục `dist`. |
-| `npm run preview` | Chỉ preview frontend Vite; không thay thế `npm run dev`. |
+| `npm run verify` | Cổng chuẩn trước commit: syntax, sơ đồ, shell, browser tools, build, smoke và E2E API. |
+| `npm run build` | Build production và tạo asset Brotli/Gzip. |
+| `npm run audit:prod` | Quét dependency production mức `high`; không nằm trong `verify`. |
+| `npm run status:vps` | So sánh Mac, GitHub, VPS, release đang chạy và public health. |
+| `npm run deploy:vps` | Deploy release bất biến; có preflight, health check và rollback. |
+| `npm run monitor:vps` | Xem CPU, RAM, disk, process, Nginx và health. |
+| `npm run maintenance:vps -- status` | Xem website có đang ở chế độ bảo trì hay không. |
 
-### 🧪 Kiểm tra chất lượng
+## 🔄 Quy trình hằng ngày
 
-| Lệnh | Tác dụng |
-| --- | --- |
-| `npm run verify` | Cổng chuẩn trước commit: syntax, sơ đồ, shell, QR/ZIP, build, smoke và E2E ảnh/PDF thật. |
-| `npm run test:browser-tools` | Kiểm tra QR round-trip, ZIP giữ nguyên byte, URL an toàn và tọa độ vùng che. |
-| `npm run check:diagrams` | So danh sách/tên công cụ trong code với `DIAGRAMS.md`. |
-| `npm run check:shell` | Kiểm tra cú pháp toàn bộ script deploy/monitor/bảo trì. |
-| `npm run test:deploy` | Kiểm tra load guard tương thích GNU awk và gói Mac không chứa xattr. |
-| `npm run test:smoke` | Cần build trước; chạy production tạm, health, asset nén và E2E API. |
-| `npm run audit:prod` | Kiểm tra lỗ hổng dependency production mức `high`; lệnh này **không nằm trong `verify`**. |
+```text
+git status → git pull --ff-only → npm ci → sửa code → npm run verify
+→ commit → push → CI xanh → npm run status:vps → npm run deploy:vps
+```
 
-## 🔄 Git và làm việc trên hai máy
+> [!IMPORTANT]
+> Chỉ deploy commit `main` sạch, đã push lên GitHub. Không sửa source trực tiếp trên VPS và không làm đồng thời cùng một nhánh trên hai máy.
 
-Trước khi sửa code trên bất kỳ máy nào:
+<details>
+<summary><b>🔄 Git và làm việc trên hai máy</b></summary>
 
 ```bash
 git status
@@ -130,16 +93,9 @@ git pull --ff-only
 npm ci
 ```
 
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `git status` | Xem nhánh và file cục bộ chưa commit. |
-| `git pull --ff-only` | Nhận code mới mà không tự tạo merge commit. |
-| `npm ci` | Đồng bộ dependency theo lockfile, đặc biệt sau khi đổi máy. |
-
-Quy trình review và đưa code lên GitHub:
+Trước khi đưa code lên GitHub:
 
 ```bash
-git status
 git diff
 npm run verify
 git add <file-can-commit>
@@ -148,24 +104,17 @@ git commit -m "feat: mo ta thay doi"
 git push origin main
 ```
 
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `git diff` | Xem thay đổi chưa stage. |
-| `git add <file-can-commit>` | Stage có chủ đích, tránh đưa nhầm key/`.env`/file cá nhân. |
-| `git diff --cached` | Review chính xác nội dung sắp commit. |
-| `git commit -m "..."` | Tạo commit; footer sẽ có số bản dựng Git mới. |
-| `git push origin main` | Đồng bộ commit lên GitHub. |
+- `git status`: xem nhánh và thay đổi local.
+- `git pull --ff-only`: nhận commit mới mà không tự tạo merge commit.
+- `git diff --cached`: kiểm tra chính xác nội dung sắp commit.
+- Không commit `.env`, key SSH, `node_modules`, `dist` hoặc dữ liệu người dùng.
 
-> [!IMPORTANT]
-> Không làm đồng thời trên cùng nhánh ở hai máy. GitHub là nguồn chuẩn; không sửa source trực tiếp trên VPS.
+</details>
 
-## 🚀 Deploy code lên website
+<details>
+<summary><b>🚀 Deploy, giám sát và bảo trì VPS</b></summary>
 
-Luồng ngắn gọn:
-
-```text
-verify → commit → push → CI xanh → status:vps → deploy:vps → status:vps
-```
+Deploy hằng ngày:
 
 ```bash
 npm run status:vps
@@ -173,45 +122,14 @@ npm run deploy:vps
 npm run status:vps
 ```
 
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `npm run status:vps` | Chỉ đọc: so sánh Mac, GitHub, repo VPS, release đang chạy, public health và asset nén. |
-| `npm run deploy:vps` | Build ở Mac, checksum/upload, preflight, switch release, restart và tự rollback nếu health lỗi. |
-| `PDFTOOLS_SSH_HOST=alias-khac npm run deploy:vps` | Deploy bằng SSH alias khác `orace`. |
-
-`deploy:vps` chỉ nhận nhánh `main` sạch và commit đã trùng `origin/main`. Deploy code hằng ngày **không cần** chạy lại setup Ubuntu.
-
-## 📊 Kiểm tra CPU, RAM và VPS
-
-### Cách tiện nhất
+Theo dõi tài nguyên:
 
 ```bash
 npm run monitor:vps
 npm run monitor:vps -- --watch 5
 ```
 
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `npm run monitor:vps` | Chụp CPU/load, RAM, swap, disk, process, app, Nginx và health; chỉ đọc. |
-| `npm run monitor:vps -- --watch 5` | Tự làm mới sau 5 giây; dừng bằng `Control + C`. |
-
-### Lệnh SSH trực tiếp
-
-| Mục đích | Lệnh |
-| --- | --- |
-| Vào VPS | `ssh orace` |
-| CPU và load | `ssh orace 'uptime'` |
-| RAM và swap | `ssh orace 'free -m'` |
-| Dung lượng ổ đĩa | `ssh orace 'df -Pm /var/www/pdftools'` |
-| Trạng thái app | `ssh orace 'systemctl status pdftools --no-pager'` |
-| 100 dòng log app | `ssh orace 'journalctl -u pdftools -n 100 --no-pager'` |
-| Trạng thái Nginx | `ssh orace 'systemctl status nginx --no-pager'` |
-| Kiểm tra Nginx | `ssh orace 'sudo nginx -t'` |
-| Health nội bộ | `ssh orace 'curl -fsS http://127.0.0.1:3001/api/health'` |
-| Health public | `curl -fsS https://congcuweb.duckdns.org/api/health` |
-| Log các lần deploy | `ssh orace 'tail -n 20 /var/www/pdftools/.deploy/deployments.log'` |
-
-## 🛠️ Chế độ bảo trì
+Điều khiển bảo trì thủ công:
 
 ```bash
 npm run maintenance:vps -- status
@@ -219,29 +137,36 @@ npm run maintenance:vps -- on
 npm run maintenance:vps -- off
 ```
 
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `... status` | Chỉ xem public đang hoạt động hay trả trang bảo trì. |
-| `... on` | Bật HTTP 503 thủ công; chỉ dùng khi thật sự cần ngắt website. |
-| `... off` | Tắt bảo trì và xác nhận website public hoạt động lại. |
+Deploy bình thường vẫn phục vụ release cũ trong lúc chuẩn bị release mới, vì vậy thường **không cần bật bảo trì**.
 
-Deploy code thông thường vẫn phục vụ release cũ trong lúc chuẩn bị release mới, vì vậy thường **không cần bật bảo trì**.
+Một số lệnh SSH chẩn đoán:
 
-## 🏗️ Cài VPS/domain một lần
+```bash
+ssh orace 'uptime'
+ssh orace 'free -m'
+ssh orace 'systemctl status pdftools --no-pager'
+ssh orace 'journalctl -u pdftools -n 100 --no-pager'
+ssh orace 'curl -fsS http://127.0.0.1:3001/api/health'
+```
 
-Chỉ dùng khi cài máy chủ mới hoặc chủ động đổi Nginx/systemd/firewall:
+</details>
+
+<details>
+<summary><b>🏗️ Cài VPS/domain lần đầu</b></summary>
+
+Chỉ chạy khi tạo máy chủ mới hoặc chủ động đổi Nginx/systemd/firewall:
 
 ```bash
 ssh orace 'cd /var/www/pdftools && sudo ./deploy/setup-ubuntu.sh'
 ```
 
-Nếu Ubuntu đang chạy `unattended-upgrades` và muốn chờ apt lâu hơn:
+Nếu Ubuntu đang giữ khóa apt:
 
 ```bash
 ssh orace 'cd /var/www/pdftools && sudo APT_LOCK_TIMEOUT_SECONDS=900 ./deploy/setup-ubuntu.sh'
 ```
 
-Sau khi DNS đã trỏ đúng IP và cloud firewall đã mở `80/443`, chạy trên VPS:
+Sau khi DNS trỏ đúng IP và firewall mở `80/443`:
 
 ```bash
 cd /var/www/pdftools
@@ -249,39 +174,30 @@ sudo ./deploy/configure-domain.sh ten-mien-cua-ban email-cua-ban
 sudo /usr/local/bin/certbot renew --dry-run
 ```
 
-| Lệnh | Giải thích ngắn |
-| --- | --- |
-| `setup-ubuntu.sh` | Cài/cập nhật Nginx, systemd, firewall cổng 80 và release đầu; script có thể chạy lặp an toàn. |
-| `APT_LOCK_TIMEOUT_SECONDS=900 ...` | Chờ khóa apt tối đa 15 phút; không xóa lock hoặc kill package manager. |
-| `configure-domain.sh ...` | Cấu hình domain, Certbot, HTTPS redirect và thử gia hạn. |
-| `certbot renew --dry-run` | Kiểm tra chứng chỉ có thể tự gia hạn. |
+Chi tiết hạ tầng và rollback: [deploy/README.md](deploy/README.md).
 
-Chi tiết rollback và cấu hình hạ tầng nằm trong [deploy/README.md](deploy/README.md).
+</details>
 
-## 🗂️ Cấu trúc dự án
+<details>
+<summary><b>🗂️ Kiến trúc, giới hạn và riêng tư</b></summary>
 
 ```text
-src/App.jsx                 Giao diện chính và các công cụ PDF/ảnh hiện có
-src/UtilityTools.jsx        QR, đổi tên hàng loạt và che thông tin ảnh
+src/App.jsx                 Giao diện chính và luồng PDF/ảnh
+src/UtilityTools.jsx        QR, đổi tên hàng loạt, che thông tin ảnh
+src/i18n.jsx                Ngôn ngữ Việt/Anh và metadata
 src/styles.css              Design system và responsive layout
 server.js                   Express API xử lý ảnh/PDF
-lib/browser-utility.js      Tên tệp, URL và tọa độ vùng che dùng chung
-lib/pdf-office.js           PDF → DOCX/XLSX/TXT
-lib/exact-word.js           Word giữ vị trí từng dòng
-lib/pptx.js                 PowerPoint OOXML có chữ sửa được
-scripts/                    Kiểm tra semantic, smoke và precompress
-deploy/                     Release, Nginx, systemd, monitor và bảo trì
-AGENTS.md                   Quy tắc phát triển và vận hành
-DIAGRAMS.md                 Sơ đồ kiến trúc/chức năng/production
-ROADMAP.md                  Ý tưởng đã phân loại và điều kiện triển khai
+lib/                        Engine Office/PPTX và helper dùng chung
+scripts/                    Verify, E2E, smoke, help và precompress
+deploy/                     Release, Nginx, systemd, monitor, bảo trì
 ```
 
-## 🔐 Giới hạn và riêng tư
+- Node.js chuẩn: **22.12 trở lên**.
+- Tổng request API: **50 MB**; nén PDF: **50 MB/tệp**; công cụ khác: **25 MB/tệp**.
+- PDF tối đa **500 trang**, ảnh tối đa **30 megapixel**, tối đa **2 tác vụ API** cùng lúc.
+- QR và đổi tên chạy trong browser. Ảnh/PDF gọi API không tạo kho lưu trữ lâu dài.
 
-- Tổng request API tối đa **50 MB**, ảnh tối đa **30 megapixel**, PDF tối đa **500 trang**, tối đa **2 tác vụ** cùng lúc.
-- Nén PDF nhận riêng tối đa **50 MB/tệp**; công cụ khác mặc định **25 MB/tệp**.
-- QR và đổi tên tệp chạy trong browser. Ảnh/PDF gọi API chỉ xử lý trong bộ nhớ, không tạo kho lưu trữ lâu dài.
-- Không commit `.env`, private key, nội dung `~/.ssh`, `node_modules`, `dist` hoặc dữ liệu người dùng.
+</details>
 
 ## 💬 Liên hệ
 
@@ -289,29 +205,30 @@ ROADMAP.md                  Ý tưởng đã phân loại và điều kiện tri
 - Zalo: [0356 719 463](https://zalo.me/0356719463)
 - Telegram: [0356 719 463](https://t.me/+84356719463)
 
-## 📝 Nhật ký thay đổi gần đây
+## 📝 Nhật ký phiên bản
 
-### 2026-08-26
+<details open>
+<summary><b>✨ v1.1.1 · 2026-08-26 — Giao diện, song ngữ và vận hành</b></summary>
 
-- Bổ sung giao diện song ngữ Việt/Anh cho trang chủ, toàn bộ công cụ PDF/ảnh/QR/tiện ích, preview, thông báo lỗi và kết quả; ngôn ngữ được lưu trên trình duyệt và cập nhật metadata trang.
-- Giảm lặp nhận diện cá nhân: gỡ tên tác giả khỏi header, hero, từng nhóm công cụ và modal; chỉ giữ signature trong splash theo kịch bản cũ, khối giới thiệu gần cuối trang và footer.
-- Kiểm thử thay đổi bằng `npm run verify` và kiểm tra trình duyệt ở desktop 2560×1440/mobile 390×844; không có tràn ngang hoặc lỗi console, modal PDF/QR đổi sang tiếng Anh đầy đủ.
+- Thêm giao diện Việt/Anh toàn diện; lưu lựa chọn, đồng bộ metadata và dịch trạng thái xử lý.
+- Cân lại scale riêng cho `1366×768`, Full HD và `2560×1440`: chữ, icon, card, header, hero, footer và modal tăng theo không gian nhưng mobile không tràn ngang.
+- Nâng tương phản chữ phụ, focus ô tìm kiếm, hiệu ứng card/icon và kích thước control trên màn hình lớn.
+- Thêm `Esc` đóng modal, **Xử lý tệp khác**, tiến độ nén/Word song ngữ và cleanup URL/preview khi reset.
+- Thêm security headers cho Express và test E2E để giữ cấu hình này.
+- Thêm `npm run help`; README được rút gọn, còn hướng dẫn Git/VPS trong các mục thu gọn.
+- Giữ splash cinematic 6,7 giây, nhận diện **Danh Phạm** ở khu vực creator/footer và bản dựng tự lấy từ Git.
+- Kiểm thử: `npm run verify` đã qua production build, asset Brotli/Gzip, deploy portability, browser utilities, smoke server và E2E API ảnh/PDF thật.
 
-- Nâng splash lên phong cách cinematic tech: HUD hệ thống, đường hầm dữ liệu phối cảnh, vòng năng lượng 3D, tia quét file, telemetry từng engine và cổng sáng chuyển vào homepage; vẫn giữ 6,7 giây, nút bỏ qua, responsive và reduced-motion nhẹ.
-- Xây dựng khối giới thiệu người sáng tạo kèm liên hệ và metadata/manifest thống nhất; sau rà soát trải nghiệm, nhận diện trên trang chính được thu gọn về khối creator gần cuối trang và footer để không lặp tên quá nhiều.
-- Nâng splash thành chuỗi cảnh 6,7 giây: file PDF phân rã thành dữ liệu, bốn engine khởi động, hội tụ thành **Công Cụ Web**, signature **Danh Phạm** rồi logo bay về header; thêm nút bỏ qua và chế độ giảm chuyển động khoảng 1,3 giây.
-- Sửa deploy báo nhầm `load 0.08` là VPS quá tải do dùng tên dựng sẵn `load` của GNU awk; lỗi tính ngưỡng nay được phân biệt với trạng thái quá tải thật.
-- Gói frontend từ macOS dùng `tar --no-xattrs`, không còn gửi header `LIBARCHIVE.xattr.com.apple.provenance` lên Ubuntu; thêm `npm run test:deploy` vào cổng `verify`.
-- Thêm QR tạo/đọc cục bộ với `qrcode` + `jsqr`; tạo QR có tự đọc lại, đọc QR không tự mở URL.
-- Thêm đổi tên tối đa 100 tệp/50 MB, preview tên mới và tải ZIP giữ nguyên byte nội dung.
-- Thêm che thông tin ảnh bằng vùng kéo/resize; Sharp làm phẳng màu đặc vào PNG và bỏ EXIF/GPS.
-- Gỡ khối giới thiệu mã nguồn/GitHub khỏi footer website chính; giữ thông tin Danh Phạm, phiên bản và liên hệ.
-- Viết lại README thành bảng lệnh local, Git, test, CPU/RAM, deploy, bảo trì, setup VPS/domain và giải thích ngắn gọn.
-- Dependency mới: `qrcode@1.5.4`, `jsqr@1.4.0`; máy khác phải chạy `git pull --ff-only` rồi `npm ci`.
-- Sửa production smoke test dùng `grep` trực tiếp trên biến thay vì pipe lớn, tránh báo sai `Broken pipe` khi bundle tăng kích thước.
-- `npm run verify` đã qua toàn bộ build, asset Brotli/Gzip, QR/ZIP semantic và E2E API ảnh/PDF; `npm run audit:prod` báo **0 lỗ hổng**.
-- Browser QA đã đi hết tạo QR tiếng Việt, đọc QR từ ảnh, preview/tạo ZIP đổi tên, kéo vùng che → ảnh kết quả, trạng thái link rút gọn và layout **2560×1440 / 390×844**; không có lỗi console hoặc tràn ngang.
+</details>
+
+<details>
+<summary><b>📜 Các mốc trước</b></summary>
+
+- **v1.1.0 · 2026-08-26:** Hoàn thiện song ngữ, splash cinematic và nhận diện cá nhân có kiểm soát.
+- **v1.0.0 · 2026-08-25:** Ra mắt các công cụ PDF/ảnh, QR, đổi tên ZIP, che thông tin và quy trình deploy VPS.
+
+</details>
 
 ---
 
-Phát triển bởi **Danh Phạm** · PDFTools phiên bản được lấy từ `package.json`, số bản dựng được lấy tự động từ Git.
+Phát triển bởi **Danh Phạm** · Phiên bản lấy từ `package.json` · Bản dựng lấy tự động từ lịch sử Git.

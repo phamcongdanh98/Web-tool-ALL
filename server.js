@@ -20,6 +20,15 @@ dotenv.config()
 const app = express()
 app.disable('x-powered-by')
 app.use(cors())
+app.use((_req, res, next) => {
+  res.set({
+    'X-Content-Type-Options': 'nosniff',
+    'X-Frame-Options': 'SAMEORIGIN',
+    'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  })
+  next()
+})
 const megabyte = 1024 * 1024
 const defaultMaximumFileMb = 25
 const pdfCompressionMaximumFileMb = 50

@@ -482,6 +482,8 @@ assert.equal(mixedText.response.headers.get('x-pdf-source-kind'), 'mixed')
 assert.equal(mixedText.response.headers.get('x-pdf-text-pages'), '1')
 assert.equal(mixedText.response.headers.get('x-pdf-image-only-pages'), '1')
 assert.match(mixedText.body.toString('utf8'), /Selectable page before scanned page/)
+assert.equal(mixedText.response.headers.get('x-content-type-options'), 'nosniff', 'API phải chống MIME sniffing.')
+assert.equal(mixedText.response.headers.get('x-frame-options'), 'SAMEORIGIN', 'API chỉ được nhúng frame cùng origin.')
 
 const scannedPdf = await makeImagePdf(imageInput)
 const scannedForm = new FormData()

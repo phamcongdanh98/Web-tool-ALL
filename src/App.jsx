@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import UtilityToolModal from './UtilityTools.jsx'
 import { useLanguage } from './i18n.jsx'
+import { formatBytes } from '../lib/browser-utility.js'
 
 const appVersion = import.meta.env.VITE_APP_VERSION
 const appBuildNumber = import.meta.env.VITE_APP_BUILD_NUMBER
@@ -96,6 +97,7 @@ const labelsEn = Object.fromEntries(Object.entries(englishTools).map(([mode, [na
 const imageModes = ['compress', 'convert', 'resize', 'crop', 'edit', 'remove-background']
 const pdfOfficeModes = ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-text']
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
+const containsVietnamese = text => /[àáâãèéêìíòóôõùúýăđơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỷỹỵÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĂĐƠƯ]/u.test(String(text || ''))
 const maximumFileBytes = 25 * 1024 * 1024
 const maximumPdfCompressionFileBytes = 50 * 1024 * 1024
 const maximumUploadBytes = 50 * 1024 * 1024
@@ -103,13 +105,6 @@ const maximumPdfPages = 500
 const maximumExactWordPages = 40
 const exactWordDpi = 200
 const maximumExactWordPixelsPerPage = 12_000_000
-const formatBytes = (bytes = 0) => {
-  if (!bytes) return '0 KB'
-  const units = ['B', 'KB', 'MB', 'GB']
-  const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
-  return `${(bytes / 1024 ** index).toFixed(index ? 2 : 0)} ${units[index]}`
-}
-
 let pdfJsPromise
 let pdfWorkerUrl
 let pdfWarmPromise
@@ -360,7 +355,10 @@ const createExactWordFromPdf = async (file, onProgress) => {
       pdfjs.OPS.nextLineSetSpacingShowText,
     ].filter(Number.isFinite))
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
-      onProgress?.(`Đang tái dựng chữ và đồ họa trang ${pageNumber}/${pdf.numPages}…`)
+      onProgress?.(
+        `Đang tái dựng chữ và đồ họa trang ${pageNumber}/${pdf.numPages}…`,
+        `Rebuilding text and graphics for page ${pageNumber}/${pdf.numPages}…`,
+      )
       const page = await pdf.getPage(pageNumber)
       const sourceViewport = page.getViewport({ scale: 1 })
       const content = await page.getTextContent({ disableNormalization: false })
@@ -396,7 +394,7 @@ const createExactWordFromPdf = async (file, onProgress) => {
       canvas.height = 1
       page.cleanup?.()
     }
-    onProgress?.('Đang đóng gói các trang vào Word…')
+    onProgress?.('Đang đóng gói các trang vào Word…', 'Packaging pages into Word…')
     return {
       blob: await exactWord.createExactWordBlob(pages),
       pages: pdf.numPages,
@@ -510,7 +508,10 @@ const compressPdfToTarget = async (file, targetMb, profile, reportProgress) => {
       const output = await PDFDocument.create()
       const pageDetails = []
       for (let index = 0; index < pageFacts.length; index++) {
-        reportProgress(`Lượt tối ưu ${pass}/4 · đang xử lý trang ${index + 1}/${source.numPages}…`)
+        reportProgress(
+          `Lượt tối ưu ${pass}/4 · đang xử lý trang ${index + 1}/${source.numPages}…`,
+          `Optimization pass ${pass}/4 · processing page ${index + 1}/${source.numPages}…`,
+        )
         const fact = pageFacts[index]
         const pageBudget = Math.max(10 * 1024, imageBudget * fact.weight / totalWeight)
         const encoded = await renderPageNearBudget(fact.page, pageBudget, profile, fact.hasSelectableText)
@@ -1216,7 +1217,7 @@ function ToolModal({ mode, close }) {
       setMessage(isPdfOffice && !extractedPreview
         ? tx('Không thấy chữ có thể chọn. PDF scan cần OCR trước khi tạo Word có thể chỉnh sửa.', 'No selectable text was found. Scanned PDFs need OCR before an editable Word file can be created.')
         : '')
-    } catch (error) { setMessage(language === 'en' && /[À-ỹ]/.test(error.message || '') ? 'Unable to read this file. Please check its format and limits.' : (error.message || tx('Không thể đọc tệp này.', 'Unable to read this file.'))) }
+    } catch (error) { setMessage(language === 'en' && containsVietnamese(error.message) ? 'Unable to read this file. Please check its format and limits.' : (error.message || tx('Không thể đọc tệp này.', 'Unable to read this file.'))) }
     finally { setLoading(false) }
   }
 
@@ -1251,7 +1252,7 @@ function ToolModal({ mode, close }) {
     }
   }
 
-  const reportProgress = nextMessage => setMessage(language === 'vi' ? nextMessage : tx('', 'Processing document content and layout…'))
+  const reportProgress = (vietnamese, english) => setMessage(tx(vietnamese, english || 'Processing document content and layout…'))
 
   const submit = async event => {
     event.preventDefault()
@@ -1363,7 +1364,7 @@ function ToolModal({ mode, close }) {
         setMessage(tx(`Chuyển đổi hoàn tất — ${sourceLabel.toLowerCase()}, đã trích xuất ${Number(outputMetadata.characters || 0).toLocaleString(locale)} ký tự từ ${outputMetadata.pages || 0} trang${graphicsNotice}${mixedNotice}.`, `Conversion complete — ${sourceLabel.toLowerCase()}; extracted ${Number(outputMetadata.characters || 0).toLocaleString(locale)} characters from ${outputMetadata.pages || 0} pages${graphicsNotice}${mixedNotice}.`))
       }
       else setMessage(tx('Xử lý hoàn tất — hãy xem preview và tải xuống khi đã hài lòng.', 'Processing complete — review the preview and download when you are satisfied.'))
-    } catch (error) { setMessage(language === 'en' && /[À-ỹ]/.test(error.message || '') ? 'Unable to process this file. Please try again.' : (error.message || tx('Không thể xử lý tệp này. Hãy thử lại.', 'Unable to process this file. Please try again.'))) }
+    } catch (error) { setMessage(language === 'en' && containsVietnamese(error.message) ? 'Unable to process this file. Please try again.' : (error.message || tx('Không thể xử lý tệp này. Hãy thử lại.', 'Unable to process this file. Please try again.'))) }
     finally { setLoading(false) }
   }
 
@@ -1396,12 +1397,30 @@ function ToolModal({ mode, close }) {
     ? tx(`PDFTools đặt từng dòng chữ vào text box theo tọa độ và giữ lớp đồ họa nền ${exactWordDpi} DPI. Cách này ưu tiên vị trí nhưng khó sửa đoạn dài và có thể khác nhau giữa Word/LibreOffice.`, `PDFTools places each line in a coordinate-based text box and preserves a ${exactWordDpi} DPI graphics layer. This prioritizes position but makes long edits harder and can vary between Word and LibreOffice.`)
     : mode === 'pdf-to-word' ? tx('Dựng lại đoạn văn, tiêu đề hai cột và bảng thành phần tử Word thật; ảnh, dấu và chữ ký được tách khỏi PDF rồi neo theo tọa độ trang.', 'Rebuilds paragraphs, two-column headings and tables as real Word elements; images, stamps and signatures are extracted and anchored to page coordinates.')
       : mode === 'pdf-to-excel' ? tx('Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.', 'Each page becomes a worksheet; large gaps are separated into columns.')
-        : mode === 'pdf-to-powerpoint' ? tx('Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.', 'Each page becomes a slide with text placed near its original position.')
+      : mode === 'pdf-to-powerpoint' ? tx('Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.', 'Each page becomes a slide with text placed near its original position.')
           : tx('Xuất văn bản UTF-8, phân tách rõ từng trang.', 'Exports UTF-8 text with clear page separation.')
+
+  const resetWorkspace = () => {
+    fileInfo.forEach(info => {
+      if (!info?.url) return
+      releaseThumbnailPdf(info.url)
+      URL.revokeObjectURL(info.url)
+      urlPool.current.delete(info.url)
+    })
+    setResult(null)
+    setFiles([])
+    setFileInfo([])
+    setPdfPages([])
+    setSelectedPages(new Set())
+    setPdfTextPreview('')
+    setPdfDiagnosis(null)
+    setMessage('')
+    if (input.current) input.current.value = ''
+  }
 
   return <div className="modal-shade" role="dialog" aria-modal="true">
     <form className={`tool-modal ${files.length ? 'tool-modal-wide' : ''} ${isPdfOffice ? 'pdf-office-modal' : ''} ${mode === 'pdf-edit' ? 'pdf-edit-modal' : ''}`} onSubmit={submit}>
-      <button className="close" type="button" onClick={close}>×</button>
+      <button className="close" type="button" aria-label={tx('Đóng công cụ', 'Close tool')} onClick={close}>×</button>
       <div className="modal-heading"><i>✦</i><div><p>{tx('CÔNG CỤ PDFTOOLS', 'PDFTOOLS')}</p><h2>{language === 'en' ? labelsEn[mode] : labels[mode]}</h2></div></div>
       <p className="modal-copy">{isOrganize ? tx('Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.', 'Drag to reorder; rotate, duplicate, add or delete pages, then review the PDF before downloading.') : isMerge ? tx('Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.', 'Preview every page, drag to reorder and insert more PDFs exactly where needed.') : mode === 'pdf-split' ? tx('Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.', 'Select page thumbnails directly—no page numbers to remember or type.') : mode === 'crop' ? tx('Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.', 'Position the frame directly on the image; the bright area is what will be kept.') : mode === 'pdf-compress' ? tx('Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.', 'Enter a size limit and PDFTools will tune several passes to finish just below it.') : mode === 'pdf-edit' ? tx('Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.', 'Add Unicode text, a watermark or page numbers at your chosen position, then preview the result.') : mode === 'pdf-to-word' ? tx('Mặc định dựng lại đoạn văn, bảng và cột Word thật; ảnh, con dấu và chữ ký nhìn thấy được neo lại theo vị trí trên trang.', 'By default, real Word paragraphs, tables and columns are rebuilt while visible images, stamps and signatures are anchored to the page.') : isPdfOffice ? tx('Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.', 'Extract selectable text into an Office file; scanned PDFs need OCR first.') : mode === 'edit' ? tx('Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.', 'Adjust the live preview, then create the real image with the same settings.') : tx('Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.', 'The file becomes downloadable after you review its preview.')}</p>
 
@@ -1471,7 +1490,7 @@ function ToolModal({ mode, close }) {
       {message && <p className={`result ${result ? 'success' : ''}`}>{message}</p>}
 
       {result && <div className="result-workspace">
-        <div className="result-heading"><div><span>{tx('KẾT QUẢ', 'RESULT')}</span><h3>{result.name}</h3></div><a className="primary download-result" href={result.url} download={result.name}>{tx('Tải xuống', 'Download')} <b>↓</b></a></div>
+        <div className="result-heading"><div><span>{tx('KẾT QUẢ', 'RESULT')}</span><h3>{result.name}</h3></div><div className="result-actions"><button type="button" className="reset-result" onClick={resetWorkspace}>↩ {tx('Xử lý tệp khác', 'Process another file')}</button><a className="primary download-result" href={result.url} download={result.name}>{tx('Tải xuống', 'Download')} <b>↓</b></a></div></div>
         <div className="result-comparison"><MediaPreview info={fileInfo[0]} title={tx('Trước xử lý', 'Before')} /><MediaPreview info={result.wordLayoutMode === 'exact-text-boxes' ? fileInfo[0] : result} title={result.wordLayoutMode === 'exact-text-boxes' ? tx('Sau xử lý · bố cục chính xác', 'After · positioned layout') : tx('Sau xử lý', 'After')} checkerboard={mode === 'remove-background'} /></div>
         <div className="result-stats"><span><small>{tx('Trước', 'Before')}</small><b>{formatBytes(inputSize)}</b></span><i>→</i><span><small>{tx('Sau', 'After')}</small><b>{formatBytes(result.size)}</b></span>{reduction !== null && <strong className={reduction >= 0 ? 'positive' : 'negative'}>{reduction >= 0 ? tx(`Giảm ${reduction}%`, `${reduction}% smaller`) : tx(`Tăng ${Math.abs(reduction)}%`, `${Math.abs(reduction)}% larger`)}</strong>}{result.width && <span><small>{tx('Kích thước mới', 'New dimensions')}</small><b>{result.width} × {result.height}px</b></span>}{result.pages && <span><small>{tx('Số trang', 'Pages')}</small><b>{tx(`${result.pages} trang`, `${result.pages} pages`)}</b></span>}{result.compression && <span><small>{tx('Độ nét trang', 'Page clarity')}</small><b>{result.compression.minimumDpi === result.compression.maximumDpi ? `${result.compression.minimumDpi} DPI` : `${result.compression.minimumDpi}–${result.compression.maximumDpi} DPI`}</b></span>}{result.compression && <span><small>{tx('Mã hóa ảnh', 'Image encoding')}</small><b>{result.compression.losslessPages ? tx(`${result.compression.losslessPages} trang PNG`, `${result.compression.losslessPages} PNG pages`) : `JPEG ${result.compression.averageQuality}%`}</b></span>}{result.compressionMode === 'lossless' && <span><small>{tx('Nội dung', 'Content')}</small><b>{tx('Giữ chữ · link · form', 'Text · links · forms preserved')}</b></span>}{result.pdfSourceKind && <span><small>{tx('Loại PDF', 'PDF type')}</small><b>{sourceLabels[result.pdfSourceKind] || result.pdfSourceKind}</b></span>}{result.wordLayoutMode && <span><small>{tx('Chế độ Word', 'Word mode')}</small><b>{result.wordLayoutMode === 'exact-text-boxes' ? tx('Giữ vị trí từng dòng', 'Positioned lines') : tx('Đoạn + bảng + đồ họa', 'Paragraphs + tables + graphics')}</b></span>}{result.wordTextBoxes > 0 && <span><small>{tx('Chữ chỉnh sửa', 'Editable text')}</small><b>{tx(`${result.wordTextBoxes.toLocaleString(locale)} khối`, `${result.wordTextBoxes.toLocaleString(locale)} boxes`)}</b></span>}{result.exactDpi && <span><small>{tx('Nền đồ họa', 'Graphics layer')}</small><b>{result.exactDpi} DPI · {result.exactImageFormats}</b></span>}{result.wordDetectedTables > 0 && <span><small>{tx('Bảng nhận diện', 'Detected tables')}</small><b>{tx(`${result.wordDetectedTables} bảng Word`, `${result.wordDetectedTables} Word tables`)}</b></span>}{result.wordEmbeddedGraphics > 0 && <span><small>{tx('Đồ họa giữ lại', 'Preserved graphics')}</small><b>{tx(`${result.wordEmbeddedGraphics} ảnh/dấu/chữ ký`, `${result.wordEmbeddedGraphics} images/stamps/signatures`)}</b></span>}{result.pdfSignatures > 0 && <span><small>{tx('Chữ ký PDF', 'PDF signatures')}</small><b>{tx(`${result.pdfSignatures} · giữ phần nhìn thấy, không giữ hiệu lực`, `${result.pdfSignatures} · visible appearance kept, validity not preserved`)}</b></span>}{result.pdfImageOnlyPages > 0 && <span><small>{tx('Chưa OCR', 'Needs OCR')}</small><b>{tx(`${result.pdfImageOnlyPages} trang ảnh`, `${result.pdfImageOnlyPages} image pages`)}</b></span>}</div>
       </div>}
@@ -1521,6 +1540,12 @@ export default function App() {
   const count = useMemo(() => [...pdfTools, ...imageTools, ...utilityTools].filter(tool => `${tool.name} ${tool.description} ${(englishTools[tool.mode] || []).join(' ')}`.toLowerCase().includes(query.toLowerCase())).length, [query])
   const closeModal = () => setModal(null)
   const skipWelcome = () => setWelcomePhase(current => current === 'showing' ? 'leaving' : current)
+  useEffect(() => {
+    if (!modal) return undefined
+    const closeOnEscape = event => { if (event.key === 'Escape') setModal(null) }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [modal])
 
   return <>
     {welcomePhase !== 'hidden' && <WelcomeSplash phase={welcomePhase} onSkip={skipWelcome} />}
