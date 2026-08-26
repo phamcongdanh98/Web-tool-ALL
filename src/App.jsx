@@ -523,54 +523,87 @@ function BrandLogo() {
   </>
 }
 
-function WelcomeSplash({ phase }) {
+function WelcomeSplash({ phase, onSkip }) {
   const creatorName = 'Danh Phạm'
-  return <div className={`welcome-splash ${phase === 'leaving' ? 'leaving' : ''}`} aria-label="Đang khởi động PDFTools">
+  const engines = [
+    { code: 'PDF', name: 'PDF Engine', className: 'engine-pdf' },
+    { code: 'WORD', name: 'Office Engine', className: 'engine-word' },
+    { code: 'IMAGE', name: 'Image Engine', className: 'engine-image' },
+    { code: 'QR', name: 'Utility Tools', className: 'engine-qr' },
+  ]
+  return <div className={`welcome-splash ${phase}`} aria-label="Đang khởi động Công Cụ Web">
     <div className="welcome-orb orb-one" aria-hidden="true" />
     <div className="welcome-orb orb-two" aria-hidden="true" />
-    <section className="welcome-panel">
-      <div className="welcome-visual" aria-hidden="true">
-        <div className="welcome-depth-grid" />
-        <div className="welcome-orbit orbit-outer"><span /><span /><span /></div>
-        <div className="welcome-orbit orbit-inner"><span /><span /></div>
-        <div className="welcome-logo-float">
-          <div className="welcome-logo-stack">
-            <span className="welcome-logo-layer layer-back" />
-            <span className="welcome-logo-layer layer-middle" />
-            <span className="welcome-logo-core"><img src="/favicon.svg" alt="" /></span>
-            <span className="welcome-logo-spark">✦</span>
-          </div>
+    <button className="welcome-skip" type="button" onClick={onSkip}>Bỏ qua <span>→</span></button>
+    <section className="welcome-cinematic">
+      <div className="welcome-depth-grid" aria-hidden="true" />
+      <div className="welcome-scene" aria-hidden="true">
+        <div className="welcome-source-file">
+          <span className="welcome-file-shadow shadow-back" />
+          <span className="welcome-file-shadow shadow-middle" />
+          <span className="welcome-file-sheet"><b>PDF</b><i>01</i></span>
+          <span className="welcome-file-spark">✦</span>
         </div>
-        <span className="welcome-data-card card-pdf"><b>PDF</b><small>Document</small></span>
-        <span className="welcome-data-card card-image"><b>IMG</b><small>Creative</small></span>
-        <span className="welcome-data-card card-qr"><b>QR</b><small>Utility</small></span>
+
+        <div className="welcome-particles">
+          {Array.from({ length: 16 }, (_, index) => <span
+            key={index}
+            style={{ '--particle-index': index, '--particle-angle': `${index * 22.5}deg` }}
+          />)}
+        </div>
+
+        <div className="welcome-engine-system">
+          <span className="welcome-engine-orbit orbit-horizontal" />
+          <span className="welcome-engine-orbit orbit-vertical" />
+          <span className="welcome-engine-core"><img src="/favicon.svg" alt="" /></span>
+          {engines.map((engine, index) => <span
+            className={`welcome-engine ${engine.className}`}
+            style={{ '--engine-index': index }}
+            key={engine.code}
+          >
+            <b>{engine.code}</b><small>{engine.name} <i>✓</i></small>
+          </span>)}
+        </div>
+
+        <div className="welcome-brand-phase">
+          <div className="welcome-brand-lockup">
+            <span className="welcome-brand-symbol"><img src="/favicon.svg" alt="" /><i>✦</i></span>
+            <h1>Công Cụ Web</h1>
+          </div>
+          <p>PDF <i>•</i> Ảnh <i>•</i> Văn phòng <i>•</i> Tiện ích</p>
+        </div>
+
+        <div className="welcome-signature-phase">
+          <small>THIẾT KẾ &amp; PHÁT TRIỂN BỞI</small>
+          <strong className="welcome-name" aria-label={creatorName}>
+            {Array.from(creatorName).map((letter, index) => <i
+              className={letter === ' ' ? 'space' : ''}
+              style={{ '--letter-index': index }}
+              aria-hidden="true"
+              key={`${letter}-${index}`}
+            >{letter === ' ' ? '\u00a0' : letter}</i>)}
+          </strong>
+          <span className="welcome-signature-line" />
+          <p>Sáng tạo bằng tâm huyết · Phát triển cho trải nghiệm tốt hơn</p>
+        </div>
+
+        <span className="welcome-flight-logo"><img src="/favicon.svg" alt="" /></span>
       </div>
 
-      <div className="welcome-content">
-        <div className="welcome-brand brand"><BrandLogo /></div>
-        <p className="welcome-kicker"><span>✦</span> Chào mừng bạn đến với PDFTools</p>
-        <h1><span>Công cụ tài liệu</span><small>được phát triển bởi</small><strong className="welcome-name" aria-label={creatorName}>
-          {Array.from(creatorName).map((letter, index) => <i
-            className={letter === ' ' ? 'space' : ''}
-            style={{ '--letter-index': index }}
-            aria-hidden="true"
-            key={`${letter}-${index}`}
-          >{letter === ' ' ? '\u00a0' : letter}</i>)}
-        </strong></h1>
-        <p className="welcome-description">PDF &amp; hình ảnh · Nhanh chóng · Trực quan · Dễ sử dụng</p>
-        <div className="welcome-contacts" aria-label="Thông tin liên hệ của Danh Phạm">
-          {footerContacts.map(contact => <a href={contact.href} key={contact.label} target="_blank" rel="noreferrer">
-            <i aria-hidden="true">{contact.label[0]}</i>
-            <span><small>{contact.label}</small><b>{contact.detail}</b></span>
-            <em aria-hidden="true">↗</em>
-          </a>)}
-        </div>
-        <div className="welcome-loading" aria-live="polite">
-          <div><span /></div>
-          <small>Đang khởi tạo không gian làm việc…</small>
-        </div>
-        <span className="welcome-version">Phiên bản {appVersion} · Bản dựng #{appBuildNumber}</span>
+      <div className="welcome-status" aria-hidden="true">
+        <span className="status-file">Đang đọc cấu trúc tệp…</span>
+        <span className="status-engine">Đang khởi động hệ công cụ…</span>
+        <span className="status-brand">Công Cụ Web đã sẵn sàng</span>
+        <span className="status-home">Đang mở không gian làm việc…</span>
       </div>
+      <div className="welcome-loading" aria-hidden="true">
+        <span />
+      </div>
+      <div className="welcome-meta">
+        <span>Phiên bản {appVersion} · Bản dựng #{appBuildNumber}</span>
+        <small>6,7 giây khởi tạo trải nghiệm</small>
+      </div>
+      <span className="welcome-announcement" aria-live="polite">Công Cụ Web đang khởi tạo. Bạn có thể chọn Bỏ qua để vào trang chủ.</span>
     </section>
   </div>
 }
@@ -1333,17 +1366,21 @@ export default function App() {
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('pdftools-theme', dark ? 'dark' : 'light') }, [dark])
   useEffect(() => {
     document.body.classList.add('welcome-active')
-    const beginExit = setTimeout(() => setWelcomePhase('leaving'), 4100)
-    const removeSplash = setTimeout(() => {
-      setWelcomePhase('hidden')
-      document.body.classList.remove('welcome-active')
-    }, 4500)
+    const prefersReducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const beginExit = setTimeout(() => setWelcomePhase('leaving'), prefersReducedMotion ? 650 : 6100)
     return () => {
       clearTimeout(beginExit)
-      clearTimeout(removeSplash)
       document.body.classList.remove('welcome-active')
     }
   }, [])
+  useEffect(() => {
+    if (welcomePhase !== 'leaving') return undefined
+    const removeSplash = setTimeout(() => {
+      setWelcomePhase('hidden')
+      document.body.classList.remove('welcome-active')
+    }, 620)
+    return () => clearTimeout(removeSplash)
+  }, [welcomePhase])
   useEffect(() => {
     if (navigator.connection?.saveData) return undefined
     const warm = () => { warmPdfTools().catch(() => null) }
@@ -1356,9 +1393,10 @@ export default function App() {
   }, [])
   const count = useMemo(() => [...pdfTools, ...imageTools, ...utilityTools].filter(tool => `${tool.name} ${tool.description}`.toLowerCase().includes(query.toLowerCase())).length, [query])
   const closeModal = () => setModal(null)
+  const skipWelcome = () => setWelcomePhase(current => current === 'showing' ? 'leaving' : current)
 
   return <>
-    {welcomePhase !== 'hidden' && <WelcomeSplash phase={welcomePhase} />}
+    {welcomePhase !== 'hidden' && <WelcomeSplash phase={welcomePhase} onSkip={skipWelcome} />}
     <div className="app redesigned">
       <header className="header">
         <a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a>
