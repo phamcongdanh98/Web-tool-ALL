@@ -523,6 +523,32 @@ function BrandLogo() {
   </>
 }
 
+function CreatorMark({ placement = 'default' }) {
+  return <span className={`creator-mark creator-mark-${placement}`}>
+    <span className="creator-monogram" aria-hidden="true">DP</span>
+    <span className="creator-mark-copy"><small>Thiết kế &amp; phát triển bởi</small><strong>Danh Phạm</strong></span>
+  </span>
+}
+
+function CreatorShowcase() {
+  return <section className="creator-showcase" id="creator" aria-labelledby="creator-title">
+    <div className="creator-showcase-glow" aria-hidden="true" />
+    <div className="creator-showcase-monogram" aria-hidden="true"><span>D</span><i>✦</i><span>P</span></div>
+    <div className="creator-showcase-copy">
+      <span className="creator-eyebrow">DẤU ẤN NGƯỜI SÁNG TẠO</span>
+      <h2 id="creator-title"><small>Thiết kế &amp; phát triển bởi</small><strong>Danh Phạm</strong></h2>
+      <p>Mình xây dựng Công Cụ Web để những thao tác với PDF, hình ảnh và tệp hằng ngày trở nên rõ ràng, trực quan và dễ tiếp cận hơn với người Việt.</p>
+      <div className="creator-values" aria-label="Giá trị thiết kế"><span><i>01</i>Dễ thao tác</span><span><i>02</i>Preview rõ ràng</span><span><i>03</i>Không ngừng hoàn thiện</span></div>
+    </div>
+    <div className="creator-connect">
+      <small>KẾT NỐI TRỰC TIẾP</small>
+      <a className="creator-primary-link" href="https://www.facebook.com/danhpham100898" target="_blank" rel="noreferrer">Facebook <span>↗</span></a>
+      <a href="https://zalo.me/0356719463" target="_blank" rel="noreferrer">Zalo · 0356 719 463 <span>↗</span></a>
+      <a href="https://t.me/+84356719463" target="_blank" rel="noreferrer">Telegram · 0356 719 463 <span>↗</span></a>
+    </div>
+  </section>
+}
+
 function WelcomeSplash({ phase, onSkip }) {
   const creatorName = 'Danh Phạm'
   const engines = [
@@ -624,7 +650,7 @@ function ToolSection({ title, eyebrow, description, tools, id, open, query }) {
   const visible = tools.filter(tool => `${tool.name} ${tool.description}`.toLowerCase().includes(query.toLowerCase()))
   return <section className="tool-section" id={id}>
     <div className="section-heading">
-      <div><span>{eyebrow}</span><h2>{title}</h2><p>{description}</p></div>
+      <div><span>{eyebrow}</span><h2>{title}</h2><p>{description}</p><small className="section-creator-line"><i>DP</i> Một bộ công cụ được chăm chút bởi <strong>Danh Phạm</strong></small></div>
       <a href={`#${id}`}>Khám phá tất cả <span>→</span></a>
     </div>
     <div className="tools-grid">{visible.map(tool => <ToolCard key={tool.name} tool={tool} open={open} />)}</div>
@@ -1281,7 +1307,7 @@ function ToolModal({ mode, close }) {
   return <div className="modal-shade" role="dialog" aria-modal="true">
     <form className={`tool-modal ${files.length ? 'tool-modal-wide' : ''} ${isPdfOffice ? 'pdf-office-modal' : ''} ${mode === 'pdf-edit' ? 'pdf-edit-modal' : ''}`} onSubmit={submit}>
       <button className="close" type="button" onClick={close}>×</button>
-      <div className="modal-heading"><i>✦</i><div><p>CÔNG CỤ PDFTOOLS</p><h2>{labels[mode]}</h2></div></div>
+      <div className="modal-heading"><i>✦</i><div><p>CÔNG CỤ PDFTOOLS</p><h2>{labels[mode]}</h2></div><span className="modal-creator">by <strong>Danh Phạm</strong></span></div>
       <p className="modal-copy">{isOrganize ? 'Kéo thả để đổi thứ tự; xoay, nhân bản, thêm hoặc xóa trang rồi xem lại PDF trước khi tải.' : isMerge ? 'Xem từng trang, kéo để sắp xếp và chèn thêm PDF vào đúng vị trí.' : mode === 'pdf-split' ? 'Chọn trực tiếp các thumbnail cần tách; không cần nhớ hay nhập số trang.' : mode === 'crop' ? 'Đặt khung trực tiếp trên ảnh; phần sáng bên trong là vùng sẽ được giữ lại.' : mode === 'pdf-compress' ? 'Nhập dung lượng cần đạt; PDFTools sẽ tự cân chỉnh nhiều lượt để tệp nằm ngay dưới mục tiêu.' : mode === 'pdf-edit' ? 'Thêm chữ Unicode, watermark hoặc số trang vào vị trí bạn chọn rồi xem trước PDF kết quả.' : mode === 'pdf-to-word' ? 'Mặc định dựng lại đoạn văn, bảng và cột Word thật; ảnh, con dấu và chữ ký nhìn thấy được neo lại theo vị trí trên trang.' : isPdfOffice ? 'Trích xuất phần văn bản có thể chọn thành tệp Office; PDF scan cần OCR trước.' : mode === 'edit' ? 'Điều chỉnh trực tiếp trên preview, sau đó tạo ảnh thật bằng cùng thông số.' : 'Tệp chỉ được tải xuống sau khi bạn đã xem preview kết quả.'}</p>
 
       {!files.length ? <div className="drop-zone" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); choose(event.dataTransfer.files) }}>
@@ -1382,6 +1408,11 @@ export default function App() {
     return () => clearTimeout(removeSplash)
   }, [welcomePhase])
   useEffect(() => {
+    if (welcomePhase !== 'hidden' || !window.location.hash) return
+    const targetId = decodeURIComponent(window.location.hash.slice(1))
+    document.getElementById(targetId)?.scrollIntoView({ block: 'start' })
+  }, [welcomePhase])
+  useEffect(() => {
     if (navigator.connection?.saveData) return undefined
     const warm = () => { warmPdfTools().catch(() => null) }
     if ('requestIdleCallback' in globalThis) {
@@ -1399,17 +1430,18 @@ export default function App() {
     {welcomePhase !== 'hidden' && <WelcomeSplash phase={welcomePhase} onSkip={skipWelcome} />}
     <div className="app redesigned">
       <header className="header">
-        <a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a>
+        <div className="header-brand-group"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><a href="#creator" aria-label="Giới thiệu người phát triển Danh Phạm"><CreatorMark placement="header" /></a></div>
         <nav><a className="active" href="#home">Trang chủ</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#utilities">Tiện ích</a><a href="#benefits">Lợi ích</a></nav>
         <div className="header-actions"><button className="theme-toggle" aria-label="Đổi chế độ màu" onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="language">VI</button><a className="header-cta" href="#pdf">Dùng miễn phí <span>→</span></a></div>
       </header>
       <main id="home">
-        <section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> Bộ công cụ tài liệu trực tuyến</div><h1>Làm việc với<br /><em>PDF &amp; hình ảnh</em><br />nhẹ nhàng hơn.</h1><p className="hero-text">Nén, chuyển đổi và xử lý tệp trong vài bước.<br />Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bạn muốn làm gì với tệp của mình?" /><small>{query && `${count} công cụ`}</small></label><div className="hero-trust"><span>✓ Không cần đăng ký</span><span>✓ Giao diện tiếng Việt</span><span>✓ Preview trước khi tải</span></div></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section>
+        <section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> Bộ công cụ tài liệu trực tuyến</div><h1>Làm việc với<br /><em>PDF &amp; hình ảnh</em><br />nhẹ nhàng hơn.</h1><p className="hero-text">Nén, chuyển đổi và xử lý tệp trong vài bước.<br />Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Bạn muốn làm gì với tệp của mình?" /><small>{query && `${count} công cụ`}</small></label><div className="hero-trust"><span>✓ Không cần đăng ký</span><span>✓ Giao diện tiếng Việt</span><span>✓ Preview trước khi tải</span></div><a className="hero-creator-link" href="#creator"><CreatorMark placement="hero" /><span className="hero-creator-arrow" aria-hidden="true">↘</span></a></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section>
         <div className="content">
           <ToolSection title="Công cụ PDF" eyebrow="TÀI LIỆU" description="Các tác vụ PDF thiết yếu, dễ dùng và an toàn." tools={pdfTools} id="pdf" open={setModal} query={query} />
           <ToolSection title="Công cụ Ảnh" eyebrow="HÌNH ẢNH" description="Tối ưu và bảo vệ hình ảnh với preview trực quan." tools={imageTools} id="images" open={setModal} query={query} />
           <ToolSection title="Công cụ Tiện ích" eyebrow="QR & TỆP" description="Các thao tác nhỏ hữu ích, ưu tiên xử lý riêng tư ngay trên máy." tools={utilityTools} id="utilities" open={setModal} query={query} />
           <section className="benefits" id="benefits"><Benefit icon="♢" title="Không lưu tệp lâu dài" text="Tệp chỉ được xử lý trong bộ nhớ hoặc ngay trên trình duyệt, không tạo hồ sơ lưu trữ trên máy chủ." /><Benefit icon="ϟ" title="Xử lý tối ưu" text="Mỗi luồng ảnh và PDF được tối ưu riêng, kèm trạng thái rõ ràng trong lúc chờ." /><Benefit icon="☁" title="Hỗ trợ mọi thiết bị" text="Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng." /><Benefit icon="✪" title="Dùng miễn phí" text="Các công cụ hiện tại được sử dụng miễn phí, không cần đăng ký tài khoản." /></section>
+          <CreatorShowcase />
         </div>
       </main>
       <footer><div className="footer-top"><div className="footer-brand"><a className="brand" href="#home" aria-label="PDFTools — Trang chủ"><BrandLogo /></a><p>Một nơi đơn giản để xử lý tài liệu, hình ảnh và các tác vụ tệp hằng ngày.</p></div><Footer title="Sản phẩm" items={footerProducts} /><Footer title="Liên hệ" items={footerContacts} /></div><div className="copyright"><span>© 2026 PDFTools · Làm việc thông minh hơn, mỗi ngày.</span><span className="footer-signature">Phát triển bởi <strong>Danh Phạm</strong><span className="version-badge" title={`Mã Git kỹ thuật: ${appRevision}`}>Phiên bản {appVersion}<i>•</i>Bản dựng #{appBuildNumber}</span></span></div></footer>

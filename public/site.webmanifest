@@ -1,7 +1,7 @@
 {
-  "name": "PDFTools — Công cụ PDF & hình ảnh",
+  "name": "PDFTools by Danh Phạm — Công cụ PDF & hình ảnh",
   "short_name": "PDFTools",
-  "description": "Bộ công cụ PDF và hình ảnh trực tuyến bằng tiếng Việt.",
+  "description": "Bộ công cụ PDF, hình ảnh và tiện ích trực tuyến bằng tiếng Việt do Danh Phạm phát triển.",
   "lang": "vi",
   "start_url": "/",
   "scope": "/",

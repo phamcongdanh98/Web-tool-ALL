@@ -97,7 +97,8 @@ flowchart TB
 ```mermaid
 flowchart LR
     O["Mở / tải lại website"] --> W["Splash 6,7 giây · có Bỏ qua<br/>PDF → 4 engine → Công Cụ Web<br/>signature Danh Phạm → logo về header"]
-    W --> A["Chọn công cụ"]
+    W --> I["Nhận diện xuyên suốt<br/>header/hero/card/modal/creator showcase/footer<br/>Danh Phạm · monogram DP"]
+    I --> A["Chọn công cụ"]
     A --> A0{"Loại thao tác?"}
     A0 -->|"Tạo QR"| Q0["Nhập text/link · preview · kiểm tra đọc lại"]
     Q0 --> L

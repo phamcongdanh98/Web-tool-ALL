@@ -25,7 +25,7 @@ function ToolShell({ title, eyebrow, description, close, children, wide = false 
   return <div className="modal-shade" role="dialog" aria-modal="true" aria-label={title}>
     <section className={`tool-modal utility-modal ${wide ? 'tool-modal-wide' : ''}`}>
       <button className="close" type="button" aria-label="Đóng công cụ" onClick={close}>×</button>
-      <div className="modal-heading"><i>✦</i><div><p>{eyebrow}</p><h2>{title}</h2></div></div>
+      <div className="modal-heading"><i>✦</i><div><p>{eyebrow}</p><h2>{title}</h2></div><span className="modal-creator">by <strong>Danh Phạm</strong></span></div>
       <p className="modal-copy">{description}</p>
       {children}
     </section>
