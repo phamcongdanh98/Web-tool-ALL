@@ -292,6 +292,7 @@ ROADMAP.md                  Ý tưởng đã phân loại và điều kiện tri
 
 ### 2026-08-26
 
+- Nâng splash lên phong cách cinematic tech: HUD hệ thống, đường hầm dữ liệu phối cảnh, vòng năng lượng 3D, tia quét file, telemetry từng engine và cổng sáng chuyển vào homepage; vẫn giữ 6,7 giây, nút bỏ qua, responsive và reduced-motion nhẹ.
 - Xây dựng hệ nhận diện cá nhân xuyên suốt: `by Danh Phạm` ở header và mọi modal, creator badge trong hero, monogram `DP` trên card, khối giới thiệu người sáng tạo kèm liên hệ và metadata/manifest thống nhất; tên lớn chỉ dùng ở splash và creator showcase để không lấn át công cụ.
 - Nâng splash thành chuỗi cảnh 6,7 giây: file PDF phân rã thành dữ liệu, bốn engine khởi động, hội tụ thành **Công Cụ Web**, signature **Danh Phạm** rồi logo bay về header; thêm nút bỏ qua và chế độ giảm chuyển động khoảng 1,3 giây.
 - Sửa deploy báo nhầm `load 0.08` là VPS quá tải do dùng tên dựng sẵn `load` của GNU awk; lỗi tính ngưỡng nay được phân biệt với trạng thái quá tải thật.

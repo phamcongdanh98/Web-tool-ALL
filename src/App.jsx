@@ -560,14 +560,32 @@ function WelcomeSplash({ phase, onSkip }) {
   return <div className={`welcome-splash ${phase}`} aria-label="Đang khởi động Công Cụ Web">
     <div className="welcome-orb orb-one" aria-hidden="true" />
     <div className="welcome-orb orb-two" aria-hidden="true" />
+    <div className="welcome-screen-noise" aria-hidden="true" />
+    <div className="welcome-hud" aria-hidden="true">
+      <span><i /> CGW // CORE SYSTEM</span>
+      <b><i /><i /><i /></b>
+      <span>LOCAL FIRST <i /> VI</span>
+    </div>
     <button className="welcome-skip" type="button" onClick={onSkip}>Bỏ qua <span>→</span></button>
     <section className="welcome-cinematic">
       <div className="welcome-depth-grid" aria-hidden="true" />
+      <div className="welcome-data-tunnel" aria-hidden="true">
+        {Array.from({ length: 12 }, (_, index) => <span key={index} style={{ '--tunnel-index': index }} />)}
+      </div>
+      <div className="welcome-corner-frame" aria-hidden="true"><i /><i /><i /><i /></div>
       <div className="welcome-scene" aria-hidden="true">
+        <div className="welcome-energy-field">
+          <span className="energy-ring energy-one" />
+          <span className="energy-ring energy-two" />
+          <span className="energy-ring energy-three" />
+          <i className="energy-axis axis-x" /><i className="energy-axis axis-y" />
+        </div>
         <div className="welcome-source-file">
           <span className="welcome-file-shadow shadow-back" />
           <span className="welcome-file-shadow shadow-middle" />
-          <span className="welcome-file-sheet"><b>PDF</b><i>01</i></span>
+          <span className="welcome-file-sheet"><b>PDF</b><i>01</i><em /></span>
+          <span className="welcome-file-scan" />
+          <span className="welcome-file-target"><i /><i /><i /><i /></span>
           <span className="welcome-file-spark">✦</span>
         </div>
 
@@ -587,11 +605,14 @@ function WelcomeSplash({ phase, onSkip }) {
             style={{ '--engine-index': index }}
             key={engine.code}
           >
-            <b>{engine.code}</b><small>{engine.name} <i>✓</i></small>
+            <em>0{index + 1}</em><b>{engine.code}</b><small>{engine.name} <i>✓</i></small><span><i /></span>
           </span>)}
+          <small className="welcome-engine-telemetry telemetry-left">MEM 24.8 <i>MB</i><b /></small>
+          <small className="welcome-engine-telemetry telemetry-right">LATENCY 08 <i>MS</i><b /></small>
         </div>
 
         <div className="welcome-brand-phase">
+          <span className="welcome-brand-halo"><i /><i /><i /></span>
           <div className="welcome-brand-lockup">
             <span className="welcome-brand-symbol"><img src="/favicon.svg" alt="" /><i>✦</i></span>
             <h1>Công Cụ Web</h1>
@@ -611,10 +632,13 @@ function WelcomeSplash({ phase, onSkip }) {
           </strong>
           <span className="welcome-signature-line" />
           <p>Sáng tạo bằng tâm huyết · Phát triển cho trải nghiệm tốt hơn</p>
+          <em className="welcome-signature-code">DP / DIGITAL UTILITY SYSTEM / 2026</em>
         </div>
 
         <span className="welcome-flight-logo"><img src="/favicon.svg" alt="" /></span>
       </div>
+
+      <div className="welcome-portal" aria-hidden="true"><span /><span /><i /></div>
 
       <div className="welcome-status" aria-hidden="true">
         <span className="status-file">Đang đọc cấu trúc tệp…</span>
@@ -629,6 +653,7 @@ function WelcomeSplash({ phase, onSkip }) {
         <span>Phiên bản {appVersion} · Bản dựng #{appBuildNumber}</span>
         <small>6,7 giây khởi tạo trải nghiệm</small>
       </div>
+      <div className="welcome-coordinates" aria-hidden="true"><span>10.8231° N</span><i>◆</i><span>106.6297° E</span></div>
       <span className="welcome-announcement" aria-live="polite">Công Cụ Web đang khởi tạo. Bạn có thể chọn Bỏ qua để vào trang chủ.</span>
     </section>
   </div>
