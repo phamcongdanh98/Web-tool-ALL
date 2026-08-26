@@ -115,6 +115,7 @@ Không dùng `kill -9` hoặc tắt mọi tiến trình Node khi chưa xác đ�
 | `npm run test:browser-tools` | Kiểm tra QR round-trip, ZIP giữ nguyên byte, URL an toàn và tọa độ vùng che. |
 | `npm run check:diagrams` | So danh sách/tên công cụ trong code với `DIAGRAMS.md`. |
 | `npm run check:shell` | Kiểm tra cú pháp toàn bộ script deploy/monitor/bảo trì. |
+| `npm run test:deploy` | Kiểm tra load guard tương thích GNU awk và gói Mac không chứa xattr. |
 | `npm run test:smoke` | Cần build trước; chạy production tạm, health, asset nén và E2E API. |
 | `npm run audit:prod` | Kiểm tra lỗ hổng dependency production mức `high`; lệnh này **không nằm trong `verify`**. |
 
@@ -291,6 +292,8 @@ ROADMAP.md                  Ý tưởng đã phân loại và điều kiện tri
 
 ### 2026-08-26
 
+- Sửa deploy báo nhầm `load 0.08` là VPS quá tải do dùng tên dựng sẵn `load` của GNU awk; lỗi tính ngưỡng nay được phân biệt với trạng thái quá tải thật.
+- Gói frontend từ macOS dùng `tar --no-xattrs`, không còn gửi header `LIBARCHIVE.xattr.com.apple.provenance` lên Ubuntu; thêm `npm run test:deploy` vào cổng `verify`.
 - Thêm QR tạo/đọc cục bộ với `qrcode` + `jsqr`; tạo QR có tự đọc lại, đọc QR không tự mở URL.
 - Thêm đổi tên tối đa 100 tệp/50 MB, preview tên mới và tải ZIP giữ nguyên byte nội dung.
 - Thêm che thông tin ảnh bằng vùng kéo/resize; Sharp làm phẳng màu đặc vào PNG và bỏ EXIF/GPS.

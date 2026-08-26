@@ -61,7 +61,9 @@ PDFTOOLS_BUILD_REVISION="$revision_short" \
 }
 
 printf '%s\n' '2/5 Đóng gói frontend đã build...'
-COPYFILE_DISABLE=1 tar -czf "$artifact_path" -C "$ROOT_DIR" dist
+# COPYFILE_DISABLE chặn AppleDouble; --no-xattrs chặn các PAX header
+# LIBARCHIVE.xattr.* của macOS làm GNU tar trên Ubuntu phát cảnh báo.
+COPYFILE_DISABLE=1 tar --no-xattrs -czf "$artifact_path" -C "$ROOT_DIR" dist
 if command -v shasum >/dev/null 2>&1; then
   artifact_sha256="$(shasum -a 256 "$artifact_path" | awk '{print $1}')"
 elif command -v sha256sum >/dev/null 2>&1; then

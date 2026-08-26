@@ -125,7 +125,7 @@ git archive --format=tar HEAD | tar -xf - -C "$release_dir"
 ensure_heavy_step_capacity() {
   [[ -r /proc/meminfo && -r /proc/loadavg ]] \
     || fail 'Không đọc được RAM/load của VPS trước bước nặng.'
-  local available_memory_kb minimum_memory_kb load_1 cpu_count
+  local available_memory_kb minimum_memory_kb load_1 cpu_count load_check_status
   available_memory_kb="$(awk '/^MemAvailable:/ { print $2; exit }' /proc/meminfo)"
   minimum_memory_kb="$((MIN_AVAILABLE_MEMORY_MB * 1024))"
   [[ "$available_memory_kb" =~ ^[0-9]+$ ]] || fail 'Không đọc được MemAvailable của VPS.'
@@ -134,8 +134,23 @@ ensure_heavy_step_capacity() {
 
   load_1="$(awk '{ print $1 }' /proc/loadavg)"
   cpu_count="$(getconf _NPROCESSORS_ONLN)"
-  awk -v load="$load_1" -v cores="$cpu_count" -v limit="$MAX_LOAD_PER_CPU" \
-    'BEGIN { exit !(load <= cores * limit) }' \
+  [[ "$load_1" =~ ^[0-9]+([.][0-9]+)?$ ]] \
+    || fail 'Không đọc được load 1 phút của VPS trước bước nặng.'
+  [[ "$cpu_count" =~ ^[0-9]+$ ]] && ((cpu_count >= 1)) \
+    || fail 'Không đọc được số vCPU của VPS trước bước nặng.'
+
+  # GNU awk dành tên `load` cho extension loader, nên không được dùng tên đó
+  # làm biến -v. Phân biệt quá tải thật (exit 1) với lỗi awk (>1) để không
+  # báo nhầm một VPS rảnh là đang quá tải.
+  if awk -v current_load="$load_1" -v cores="$cpu_count" -v limit="$MAX_LOAD_PER_CPU" \
+    'BEGIN { if (current_load <= cores * limit) exit 0; exit 1 }'; then
+    load_check_status=0
+  else
+    load_check_status="$?"
+  fi
+  ((load_check_status <= 1)) \
+    || fail 'Không tính được ngưỡng tải VPS; dừng an toàn trước bước cài/build.'
+  ((load_check_status == 0)) \
     || fail "VPS đang quá tải (load ${load_1}, ${cpu_count} vCPU); hoãn bước cài/build để không làm đứng web."
 }
 

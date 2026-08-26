@@ -171,14 +171,14 @@ flowchart TD
     Q -- "Có" --> W["Chờ an toàn tối đa 10 phút"]
     W --> Q
     Q -- "Không" --> A["Release cũ đang phục vụ"]
-    R["Mac build dist + SHA-256"] --> U["Upload artifact qua SSH timeout/keepalive"]
+    R["Mac build dist<br/>bỏ xattr + SHA-256"] --> U["Upload artifact qua SSH timeout/keepalive"]
     U --> V{"Đúng commit + checksum?"}
     V -- "Không" --> A
     V -- "Có" --> X{"Cache dependency có sẵn?"}
     X -- "Không" --> T{"Lockfile trùng release hiện tại?"}
     T -- "Có" --> AA["Seed cache bằng hard-link"]
     AA --> B
-    T -- "Không" --> Y{"RAM/load an toàn?"}
+    T -- "Không" --> Y{"RAM/load hợp lệ<br/>GNU awk + đủ an toàn?"}
     Y -- "Không" --> A
     Y -- "Có" --> Z["npm ci production có timeout"]
     X -- "Có" --> B["Tạo release mới độc lập"]

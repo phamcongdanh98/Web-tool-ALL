@@ -24,6 +24,7 @@ npm ci
 npm run dev
 npm run build
 npm run check:diagrams
+npm run test:deploy
 npm run test:browser-tools
 npm run verify
 npm run audit:prod
@@ -34,8 +35,9 @@ npm run maintenance:vps -- status
 
 `npm run dev` phải khởi chạy cả Express lẫn Vite. Không đổi sang chỉ chạy Vite nếu các công cụ API vẫn cần hoạt động.
 `npm run check:diagrams` đối chiếu tên/số lượng công cụ trong `src/App.jsx` với `DIAGRAMS.md`; phải qua khi thêm, xóa hoặc đổi tên công cụ.
+`npm run test:deploy` kiểm tra hồi quy tương thích GNU awk trên Ubuntu và xác nhận gói build từ macOS không mang extended attributes/xattr.
 `npm run test:browser-tools` kiểm tra semantic QR tạo → đọc lại, ZIP đổi tên giữ nguyên byte, URL an toàn và tọa độ vùng che.
-`npm run verify` là cổng chất lượng chuẩn trước khi commit/push: kiểm tra cú pháp, shell script, production build, smoke test Express và E2E API xử lý ảnh/PDF thật.
+`npm run verify` là cổng chất lượng chuẩn trước khi commit/push: kiểm tra cú pháp, shell script, deploy portability, production build, smoke test Express và E2E API xử lý ảnh/PDF thật.
 `npm run status:vps` là lệnh read-only để so sánh commit/bản dựng giữa Mac, GitHub, repository VPS, release đang chạy và public health.
 `npm run monitor:vps` là lệnh read-only chụp CPU, RAM, swap, disk, load, tiến trình, systemd, Nginx và health qua SSH; thêm `-- --watch 5` để tự làm mới mỗi 5 giây.
 `npm run maintenance:vps -- status|on|off` xem, bật hoặc tắt bảo trì thủ công. `on/off` thay đổi trạng thái public trên VPS; chỉ chạy khi người dùng chủ động yêu cầu. Sau deploy đang bật bảo trì, phải chạy `off` và xác nhận public HTTPS.
@@ -86,7 +88,7 @@ Runtime chuẩn là Node.js 22.12 trở lên; CI và VPS dùng Node 22. Không h
 - Production dùng các file trong `deploy/`: Nginx proxy vào Express loopback, `systemd` chạy symlink `.deploy/current`, và `deploy/deploy.sh` tạo release độc lập. Không đổi lại sang chạy `vite preview` trong production.
 - Mỗi deploy cập nhật bản sao ổn định `.deploy/maintenance.html`; Nginx không phụ thuộc Node hoặc asset của release để hiển thị trang bảo trì. `npm run monitor:vps` chỉ được đọc trạng thái, không restart/kill/dọn tài nguyên.
 - `deploy/setup-ubuntu.sh` chỉ mở public TCP 80 ở host firewall và lưu bằng `netfilter-persistent`; không mở trực tiếp cổng Express 3001. Firewall/Security List phía nhà cung cấp vẫn được cấu hình ngoài repository.
-- Sau khi commit và push `main`, deploy từ máy phát triển bằng `npm run deploy:vps`. Frontend phải build ở máy phát triển, upload artifact có checksum và khóa đúng commit; VPS tái sử dụng cache dependency production theo lockfile/Node ABI, không build Vite hằng ngày. Script phải giữ guard Git, SSH timeout/keepalive, giới hạn thời gian npm, kiểm tra RAM/load trước bước nặng, preflight, health check và rollback; nếu bước chuẩn bị lỗi thì không restart phiên bản đang chạy.
+- Sau khi commit và push `main`, deploy từ máy phát triển bằng `npm run deploy:vps`. Frontend phải build ở máy phát triển, đóng gói không kèm xattr macOS, upload artifact có checksum và khóa đúng commit; VPS tái sử dụng cache dependency production theo lockfile/Node ABI, không build Vite hằng ngày. Script phải giữ guard Git, SSH timeout/keepalive, giới hạn thời gian npm, kiểm tra RAM/load bằng cú pháp tương thích GNU awk, preflight, health check và rollback; nếu bước chuẩn bị lỗi thì không restart phiên bản đang chạy.
 - `deploy/setup-ubuntu.sh` dùng khi cài VPS lần đầu hoặc khi chủ động cập nhật hạ tầng. Script phải có tính lặp lại an toàn, giữ domain/chứng chỉ Certbot, chỉ merge tuning được quản lý sau khi backup và kiểm tra `nginx -t`. Deploy code hằng ngày không chạy setup hạ tầng.
 - Setup Ubuntu phải chờ khóa `apt/dpkg` bằng timeout hữu hạn khi `unattended-upgrades` đang chạy; không xóa file lock hoặc kill cưỡng bức tiến trình package manager. Nếu timeout, giữ hệ thống nguyên trạng và hướng dẫn kiểm tra service cập nhật.
 - Sau commit làm thay đổi `deploy/nginx-assets.conf`, `deploy/nginx.conf` hoặc logic merge Nginx, phải deploy code trước rồi chạy `sudo ./deploy/setup-ubuntu.sh` một lần trên VPS. Xác nhận asset trả `Content-Encoding: gzip`/`br`, cache immutable và public HTTPS trước khi tuyên bố tối ưu đã lên production.
