@@ -18,6 +18,9 @@ const revision = (explicitRevision || runGit(['rev-parse', '--short=12', 'HEAD']
 const dirtySuffix = !explicitRevision && runGit(['status', '--porcelain']) ? '-dev' : ''
 const buildNumber = explicitBuildNumber || runGit(['rev-list', '--count', 'HEAD']) || 'local'
 
+const apiPort = Number(process.env.API_PORT || process.env.PORT || 3002)
+const clientPort = Number(process.env.VITE_PORT || process.env.CLIENT_PORT || 5176)
+
 export default defineConfig({
   plugins: [react()],
   define: {
@@ -26,7 +29,10 @@ export default defineConfig({
     'import.meta.env.VITE_APP_REVISION': JSON.stringify(revision),
   },
   server: {
-    port: 5175,
-    proxy: { '/api': 'http://localhost:3001' },
+    port: clientPort,
+    proxy: {
+      '/api': `http://127.0.0.1:${apiPort}`,
+    },
   },
 })
+

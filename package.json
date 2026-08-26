@@ -7,8 +7,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "dev": "concurrently -k -n API,WEB -c yellow,cyan \"npm:server\" \"npm:client\"",
+    "dev": "PORT=\"${PORT:-3002}\" VITE_PORT=\"${VITE_PORT:-5176}\" concurrently -k -n API,WEB -c yellow,cyan \"npm:server\" \"npm:client\"",
     "client": "vite",
+
     "server": "node server.js",
     "build": "vite build && node scripts/precompress-assets.mjs",
     "preview": "vite preview",
