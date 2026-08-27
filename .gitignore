@@ -3,12 +3,14 @@ node_modules/
 dist
 .deploy/
 
-# Local environment and editor settings
+# Local environment, editor and MCP state
 .env
 .env.local
 .env.deploy.local
 .vscode/
 .DS_Store
+.local-coder/
+.workspaceguard/
 
 # Test output
 coverage/
