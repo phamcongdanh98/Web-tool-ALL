@@ -15,6 +15,8 @@ const groups = [
     ['npm run client', 'Chỉ chạy frontend Vite.'],
     ['npm run server', 'Chỉ chạy Express API.'],
     ['npm run build', 'Build production và tạo asset .br/.gz.'],
+    ['npm run stats', 'Xem thống kê lượt truy cập IP và lịch sử dùng công cụ.'],
+    ['npm run test:telegram', 'Kiểm tra kết nối và gửi tin nhắn test Telegram Bot.'],
   ]],
   ['🧪 CHẤT LƯỢNG', green, [
     ['npm run verify', 'Cổng chuẩn trước commit/push.'],

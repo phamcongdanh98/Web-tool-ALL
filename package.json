@@ -1,6 +1,6 @@
 {
   "name": "toolhub-vietnamese",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,8 +19,10 @@
     "test:browser-tools": "node scripts/test-browser-utilities.mjs",
     "test:smoke": "bash scripts/smoke-production.sh",
     "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "stats": "node scripts/check-stats.mjs",
+    "test:telegram": "node scripts/test-telegram.mjs",
     "help": "node scripts/help.mjs",
-    "verify": "node --check server.js && node --check scripts/help.mjs && node --check scripts/e2e-api.mjs && node --check scripts/precompress-assets.mjs && node --check scripts/check-diagrams.mjs && npm run check:diagrams && npm run check:shell && npm run test:deploy && npm run test:browser-tools && npm run build && npm run test:smoke",
+    "verify": "node --check server.js && node --check lib/analytics.js && node --check lib/telegram.js && node --check scripts/check-stats.mjs && node --check scripts/test-telegram.mjs && node --check scripts/help.mjs && node --check scripts/e2e-api.mjs && node --check scripts/precompress-assets.mjs && node --check scripts/check-diagrams.mjs && npm run check:diagrams && npm run check:shell && npm run test:deploy && npm run test:browser-tools && npm run build && npm run test:smoke",
     "deploy:vps": "bash deploy/remote.sh",
     "status:vps": "bash deploy/status.sh",
     "monitor:vps": "bash deploy/monitor.sh",

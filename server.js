@@ -10,6 +10,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { convertPdfText } from './lib/pdf-office.js'
 import { redactionToPixels } from './lib/browser-utility.js'
+import { analytics, getClientIp } from './lib/analytics.js'
+import { telegramBot } from './lib/telegram.js'
 
 const require = createRequire(import.meta.url)
 const { ZipArchive } = require('archiver')
@@ -20,13 +22,21 @@ dotenv.config()
 const app = express()
 app.disable('x-powered-by')
 app.use(cors())
-app.use((_req, res, next) => {
+app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   })
+  if (req.method === 'GET' && !req.path.startsWith('/api/') && !req.path.startsWith('/assets/') && !req.path.includes('.')) {
+    const ip = getClientIp(req)
+    analytics.recordVisit(ip, {
+      path: req.path,
+      userAgent: req.get('user-agent'),
+      referer: req.get('referer'),
+    }).catch(() => {})
+  }
   next()
 })
 const megabyte = 1024 * 1024
@@ -71,7 +81,23 @@ const download = (res, buffer, filename, type) => {
   res.send(buffer)
 }
 
+const inferToolName = reqPath => {
+  if (reqPath.includes('/image/')) {
+    const action = reqPath.split('/image/')[1]?.split('/')[0]
+    if (action === 'redact') return 'image-redact'
+    return action || 'image-tool'
+  }
+  if (reqPath.includes('/pdf/')) {
+    const action = reqPath.split('/pdf/')[1]?.split('/')[0]
+    if (action?.startsWith('to-')) return `pdf-${action}`
+    return `pdf-${action}` || 'pdf-tool'
+  }
+  return reqPath.replace(/^\/api\/tools\/?/, '').replace(/\//g, '-') || 'tool'
+}
+
 app.use('/api/tools', (req, res, next) => {
+  const startTime = Date.now()
+  const clientIp = getClientIp(req)
   const contentLength = Number(req.get('content-length'))
   if (Number.isFinite(contentLength) && contentLength > maxUploadRequestBytes) {
     return res.status(413).json({ message: `Tổng request vượt giới hạn ${Math.round(maxUploadBytes / 1024 / 1024)} MB.` })
@@ -87,6 +113,20 @@ app.use('/api/tools', (req, res, next) => {
     if (released) return
     released = true
     activeJobs = Math.max(0, activeJobs - 1)
+
+    const durationMs = Date.now() - startTime
+    const isSuccess = res.statusCode >= 200 && res.statusCode < 400
+    const toolName = inferToolName(req.path)
+    const files = uploadedFiles(req)
+    const totalBytes = files.reduce((sum, file) => sum + (file?.size || 0), 0)
+    analytics.recordToolUsage(clientIp, toolName, {
+      source: 'api',
+      status: isSuccess ? 'success' : 'error',
+      action: req.params?.action || req.path.split('/').filter(Boolean).pop() || '',
+      fileSize: totalBytes,
+      durationMs,
+      details: { statusCode: res.statusCode },
+    }).catch(() => {})
   }
   res.once('finish', release)
   res.once('close', release)
@@ -118,6 +158,29 @@ app.get('/api/health', (_req, res) => res.json({
   database: Boolean(process.env.MONGODB_URI),
   processing: { active: activeJobs, limit: maxConcurrentJobs },
 }))
+
+app.post('/api/analytics/track', express.json(), async (req, res) => {
+  try {
+    const ip = getClientIp(req)
+    const { tool, action, status, fileSize, details } = req.body || {}
+    if (!tool) return res.status(400).json({ message: 'Thiếu tên công cụ.' })
+    const event = await analytics.recordToolUsage(ip, String(tool).slice(0, 50), {
+      source: 'client',
+      action: String(action || '').slice(0, 50),
+      status: status === 'error' ? 'error' : 'success',
+      fileSize: Number(fileSize) || 0,
+      details,
+    })
+    res.json({ success: true, eventId: event?.id })
+  } catch {
+    res.status(500).json({ message: 'Lỗi ghi nhận thống kê.' })
+  }
+})
+
+app.get('/api/stats', (req, res) => {
+  const stats = analytics.getStats(req.query)
+  res.json(stats)
+})
 
 app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
@@ -427,10 +490,14 @@ app.use((error, req, res, _next) => {
 
 const port = process.env.PORT || 3001
 const host = process.env.HOST || '127.0.0.1'
-const server = app.listen(port, host, () => console.log(`ToolHub listening on http://${host}:${port}`))
+const server = app.listen(port, host, () => {
+  console.log(`ToolHub listening on http://${host}:${port}`)
+  telegramBot.start()
+})
 
 const shutdown = signal => {
   console.log(`${signal} received, closing ToolHub gracefully.`)
+  telegramBot.stop()
   server.close(error => process.exit(error ? 1 : 0))
   setTimeout(() => process.exit(1), 10_000).unref()
 }

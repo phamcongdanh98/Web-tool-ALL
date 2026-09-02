@@ -14,7 +14,7 @@ Bộ công cụ song ngữ Việt/Anh để xử lý PDF, hình ảnh, QR và t�
 > 💻 **Local:** [http://localhost:5175](http://localhost:5175) · API `127.0.0.1:3001`<br>
 > 🌐 **Website:** [https://congcuweb.duckdns.org](https://congcuweb.duckdns.org)
 
-🧭 **Đi nhanh:** [Chức năng](#-chức-năng) · [Chạy local](#-bắt-đầu-nhanh-trên-mac) · [Bảng lệnh](#-bảng-lệnh-nhanh) · [Deploy VPS](#-quy-trình-hằng-ngày) · [Nhật ký](#-nhật-ký-phiên-bản)
+🧭 **Đi nhanh:** [Chức năng](#-chức-năng) · [Chạy local](#-bắt-đầu-nhanh-trên-mac) · [Thống kê & Telegram](#-thống-kê--telegram-bot) · [Bảng lệnh](#-bảng-lệnh-nhanh) · [Deploy VPS](#-quy-trình-hằng-ngày) · [Nhật ký](#-nhật-ký-phiên-bản)
 
 ## ✨ Chức năng
 
@@ -65,6 +65,42 @@ kill <PID>
 | `lsof ... :3001` | Tìm PID của Express API đang giữ cổng `3001` |
 | `kill <PID>` | Yêu cầu đúng tiến trình dừng an toàn; thay `<PID>` bằng số vừa tìm được |
 
+## 📊 Thống kê & Telegram Bot
+
+Dự án tích hợp sẵn hệ thống theo dõi lượt truy cập IP và bot Telegram quản trị 2 chiều hoàn toàn tự động, nhẹ nhàng và an toàn.
+
+### 1. Thống kê lượt truy cập IP & Công cụ
+- **Ghi nhận tự động:** Lưu trữ địa chỉ IP, thời gian, tên công cụ, kích thước tệp và kết quả (cả API phía máy chủ lẫn công cụ chạy trên trình duyệt).
+- **Lưu trữ kép:** Dữ liệu giữ trong bộ nhớ đệm (In-memory) để truy vấn tức thời $O(1)$ và lưu file bền vững tại `data/analytics.jsonl`.
+- **Kiểm tra trên Terminal:**
+  ```bash
+  npm run stats                      # Xem tổng quan, top công cụ, top IP và nhật ký
+  npm run stats -- --ip 1.2.3.4       # Lọc riêng theo một địa chỉ IP
+  npm run stats -- --tool pdf-to-word # Lọc riêng theo tên công cụ
+  npm run stats -- --limit 50        # Số dòng nhật ký hiển thị
+  ```
+- **Kiểm tra trên Giao diện Web:** Nhấp nút **📊 Thống kê** trên Header hoặc Footer để mở Dashboard trực quan (xem thẻ KPI, bảng xếp hạng và lọc trực tiếp).
+
+### 2. Quản lý qua Telegram Bot 2 chiều
+- **Thông báo tức thì (Live Alert):** Bot tự động gửi tin nhắn báo về Telegram mỗi khi có người dùng công cụ (kèm IP, công cụ, dung lượng, trạng thái).
+- **Báo cáo định kỳ:** Tự động tổng kết số liệu ngày vào 22:00 mỗi tối.
+- **Tương tác lệnh 2 chiều (Long-Polling):** Nhắn tin trực tiếp cho bot từ điện thoại mọi lúc mọi nơi (không cần mở thêm port):
+  - `/stats` — Xem tổng quan truy cập & lượt dùng
+  - `/today` — Tình hình hoạt động hôm nay
+  - `/top` — Top 5 công cụ & Top 5 địa chỉ IP
+  - `/recent` — 8 hoạt động mới nhất
+  - `/ping` — Kiểm tra thời gian chạy (Uptime) & RAM
+  - `/help` — Danh sách lệnh hỗ trợ
+- **Kích hoạt nhanh trong `.env`:**
+  ```env
+  TELEGRAM_BOT_TOKEN=123456789:AAFn... # Lấy từ @BotFather
+  TELEGRAM_CHAT_ID=123456789           # Lấy từ @userinfobot
+  ```
+- **Kiểm tra kết nối Bot:**
+  ```bash
+  npm run test:telegram
+  ```
+
 ## ⚡ Bảng lệnh nhanh
 
 ```bash
@@ -77,6 +113,8 @@ Lệnh trên hiển thị bảng lệnh có màu ngay trong Terminal. Các lện
 | :---: | :--- | :--- | :--- |
 | 🧭 | `npm run help` | Hiện bảng lệnh có màu ngay trong Terminal | Khi quên lệnh hoặc mới mở dự án |
 | 🧪 | `npm run verify` | Kiểm tra syntax, sơ đồ, shell, browser tools, build, smoke và E2E API | **Luôn chạy trước commit/push** |
+| 📊 | `npm run stats` | Xem thống kê lượt truy cập IP, top công cụ và nhật ký hoạt động | Khi kiểm tra lưu lượng hoặc tra cứu IP |
+| 🤖 | `npm run test:telegram` | Kiểm tra kết nối và gửi tin nhắn thử nghiệm tới Telegram Bot | Sau khi điền token/chat ID trong `.env` |
 | 🏗️ | `npm run build` | Tạo bản production cùng asset Brotli/Gzip | Khi cần kiểm tra riêng quá trình build |
 | 🛡️ | `npm run audit:prod` | Quét dependency production từ mức `high` | Khi kiểm tra bảo mật hoặc đổi dependency |
 | 🔎 | `npm run status:vps` | So sánh Mac, GitHub, repository VPS, release và public health | Trước và sau deploy |
@@ -257,7 +295,21 @@ Chi tiết hạ tầng và rollback: [deploy/README.md](deploy/README.md).
 ## 📝 Nhật ký phiên bản
 
 <details open>
-<summary><b>✨ v1.1.1 · 2026-08-26 — Giao diện, song ngữ và vận hành</b></summary>
+<summary><b>✨ v1.1.2 · 2026-09-02 — Thống kê IP và Quản trị Telegram Bot 2 chiều</b></summary>
+
+| Hạng mục | Thay đổi |
+| :--- | :--- |
+| 📊 **Thống kê IP** | Module `lib/analytics.js` tự động bóc tách IP qua proxy/Nginx, ghi nhận lượt truy cập web và mọi lượt dùng công cụ (cả API và client-side) |
+| 💾 **Lưu trữ kép** | In-Memory buffer 2,000 sự kiện siêu tốc kết hợp file log JSON Lines `data/analytics.jsonl` bền vững qua restart/deploy |
+| 💻 **Lệnh CLI** | Thêm lệnh `npm run stats` với định dạng bảng màu sắc trực quan, hỗ trợ cờ lọc `--ip`, `--tool`, `--limit`, `--json` |
+| 🌐 **Dashboard UI** | Thêm modal Thống kê hoạt động trực quan (`StatsDashboard.jsx`) với 4 thẻ KPI, 3 tab số liệu và bộ lọc tìm kiếm |
+| 🤖 **Telegram Bot** | Module `lib/telegram.js` đẩy thông báo tức thì khi có người dùng công cụ, báo cáo định kỳ 22h và nhận lệnh tương tác (`/stats`, `/today`, `/top`, `/recent`, `/ping`, `/help`) |
+| 🧪 **Kiểm thử** | Thêm lệnh `npm run test:telegram`; cập nhật `npm run verify` kiểm tra toàn bộ cú pháp và tích hợp |
+
+</details>
+
+<details>
+<summary><b>📜 v1.1.1 · 2026-08-26 — Giao diện, song ngữ và vận hành</b></summary>
 
 | Hạng mục | Thay đổi |
 | :--- | :--- |

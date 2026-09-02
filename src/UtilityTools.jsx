@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { buildRenamedFileNames, formatBytes, parsePublicHttpUrl, transformRedactionRegion } from '../lib/browser-utility.js'
+import { buildRenamedFileNames, formatBytes, parsePublicHttpUrl, trackClientTool, transformRedactionRegion } from '../lib/browser-utility.js'
 import { useLanguage } from './i18n.jsx'
 
 const megabyte = 1024 * 1024
@@ -69,6 +69,7 @@ function QrCreateTool({ close }) {
         const nextUrl = URL.createObjectURL(blob)
         setDownloadUrl(current => { if (current) URL.revokeObjectURL(current); return nextUrl })
         setMessage(tx(`Đã kiểm tra đọc lại thành công · ${bytes} byte · mức sửa lỗi ${errorLevel}.`, `Verified by reading it back · ${bytes} bytes · error correction ${errorLevel}.`))
+        trackClientTool('qr-create', { action: 'generate', fileSize: blob.size, details: { kind, size, errorLevel } })
       } catch (error) {
         if (!cancelled) setMessage(error.message || tx('Không thể tạo mã QR từ nội dung này.', 'Unable to create a QR code from this content.'))
       } finally {
@@ -132,8 +133,10 @@ function QrReadTool({ close }) {
       context.closePath(); context.lineWidth = Math.max(3, width / 180); context.strokeStyle = '#4f46e5'; context.stroke()
       setDecoded(result.data)
       setMessage(tx('Đã đọc thành công một mã QR. PDFTools không tự động mở liên kết để bảo vệ bạn.', 'QR code read successfully. PDFTools does not open links automatically, for your safety.'))
+      trackClientTool('qr-read', { action: 'scan', fileSize: picked.size, status: 'success' })
     } catch (error) {
       setMessage(error.message || tx('Không thể đọc mã QR từ ảnh này.', 'Unable to read a QR code from this image.'))
+      trackClientTool('qr-read', { action: 'scan', fileSize: picked?.size || 0, status: 'error' })
     } finally {
       bitmap?.close(); setLoading(false)
     }
@@ -194,6 +197,7 @@ function BatchRenameTool({ close }) {
       const nextUrl = URL.createObjectURL(blob)
       setDownloadUrl(current => { if (current) URL.revokeObjectURL(current); return nextUrl })
       setMessage(tx(`Hoàn tất ${mapping.length} tệp · nội dung không đổi, chỉ đổi tên trong ZIP.`, `${mapping.length} files completed · content unchanged; only names inside the ZIP were updated.`))
+      trackClientTool('batch-rename', { action: 'zip', fileSize: blob.size, details: { fileCount: mapping.length } })
     } catch (error) {
       setMessage(error.message || tx('Không thể tạo tệp ZIP.', 'Unable to create the ZIP file.'))
     } finally { setLoading(false) }
