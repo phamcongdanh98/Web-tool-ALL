@@ -177,7 +177,28 @@ app.post('/api/analytics/track', express.json(), async (req, res) => {
   }
 })
 
-app.get('/api/stats', (req, res) => {
+const verifyAdminPasscode = (req, res, next) => {
+  const adminPassword = process.env.ADMIN_STATS_PASSWORD?.trim() || 'danhadmin2026'
+  const provided = req.headers['x-admin-key'] || req.query.key || req.body?.key
+  if (provided === adminPassword) {
+    return next()
+  }
+  return res.status(401).json({
+    status: 'unauthorized',
+    message: 'Yêu cầu mật khẩu quản trị viên chính xác.',
+  })
+}
+
+app.post('/api/stats/verify', express.json(), (req, res) => {
+  const adminPassword = process.env.ADMIN_STATS_PASSWORD?.trim() || 'danhadmin2026'
+  const provided = req.headers['x-admin-key'] || req.body?.key
+  if (provided === adminPassword) {
+    return res.json({ ok: true, message: 'Xác thực thành công.' })
+  }
+  return res.status(401).json({ ok: false, message: 'Mật khẩu quản trị không chính xác.' })
+})
+
+app.get('/api/stats', verifyAdminPasscode, (req, res) => {
   const stats = analytics.getStats(req.query)
   res.json(stats)
 })

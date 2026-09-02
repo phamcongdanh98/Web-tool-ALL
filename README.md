@@ -79,22 +79,28 @@ Dự án tích hợp sẵn hệ thống theo dõi lượt truy cập IP và bot 
   npm run stats -- --tool pdf-to-word # Lọc riêng theo tên công cụ
   npm run stats -- --limit 50        # Số dòng nhật ký hiển thị
   ```
-- **Kiểm tra trên Giao diện Web:** Nhấp nút **📊 Thống kê** trên Header hoặc Footer để mở Dashboard trực quan (xem thẻ KPI, bảng xếp hạng và lọc trực tiếp).
+- **Kiểm tra trên Giao diện Web (Có khóa mật mã bảo mật):**
+  - Nhấp nút **📊 Thống kê** trên Header hoặc Footer.
+  - Hệ thống yêu cầu nhập **Mật khẩu Quản trị viên** (cấu hình trong `.env`: `ADMIN_STATS_PASSWORD=danhadmin2026`).
+  - Hỗ trợ tùy chọn **Ghi nhớ phiên đăng nhập** và nút **🔒 Đăng xuất** khóa lại bất cứ lúc nào.
 
 ### 2. Quản lý qua Telegram Bot 2 chiều
+- **Bàn phím nút bấm cảm ứng (Reply Keyboard):** 7 nút bấm trực quan `[📊 Tổng quan]`, `[📅 Hôm nay]`, `[🏆 Xếp hạng]`, `[⏱️ Gần đây]`, `[🖥️ VPS]`, `[🏓 Máy chủ]`, `[ℹ️ Trợ giúp]`.
 - **Thông báo tức thì (Live Alert):** Bot tự động gửi tin nhắn báo về Telegram mỗi khi có người dùng công cụ (kèm IP, công cụ, dung lượng, trạng thái).
 - **Báo cáo định kỳ:** Tự động tổng kết số liệu ngày vào 22:00 mỗi tối.
-- **Tương tác lệnh 2 chiều (Long-Polling):** Nhắn tin trực tiếp cho bot từ điện thoại mọi lúc mọi nơi (không cần mở thêm port):
+- **Danh sách lệnh tương tác:**
   - `/stats` — Xem tổng quan truy cập & lượt dùng
-  - `/today` — Tình hình hoạt động hôm nay
+  - `/today` — Báo cáo hôm nay: biểu đồ thanh trực quan, chi tiết từng IP truy cập và số lần dùng tool
+  - `/vps` — Kiểm tra cấu hình máy chủ: CPU (cores, load avg), RAM, Dung lượng ổ cứng Disk kèm thanh biểu đồ `[████░░░░░░]`
   - `/top` — Top 5 công cụ & Top 5 địa chỉ IP
   - `/recent` — 8 hoạt động mới nhất
-  - `/ping` — Kiểm tra thời gian chạy (Uptime) & RAM
-  - `/help` — Danh sách lệnh hỗ trợ
+  - `/ping` — Kiểm tra thời gian chạy (Uptime) & trạng thái Node.js
+  - `/help` — Danh sách lệnh & nút bấm hỗ trợ
 - **Kích hoạt nhanh trong `.env`:**
   ```env
   TELEGRAM_BOT_TOKEN=123456789:AAFn... # Lấy từ @BotFather
   TELEGRAM_CHAT_ID=123456789           # Lấy từ @userinfobot
+  ADMIN_STATS_PASSWORD=danhadmin2026   # Mật khẩu mở khóa Thống kê trên Web
   ```
 - **Kiểm tra kết nối Bot:**
   ```bash
