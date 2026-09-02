@@ -1899,14 +1899,69 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
 }
 
 .stats-modal {
-  max-width: 880px;
-  width: 95vw;
-  max-height: 90vh;
+  max-width: 980px;
+  width: min(980px, 96vw);
+  max-height: calc(100vh - 40px);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
   padding: 28px 24px;
+  position: relative;
 }
+
+.stats-modal .close {
+  position: sticky;
+  top: 0;
+  align-self: flex-end;
+  margin-bottom: -34px;
+  z-index: 30;
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.stats-modal .close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+  transform: scale(1.08);
+}
+
+/* Thanh cuộn tùy chỉnh mượt mà cho Modal & Table */
+.stats-modal::-webkit-scrollbar,
+.stats-table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.stats-modal::-webkit-scrollbar-track,
+.stats-table-container::-webkit-scrollbar-track {
+  background: var(--surface-soft);
+  border-radius: 999px;
+  margin: 6px 0;
+}
+.stats-modal::-webkit-scrollbar-thumb,
+.stats-table-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1, #818cf8);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.stats-modal::-webkit-scrollbar-thumb:hover,
+.stats-table-container::-webkit-scrollbar-thumb:hover {
+  background: #4f46e5;
+  background-clip: padding-box;
+}
+.stats-modal,
+.stats-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #818cf8 var(--surface-soft);
+}
+
 .stats-modal-header {
   display: flex;
   align-items: flex-start;
@@ -1951,12 +2006,15 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
-.stats-refresh-btn {
+.stats-refresh-btn,
+.stats-auto-btn,
+.stats-export-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   background: var(--surface-soft);
   color: var(--text);
   border: 1px solid var(--line);
@@ -1965,11 +2023,19 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
   font-size: 13px;
   cursor: pointer;
   transition: all .2s;
+  white-space: nowrap;
 }
-.stats-refresh-btn:hover:not(:disabled) {
+.stats-refresh-btn:hover:not(:disabled),
+.stats-auto-btn:hover,
+.stats-export-btn:hover {
   background: var(--primary-soft);
   color: var(--primary);
   border-color: var(--primary);
+}
+.stats-auto-btn.active {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.4);
 }
 .stats-refresh-btn .spinning {
   display: inline-block;

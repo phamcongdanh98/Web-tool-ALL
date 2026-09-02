@@ -18,6 +18,8 @@ export default function StatsDashboardModal({ close }) {
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('')
   const [activeTab, setActiveTab] = useState('events') // 'events' | 'tools' | 'ips'
+  const [autoRefresh, setAutoRefresh] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const fetchStats = useCallback(async (keyToUse, rangeToUse) => {
     const key = keyToUse || adminPass
@@ -49,6 +51,23 @@ export default function StatsDashboardModal({ close }) {
       fetchStats(adminPass, range)
     }
   }, [adminPass, range, fetchStats])
+
+  useEffect(() => {
+    if (!autoRefresh || !adminPass || !isUnlocked) return
+    const timer = setInterval(() => {
+      fetchStats(adminPass, range)
+    }, 15000)
+    return () => clearInterval(timer)
+  }, [autoRefresh, adminPass, range, isUnlocked, fetchStats])
+
+  const handleExport = () => {
+    if (!stats) return
+    const text = JSON.stringify(stats, null, 2)
+    navigator.clipboard?.writeText(text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }).catch(() => {})
+  }
 
   const handleRangeChange = (newRange) => {
     setRange(newRange)
@@ -185,6 +204,22 @@ export default function StatsDashboardModal({ close }) {
                 <p>{tx('Theo dõi thời gian thực địa chỉ IP, lượt truy cập web và lịch sử người dùng gọi công cụ.', 'Real-time monitoring of IP addresses, web visits, and tool invocation history.')}</p>
               </div>
               <div className="stats-header-actions">
+                <button
+                  type="button"
+                  className={`stats-auto-btn ${autoRefresh ? 'active' : ''}`}
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  title={tx('Tự động cập nhật mỗi 15 giây', 'Auto refresh every 15s')}
+                >
+                  ⏱️ {autoRefresh ? tx('Live (15s)', 'Live (15s)') : tx('Tự động', 'Auto')}
+                </button>
+                <button
+                  type="button"
+                  className="stats-export-btn"
+                  onClick={handleExport}
+                  title={tx('Sao chép toàn bộ dữ liệu JSON', 'Copy raw JSON data')}
+                >
+                  {copied ? '✓ ' + tx('Đã chép!', 'Copied!') : '📋 ' + tx('Xuất JSON', 'Export JSON')}
+                </button>
                 <button type="button" className="stats-refresh-btn" onClick={() => fetchStats(adminPass, range)} disabled={loading}>
                   <span className={loading ? 'spinning' : ''}>↻</span> {tx('Làm mới', 'Refresh')}
                 </button>
