@@ -13,17 +13,19 @@ export default function StatsDashboardModal({ close }) {
   const [authError, setAuthError] = useState('')
   const [isCheckingAuth, setIsCheckingAuth] = useState(false)
 
+  const [range, setRange] = useState('7days') // 'today' | '7days' | '30days' | 'all'
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(false)
   const [filter, setFilter] = useState('')
   const [activeTab, setActiveTab] = useState('events') // 'events' | 'tools' | 'ips'
 
-  const fetchStats = useCallback(async (keyToUse) => {
+  const fetchStats = useCallback(async (keyToUse, rangeToUse) => {
     const key = keyToUse || adminPass
+    const currentRange = rangeToUse || range
     if (!key) return
     setLoading(true)
     try {
-      const res = await fetch(`/api/stats?limit=80&key=${encodeURIComponent(key)}`, {
+      const res = await fetch(`/api/stats?limit=80&range=${currentRange}&key=${encodeURIComponent(key)}`, {
         headers: { 'x-admin-key': key },
       })
       if (res.ok) {
@@ -40,13 +42,20 @@ export default function StatsDashboardModal({ close }) {
     } finally {
       setLoading(false)
     }
-  }, [adminPass, tx])
+  }, [adminPass, range, tx])
 
   useEffect(() => {
     if (adminPass) {
-      fetchStats(adminPass)
+      fetchStats(adminPass, range)
     }
-  }, [adminPass, fetchStats])
+  }, [adminPass, range, fetchStats])
+
+  const handleRangeChange = (newRange) => {
+    setRange(newRange)
+    if (adminPass) {
+      fetchStats(adminPass, newRange)
+    }
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -72,7 +81,7 @@ export default function StatsDashboardModal({ close }) {
         }
         setAdminPass(trimmed)
         setInputPass('')
-        await fetchStats(trimmed)
+        await fetchStats(trimmed, range)
       } else {
         setAuthError(data.message || tx('Mật khẩu quản trị không chính xác.', 'Incorrect admin passcode.'))
       }
@@ -106,6 +115,8 @@ export default function StatsDashboardModal({ close }) {
   }, [filter, stats?.recentEvents])
 
   const s = stats?.summary || {}
+  const dailyTrend = stats?.dailyTrend || []
+  const maxTrendTotal = Math.max(...dailyTrend.map(d => d.total), 1)
 
   return (
     <div className="modal-shade" role="dialog" aria-modal="true" aria-label={tx('Thống kê truy cập', 'Analytics')}>
@@ -174,11 +185,46 @@ export default function StatsDashboardModal({ close }) {
                 <p>{tx('Theo dõi thời gian thực địa chỉ IP, lượt truy cập web và lịch sử người dùng gọi công cụ.', 'Real-time monitoring of IP addresses, web visits, and tool invocation history.')}</p>
               </div>
               <div className="stats-header-actions">
-                <button type="button" className="stats-refresh-btn" onClick={() => fetchStats()} disabled={loading}>
+                <button type="button" className="stats-refresh-btn" onClick={() => fetchStats(adminPass, range)} disabled={loading}>
                   <span className={loading ? 'spinning' : ''}>↻</span> {tx('Làm mới', 'Refresh')}
                 </button>
                 <button type="button" className="stats-lock-btn" onClick={handleLock} title={tx('Khóa lại', 'Lock')}>
                   🔒 {tx('Đăng xuất', 'Lock')}
+                </button>
+              </div>
+            </div>
+
+            {/* BỘ CHỌN CHU KỲ THỜI GIAN */}
+            <div className="stats-range-bar">
+              <span className="stats-range-title">⏳ {tx('Chu kỳ thống kê:', 'Time Period:')}</span>
+              <div className="stats-range-buttons">
+                <button
+                  type="button"
+                  className={range === 'today' ? 'active' : ''}
+                  onClick={() => handleRangeChange('today')}
+                >
+                  📅 {tx('Hôm nay', 'Today')}
+                </button>
+                <button
+                  type="button"
+                  className={range === '7days' ? 'active' : ''}
+                  onClick={() => handleRangeChange('7days')}
+                >
+                  🗓️ {tx('7 ngày qua', 'Last 7 days')}
+                </button>
+                <button
+                  type="button"
+                  className={range === '30days' ? 'active' : ''}
+                  onClick={() => handleRangeChange('30days')}
+                >
+                  📆 {tx('30 ngày qua', 'Last 30 days')}
+                </button>
+                <button
+                  type="button"
+                  className={range === 'all' ? 'active' : ''}
+                  onClick={() => handleRangeChange('all')}
+                >
+                  ♾️ {tx('Tất cả thời gian', 'All Time')}
                 </button>
               </div>
             </div>
@@ -188,7 +234,7 @@ export default function StatsDashboardModal({ close }) {
               <div className="stats-kpi-card">
                 <span className="kpi-icon">👁️</span>
                 <div>
-                  <small>{tx('Tổng lượt truy cập', 'Total Visits')}</small>
+                  <small>{tx('Lượt truy cập', 'Visits')} ({range === 'today' ? tx('Hôm nay', 'Today') : (range === '7days' ? '7 ngày' : (range === '30days' ? '30 ngày' : 'Tất cả'))})</small>
                   <strong>{(s.totalVisits || 0).toLocaleString()}</strong>
                   <em>{tx(`Hôm nay: ${s.todayVisits || 0}`, `Today: ${s.todayVisits || 0}`)}</em>
                 </div>
@@ -198,13 +244,13 @@ export default function StatsDashboardModal({ close }) {
                 <div>
                   <small>{tx('Địa chỉ IP duy nhất', 'Unique IPs')}</small>
                   <strong>{(s.uniqueIps || 0).toLocaleString()}</strong>
-                  <em>{tx('Đã nhận diện', 'Identified')}</em>
+                  <em>{tx('Đang hoạt động', 'Active')}</em>
                 </div>
               </div>
               <div className="stats-kpi-card">
                 <span className="kpi-icon">⚡</span>
                 <div>
-                  <small>{tx('Lượt dùng công cụ', 'Tool Uses')}</small>
+                  <small>{tx('Lượt dùng công cụ', 'Tool Uses')} ({range === 'today' ? tx('Hôm nay', 'Today') : (range === '7days' ? '7 ngày' : (range === '30days' ? '30 ngày' : 'Tất cả'))})</small>
                   <strong>{(s.totalToolUses || 0).toLocaleString()}</strong>
                   <em>{tx(`Hôm nay: ${s.todayToolUses || 0}`, `Today: ${s.todayToolUses || 0}`)}</em>
                 </div>
@@ -212,12 +258,52 @@ export default function StatsDashboardModal({ close }) {
               <div className="stats-kpi-card">
                 <span className="kpi-icon">📦</span>
                 <div>
-                  <small>{tx('Tổng sự kiện lưu trữ', 'Events Stored')}</small>
+                  <small>{tx('Sự kiện trong chu kỳ', 'Events in Period')}</small>
                   <strong>{(s.totalEventsRecorded || 0).toLocaleString()}</strong>
-                  <em>{tx('Nhật ký an toàn', 'Safe logs')}</em>
+                  <em>{tx('Lưu trữ bền vững', 'Persistent storage')}</em>
                 </div>
               </div>
             </div>
+
+            {/* BIỂU ĐỒ CỘT XU HƯỚNG THEO NGÀY */}
+            {dailyTrend.length > 0 && range !== 'today' && (
+              <div className="stats-chart-card">
+                <div className="stats-chart-header">
+                  <div>
+                    <h4>📊 {tx('Biểu đồ xu hướng hoạt động theo ngày', 'Daily Activity Trend')}</h4>
+                    <small>{tx('Số lượt truy cập trang và số lần gọi công cụ mỗi ngày', 'Daily website visits and tool invocations')}</small>
+                  </div>
+                  <div className="stats-chart-legend">
+                    <span className="legend-item"><span className="legend-dot legend-visits"></span> {tx('Truy cập web', 'Visits')}</span>
+                    <span className="legend-item"><span className="legend-dot legend-tools"></span> {tx('Dùng công cụ', 'Tools')}</span>
+                  </div>
+                </div>
+
+                <div className="stats-bar-chart">
+                  {dailyTrend.map(d => {
+                    const totalPct = Math.min(100, Math.max(d.total > 0 ? 12 : 2, Math.round((d.total / maxTrendTotal) * 100)))
+                    const toolRatio = d.total > 0 ? (d.toolUses / d.total) * 100 : 0
+                    const visitRatio = d.total > 0 ? (d.visits / d.total) * 100 : 100
+
+                    return (
+                      <div className="chart-col" key={d.dateKey}>
+                        <div
+                          className="chart-bar-wrap"
+                          title={`${d.label} (${d.dateKey}): ${d.visits} truy cập · ${d.toolUses} dùng tool (Tổng: ${d.total})`}
+                        >
+                          <span className="chart-col-value">{d.total > 0 ? d.total : ''}</span>
+                          <div className="chart-bar-stacked" style={{ height: `${totalPct}%` }}>
+                            <div className="bar-part bar-tools" style={{ height: `${toolRatio}%` }}></div>
+                            <div className="bar-part bar-visits" style={{ height: `${visitRatio}%` }}></div>
+                          </div>
+                        </div>
+                        <span className="chart-col-label">{d.label}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* BỘ LỌC VÀ TABS */}
             <div className="stats-nav-bar">
@@ -250,7 +336,7 @@ export default function StatsDashboardModal({ close }) {
               <div className="stats-table-container">
                 {filteredEvents.length === 0 ? (
                   <div className="stats-empty">
-                    <p>{filter ? tx('Không tìm thấy sự kiện nào khớp bộ lọc.', 'No matching events found.') : tx('Chưa có sự kiện nào được ghi nhận.', 'No events recorded yet.')}</p>
+                    <p>{filter ? tx('Không tìm thấy sự kiện nào khớp bộ lọc.', 'No matching events found.') : tx('Chưa có sự kiện nào trong chu kỳ đã chọn.', 'No events recorded in this period.')}</p>
                   </div>
                 ) : (
                   <table className="stats-table">
@@ -324,7 +410,7 @@ export default function StatsDashboardModal({ close }) {
             {activeTab === 'tools' && (
               <div className="stats-table-container">
                 {(!stats?.topTools || stats.topTools.length === 0) ? (
-                  <div className="stats-empty"><p>{tx('Chưa có thống kê công cụ.', 'No tool stats yet.')}</p></div>
+                  <div className="stats-empty"><p>{tx('Chưa có thống kê công cụ trong chu kỳ này.', 'No tool stats in this period.')}</p></div>
                 ) : (
                   <table className="stats-table">
                     <thead>
@@ -356,7 +442,7 @@ export default function StatsDashboardModal({ close }) {
             {activeTab === 'ips' && (
               <div className="stats-table-container">
                 {(!stats?.topIps || stats.topIps.length === 0) ? (
-                  <div className="stats-empty"><p>{tx('Chưa có thống kê IP.', 'No IP stats yet.')}</p></div>
+                  <div className="stats-empty"><p>{tx('Chưa có thống kê IP trong chu kỳ này.', 'No IP stats in this period.')}</p></div>
                 ) : (
                   <table className="stats-table">
                     <thead>
@@ -383,7 +469,7 @@ export default function StatsDashboardModal({ close }) {
             )}
 
             <div className="stats-footer-note">
-              <small>{tx('Dữ liệu được lưu trữ tự động trong bộ nhớ và file data/analytics.jsonl. Mật khẩu quản trị được bảo vệ.', 'Data is stored in memory and data/analytics.jsonl. Admin access is protected.')}</small>
+              <small>{tx('Dữ liệu được lưu trữ vĩnh viễn trong thư mục shared data (.deploy/shared/data). Mật khẩu quản trị được bảo vệ an toàn.', 'Data is permanently stored in shared storage (.deploy/shared/data). Admin access protected.')}</small>
             </div>
           </>
         )}

@@ -24,6 +24,8 @@ DEPENDENCIES_DIR="${DEPLOY_DIR}/dependencies"
 INCOMING_DIR="${DEPLOY_DIR}/incoming"
 CURRENT_LINK="${DEPLOY_DIR}/current"
 MAINTENANCE_PAGE="${DEPLOY_DIR}/maintenance.html"
+SHARED_DIR="${DEPLOY_DIR}/shared"
+SHARED_DATA_DIR="${SHARED_DIR}/data"
 
 fail() {
   printf 'Lỗi deploy: %s\n' "$1" >&2
@@ -50,7 +52,7 @@ done
   || fail 'PDFTOOLS_BUILD_SHA256 không hợp lệ.'
 [[ -d "${APP_DIR}/.git" ]] || fail "Không tìm thấy Git repository tại ${APP_DIR}."
 
-mkdir -p "$DEPLOY_DIR" "$RELEASES_DIR" "$DEPENDENCIES_DIR" "$INCOMING_DIR"
+mkdir -p "$DEPLOY_DIR" "$RELEASES_DIR" "$DEPENDENCIES_DIR" "$INCOMING_DIR" "$SHARED_DATA_DIR"
 exec 9>"${DEPLOY_DIR}/deploy.lock"
 flock -n 9 || fail 'Một tiến trình deploy khác đang chạy. Hãy chờ tiến trình đó hoàn tất.'
 
@@ -298,6 +300,17 @@ else
 fi
 
 cd "$release_dir"
+
+# Đảm bảo dữ liệu thống kê dùng chung vĩnh viễn không mất qua các release
+current_running_release=''
+if [[ -L "$CURRENT_LINK" ]]; then
+  current_running_release="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
+fi
+if [[ -n "$current_running_release" && -f "${current_running_release}/data/analytics.jsonl" && ! -f "${SHARED_DATA_DIR}/analytics.jsonl" ]]; then
+  cp -p "${current_running_release}/data/analytics.jsonl" "${SHARED_DATA_DIR}/analytics.jsonl" || true
+fi
+rm -rf "${release_dir}/data"
+ln -sfn "$SHARED_DATA_DIR" "${release_dir}/data"
 
 printf '5/7 Preflight release trước khi chuyển phiên bản...\n'
 preflight_log="$(mktemp)"
