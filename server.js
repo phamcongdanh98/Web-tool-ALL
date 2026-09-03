@@ -29,8 +29,20 @@ app.use((req, res, next) => {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   })
+
+  const ip = getClientIp(req)
+
+  // Chặn IP thuộc danh sách đen đối với các yêu cầu API
+  if (analytics.isIpBlocked(ip)) {
+    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/admin/') && !req.path.startsWith('/api/stats')) {
+      return res.status(403).json({
+        status: 'blocked',
+        message: 'Địa chỉ IP của bạn đã bị từ chối truy cập do vi phạm chính sách sử dụng.',
+      })
+    }
+  }
+
   if (req.method === 'GET' && !req.path.startsWith('/api/') && !req.path.startsWith('/assets/') && !req.path.includes('.')) {
-    const ip = getClientIp(req)
     analytics.recordVisit(ip, {
       path: req.path,
       userAgent: req.get('user-agent'),
@@ -201,6 +213,21 @@ app.post('/api/stats/verify', express.json(), (req, res) => {
 app.get('/api/stats', verifyAdminPasscode, (req, res) => {
   const stats = analytics.getStats(req.query)
   res.json(stats)
+})
+
+app.post('/api/admin/block-ip', express.json(), verifyAdminPasscode, async (req, res) => {
+  const { ip, reason } = req.body || {}
+  if (!ip) return res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ IP cần chặn.' })
+  const result = await analytics.blockIp(ip, reason)
+  if (!result) return res.status(400).json({ message: 'Không thể chặn IP nội bộ/localhost.' })
+  res.json({ success: true, message: `Đã chặn IP ${ip} thành công.`, item: result })
+})
+
+app.post('/api/admin/unblock-ip', express.json(), verifyAdminPasscode, async (req, res) => {
+  const { ip } = req.body || {}
+  if (!ip) return res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ IP cần gỡ chặn.' })
+  const result = await analytics.unblockIp(ip)
+  res.json({ success: true, message: `Đã gỡ chặn IP ${ip} thành công.`, unblocked: result })
 })
 
 app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {

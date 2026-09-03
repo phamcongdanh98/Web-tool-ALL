@@ -69,6 +69,41 @@ export default function StatsDashboardModal({ close }) {
     }).catch(() => {})
   }
 
+  const handleBlockIp = async (targetIp) => {
+    if (!targetIp) return
+    if (!window.confirm(tx(`Bạn có chắc chắn muốn chặn địa chỉ IP ${targetIp}?`, `Are you sure you want to block IP ${targetIp}?`))) return
+    try {
+      const res = await fetch('/api/admin/block-ip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminPass,
+        },
+        body: JSON.stringify({ ip: targetIp, key: adminPass }),
+      })
+      if (res.ok) {
+        await fetchStats(adminPass, range)
+      }
+    } catch {}
+  }
+
+  const handleUnblockIp = async (targetIp) => {
+    if (!targetIp) return
+    try {
+      const res = await fetch('/api/admin/unblock-ip', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminPass,
+        },
+        body: JSON.stringify({ ip: targetIp, key: adminPass }),
+      })
+      if (res.ok) {
+        await fetchStats(adminPass, range)
+      }
+    } catch {}
+  }
+
   const handleRangeChange = (newRange) => {
     setRange(newRange)
     if (adminPass) {
@@ -403,7 +438,11 @@ export default function StatsDashboardModal({ close }) {
                               <small>{dateStr}</small>
                             </td>
                             <td>
-                              <code>{ev.ip}</code>
+                              <div className="stats-ip-cell">
+                                <span className="ip-flag" title={ev.geo?.label || ''}>{ev.geo?.flag || '🌐'}</span>
+                                <code>{ev.ip}</code>
+                                {ev.geo?.city && <small className="ip-city">{ev.geo.city}</small>}
+                              </div>
                             </td>
                             <td>
                               {isVisit ? (
@@ -473,7 +512,7 @@ export default function StatsDashboardModal({ close }) {
               </div>
             )}
 
-            {/* TAB NỘI DUNG 3: TOP IP */}
+            {/* TAB NỘI DUNG 3: TOP IP & CHẶN SPAM */}
             {activeTab === 'ips' && (
               <div className="stats-table-container">
                 {(!stats?.topIps || stats.topIps.length === 0) ? (
@@ -482,19 +521,48 @@ export default function StatsDashboardModal({ close }) {
                   <table className="stats-table">
                     <thead>
                       <tr>
-                        <th>{tx('Địa chỉ IP', 'IP Address')}</th>
+                        <th>{tx('Địa chỉ IP & Vị trí', 'IP Address & Location')}</th>
                         <th>{tx('Lượt truy cập', 'Visits')}</th>
                         <th>{tx('Lượt dùng công cụ', 'Tool Uses')}</th>
                         <th>{tx('Lần cuối hoạt động', 'Last Seen')}</th>
+                        <th>{tx('Hành động', 'Action')}</th>
                       </tr>
                     </thead>
                     <tbody>
                       {stats.topIps.map(item => (
-                        <tr key={item.ip}>
-                          <td><code>{item.ip}</code></td>
+                        <tr key={item.ip} className={item.isBlocked ? 'row-blocked' : ''}>
+                          <td>
+                            <div className="stats-ip-cell">
+                              <span className="ip-flag" title={item.geo?.label || ''}>{item.geo?.flag || '🌐'}</span>
+                              <code>{item.ip}</code>
+                              {item.geo?.city && <span className="ip-city-badge">{item.geo.city}</span>}
+                              {item.isBlocked && <span className="badge-blocked">🚫 {tx('ĐÃ CHẶN', 'BLOCKED')}</span>}
+                            </div>
+                          </td>
                           <td>{item.visits.toLocaleString()}</td>
                           <td><strong>{item.toolUses.toLocaleString()}</strong></td>
                           <td>{item.lastSeen ? new Date(item.lastSeen).toLocaleString('vi-VN') : '—'}</td>
+                          <td>
+                            {item.isBlocked ? (
+                              <button
+                                type="button"
+                                className="action-unblock-btn"
+                                onClick={() => handleUnblockIp(item.ip)}
+                                title={tx('Mở chặn IP này', 'Unblock this IP')}
+                              >
+                                ✅ {tx('Bỏ chặn', 'Unblock')}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="action-block-btn"
+                                onClick={() => handleBlockIp(item.ip)}
+                                title={tx('Chặn IP này truy cập API', 'Block this IP')}
+                              >
+                                🚫 {tx('Chặn IP', 'Block')}
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
