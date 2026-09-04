@@ -22,6 +22,147 @@ dotenv.config()
 const app = express()
 app.disable('x-powered-by')
 app.use(cors())
+const escapeXml = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;')
+
+const renderBlockedIpPage = (ip, reason = 'Vi phạm chính sách sử dụng') => `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>403 - Quyền truy cập bị từ chối | PDFTools</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #151d30;
+      --line: #263352;
+      --text: #f3f4f6;
+      --muted: #94a3b8;
+      --danger: #ef4444;
+      --primary: #6366f1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      line-height: 1.6;
+    }
+    .blocked-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      max-width: 520px;
+      width: 100%;
+      padding: 40px 32px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(239, 68, 68, 0.15);
+      animation: appear 0.3s ease-out;
+    }
+    @keyframes appear {
+      from { opacity: 0; transform: scale(0.96); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .icon-wrap {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 20px;
+      border-radius: 50%;
+      background: rgba(239, 68, 68, 0.15);
+      border: 2px solid rgba(239, 68, 68, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    p {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .ip-box {
+      background: rgba(11, 15, 25, 0.7);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+      font-size: 13px;
+    }
+    .ip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .ip-row:last-child { margin-bottom: 0; }
+    .ip-label { color: var(--muted); }
+    .ip-val {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .ip-val.danger { color: var(--danger); }
+    .footer-text {
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="blocked-card">
+    <div class="icon-wrap">🚫</div>
+    <div class="badge">HTTP 403 FORBIDDEN</div>
+    <h1>Quyền truy cập bị từ chối</h1>
+    <p>Địa chỉ IP của bạn đã bị từ chối truy cập vào trang web này do vi phạm chính sách sử dụng hoặc có hành vi bất thường.</p>
+    
+    <div class="ip-box">
+      <div class="ip-row">
+        <span class="ip-label">Địa chỉ IP:</span>
+        <span class="ip-val">${escapeXml(ip)}</span>
+      </div>
+      <div class="ip-row">
+        <span class="ip-label">Lý do từ chối:</span>
+        <span class="ip-val danger">${escapeXml(reason)}</span>
+      </div>
+      <div class="ip-row">
+        <span class="ip-label">Trạng thái:</span>
+        <span class="ip-val danger">Bị chặn toàn bộ</span>
+      </div>
+    </div>
+
+    <div class="footer-text">
+      Nếu bạn cho rằng đây là một sự nhầm lẫn, vui lòng liên hệ Quản trị viên để được hỗ trợ kiểm tra và gỡ bỏ.
+    </div>
+  </div>
+</body>
+</html>`
+
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
@@ -32,13 +173,31 @@ app.use((req, res, next) => {
 
   const ip = getClientIp(req)
 
-  // Chặn IP thuộc danh sách đen đối với các yêu cầu API
+  // Chặn IP thuộc danh sách đen đối với TOÀN BỘ trang web và API
   if (analytics.isIpBlocked(ip)) {
-    if (req.path.startsWith('/api/') && !req.path.startsWith('/api/admin/') && !req.path.startsWith('/api/stats')) {
-      return res.status(403).json({
-        status: 'blocked',
-        message: 'Địa chỉ IP của bạn đã bị từ chối truy cập do vi phạm chính sách sử dụng.',
-      })
+    const isAdminApi = req.path.startsWith('/api/admin/') || req.path.startsWith('/api/stats')
+    const adminPassword = process.env.ADMIN_STATS_PASSWORD?.trim() || 'danhadmin2026'
+    const provided = req.headers['x-admin-key'] || req.query?.key || req.body?.key
+    const isAdminAuthorized = isAdminApi && provided === adminPassword
+
+    if (!isAdminAuthorized) {
+      const blockInfo = analytics.getBlockInfo(ip) || { reason: 'Vi phạm chính sách sử dụng' }
+
+      // Trả về JSON nếu là API hoặc client yêu cầu JSON
+      if (req.path.startsWith('/api/') || req.headers.accept?.includes('application/json')) {
+        return res.status(403).json({
+          status: 'blocked',
+          error: 'Forbidden',
+          message: 'Địa chỉ IP của bạn đã bị từ chối truy cập toàn bộ hệ thống do vi phạm chính sách sử dụng.',
+          ip,
+          reason: blockInfo.reason,
+        })
+      }
+
+      // Trả về trang HTML 403 chặn truy cập web
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+      res.setHeader('Content-Type', 'text/html; charset=utf-8')
+      return res.status(403).send(renderBlockedIpPage(ip, blockInfo.reason))
     }
   }
 
@@ -60,7 +219,6 @@ const pdfCompressionUpload = multer({ storage: multer.memoryStorage(), limits: {
 const safeName = (name, extension) => `${name.replace(/\.[^/.]+$/, '').replace(/[^a-z0-9-_]/gi, '-') || 'toolhub-file'}${extension}`
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value))
 const numberOr = (value, fallback) => Number.isFinite(Number(value)) ? Number(value) : fallback
-const escapeXml = value => String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&apos;')
 const clientError = (statusCode, message) => Object.assign(new Error(message), { statusCode })
 const maxUploadBytes = Math.round(clamp(numberOr(process.env.MAX_UPLOAD_TOTAL_MB, 50), 1, 200) * megabyte)
 const maxUploadRequestBytes = maxUploadBytes + 64 * 1024
