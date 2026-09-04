@@ -137,6 +137,7 @@ app.use('/api/tools', (req, res, next) => {
       action: req.params?.action || req.path.split('/').filter(Boolean).pop() || '',
       fileSize: totalBytes,
       durationMs,
+      userAgent: req.get('user-agent') || '',
       details: { statusCode: res.statusCode },
     }).catch(() => {})
   }
@@ -217,17 +218,27 @@ app.get('/api/stats', verifyAdminPasscode, (req, res) => {
 
 app.post('/api/admin/block-ip', express.json(), verifyAdminPasscode, async (req, res) => {
   const { ip, reason } = req.body || {}
-  if (!ip) return res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ IP cần chặn.' })
-  const result = await analytics.blockIp(ip, reason)
-  if (!result) return res.status(400).json({ message: 'Không thể chặn IP nội bộ/localhost.' })
-  res.json({ success: true, message: `Đã chặn IP ${ip} thành công.`, item: result })
+  if (!ip) return res.status(400).json({ success: false, message: 'Vui lòng cung cấp địa chỉ IP cần chặn.' })
+  try {
+    const result = await analytics.blockIp(ip, reason)
+    res.json({ success: true, message: `Đã chặn IP ${result.ip} thành công.`, item: result })
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message || 'Không thể chặn địa chỉ IP này.' })
+  }
 })
 
 app.post('/api/admin/unblock-ip', express.json(), verifyAdminPasscode, async (req, res) => {
   const { ip } = req.body || {}
-  if (!ip) return res.status(400).json({ message: 'Vui lòng cung cấp địa chỉ IP cần gỡ chặn.' })
-  const result = await analytics.unblockIp(ip)
-  res.json({ success: true, message: `Đã gỡ chặn IP ${ip} thành công.`, unblocked: result })
+  if (!ip) return res.status(400).json({ success: false, message: 'Vui lòng cung cấp địa chỉ IP cần gỡ chặn.' })
+  try {
+    const result = await analytics.unblockIp(ip)
+    if (!result) {
+      return res.status(404).json({ success: false, message: `Địa chỉ IP ${ip} không có trong danh sách chặn.` })
+    }
+    res.json({ success: true, message: `Đã gỡ chặn IP ${ip} thành công.`, unblocked: true })
+  } catch (err) {
+    res.status(400).json({ success: false, message: err.message || 'Không thể gỡ chặn địa chỉ IP này.' })
+  }
 })
 
 app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {

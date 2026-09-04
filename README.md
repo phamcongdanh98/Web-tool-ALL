@@ -301,6 +301,21 @@ Chi tiết hạ tầng và rollback: [deploy/README.md](deploy/README.md).
 ## 📝 Nhật ký phiên bản
 
 <details open>
+<summary><b>🛡️ v1.1.3 · 2026-09-04 — Nâng cấp Quản lý Chặn IP & Thống kê Truy cập Trực quan</b></summary>
+
+| Hạng mục | Thay đổi |
+| :--- | :--- |
+| 🚫 **Chặn IP Blacklist** | Sửa lỗi phản hồi khi thử chặn IP nội bộ/localhost; thêm thông báo Toast nổi; thêm form Chặn IP thủ công; bổ sung nút thao tác Chặn/Bỏ chặn nhanh ngay tại bảng nhật ký |
+| 🛡️ **Tab IP đã chặn** | Thêm tab chuyên biệt quản lý danh sách đen IP bị từ chối truy cập API (HTTP 403 Forbidden), hiển thị cờ, lý do và thời điểm chặn, hỗ trợ gỡ chặn 1-click |
+| ⏱️ **Thời gian truy cập** | Cột thời gian hiển thị tương đối sinh động (*Vừa xong, 5 phút trước...*) kết hợp giờ chính xác; bổ sung cột Độ trễ xử lý API (`durationMs`) phân màu |
+| 📱 **Thiết bị & Trình duyệt** | Tự động bóc tách User-Agent, hiển thị icon Thiết bị (💻 Desktop, 📱 Mobile) và tên Trình duyệt (Chrome, Safari, Firefox, Edge...) |
+| 📊 **8 Thẻ KPI mở rộng** | Bổ sung thẻ Tỷ lệ thành công (%), Độ trễ trung bình (ms), Dung lượng tệp xử lý (MB/GB), Số IP đang chặn và Phân loại thiết bị |
+| 🔍 **Lọc nhanh (Chips)** | Thêm các chip lọc sự kiện tiện lợi: *Tất cả, Dùng công cụ, Truy cập Web, Chỉ sự kiện lỗi, IP đã bị chặn* |
+| 🧪 **Kiểm thử** | Unit test chặn IP / unblock / private IP guard; HTTP middleware 403 test; `npm run verify` pass 100% |
+
+</details>
+
+<details>
 <summary><b>✨ v1.1.2 · 2026-09-02 — Thống kê IP và Quản trị Telegram Bot 2 chiều</b></summary>
 
 | Hạng mục | Thay đổi |
