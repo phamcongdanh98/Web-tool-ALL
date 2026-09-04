@@ -1507,6 +1507,23 @@ export default function App() {
   const [welcomePhase, setWelcomePhase] = useState('showing')
   useEffect(() => { document.documentElement.dataset.theme = dark ? 'dark' : 'light'; localStorage.setItem('pdftools-theme', dark ? 'dark' : 'light') }, [dark])
   useEffect(() => {
+    fetch('/api/health')
+      .then(async res => {
+        if (res.status === 403) {
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations()
+            for (const reg of regs) await reg.unregister()
+          }
+          if ('caches' in window) {
+            const keys = await caches.keys()
+            for (const key of keys) await caches.delete(key)
+          }
+          window.location.reload()
+        }
+      })
+      .catch(() => {})
+  }, [])
+  useEffect(() => {
     document.body.classList.add('welcome-active')
     const prefersReducedMotion = globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     const beginExit = setTimeout(() => setWelcomePhase('leaving'), prefersReducedMotion ? 650 : 6100)

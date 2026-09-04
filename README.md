@@ -306,6 +306,8 @@ Chi tiết hạ tầng và rollback: [deploy/README.md](deploy/README.md).
 | Hạng mục | Thay đổi |
 | :--- | :--- |
 | 🚫 **Chặn IP Toàn diện** | Chặn IP không cho truy cập web luôn: trả về HTTP 403 Forbidden và hiển thị trang HTML báo lỗi truy cập từ chối riêng biệt; chặn toàn bộ API; sửa lỗi phản hồi khi thử chặn IP nội bộ/localhost; thêm thông báo Toast nổi; thêm form Chặn IP thủ công |
+| 🔄 **PWA Service Worker** | Chuyển Service Worker sang Network-First cho HTML/điều hướng trang; tự động xóa sạch cache và unregister khi server trả HTTP 403 Forbidden, đảm bảo thiết bị chặn không xem được bản cache cũ |
+| ⚙️ **VPS Systemd Permission** | Cấu hình `ReadWritePaths` trong systemd service trên VPS để danh sách IP chặn ghi bền vững vào đĩa không bị lỗi hệ thống tập tin chỉ đọc (EROFS) |
 | 🛡️ **Tab IP đã chặn** | Thêm tab chuyên biệt quản lý danh sách đen IP bị từ chối truy cập API (HTTP 403 Forbidden), hiển thị cờ, lý do và thời điểm chặn, hỗ trợ gỡ chặn 1-click |
 | ⏱️ **Thời gian truy cập** | Cột thời gian hiển thị tương đối sinh động (*Vừa xong, 5 phút trước...*) kết hợp giờ chính xác; bổ sung cột Độ trễ xử lý API (`durationMs`) phân màu |
 | 📱 **Thiết bị & Trình duyệt** | Tự động bóc tách User-Agent, hiển thị icon Thiết bị (💻 Desktop, 📱 Mobile) và tên Trình duyệt (Chrome, Safari, Firefox, Edge...) |

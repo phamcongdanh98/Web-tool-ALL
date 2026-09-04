@@ -24,6 +24,7 @@ PrivateTmp=true
 PrivateDevices=true
 ProtectHome=true
 ProtectSystem=strict
+ReadWritePaths=/var/www/pdftools/.deploy/shared /var/www/pdftools
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
