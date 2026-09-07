@@ -1,6 +1,6 @@
 {
   "name": "toolhub-vietnamese",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -26,7 +26,8 @@
     "deploy:vps": "bash deploy/remote.sh",
     "status:vps": "bash deploy/status.sh",
     "monitor:vps": "bash deploy/monitor.sh",
-    "maintenance:vps": "bash deploy/maintenance.sh"
+    "maintenance:vps": "bash deploy/maintenance.sh",
+    "sync:tvpl": "node scripts/sync-tvpl.mjs"
   },
   "dependencies": {
     "@excel.js/exceljs": "^0.13.0",

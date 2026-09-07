@@ -23,9 +23,10 @@ Bộ công cụ song ngữ Việt/Anh để xử lý PDF, hình ảnh, QR và t�
 | 📄 **PDF** | Chỉnh overlay, nén đặt MB/không mất dữ liệu, ghép, sắp xếp, tách, PDF → Word/Excel/PowerPoint/TXT | ✅ Sẵn sàng |
 | 🖼️ **Hình ảnh** | Xóa nền AI, đổi định dạng, resize, crop kéo-thả, nén, chỉnh màu/xoay/lật và che thông tin | ✅ Sẵn sàng |
 | 🧰 **Tiện ích** | Tạo/đọc QR cục bộ và đổi tên tối đa 100 tệp rồi tải ZIP | ✅ Sẵn sàng |
+| 🗺️ **Hành chính (Hero)** | Chuyển đổi địa chỉ cũ sang mô hình 2 cấp hiển thị đầu trang (Nghị quyết 202/2025/QH15, Excel hàng loạt, xử lý PARTIAL) | ✅ Sẵn sàng |
 | 🔗 **Link rút gọn** | Database bền vững, chống spam và quản lý vòng đời liên kết | 🧪 Đang nghiên cứu |
 
-Có **20 thẻ công cụ, 19 công cụ sẵn sàng**. Link rút gọn vẫn ở giai đoạn nghiên cứu vì chưa có database, chống lạm dụng và backup bền vững.
+Có **20 thẻ công cụ phía dưới** (19 sẵn sàng, 1 đang nghiên cứu) cùng **1 công cụ Chuyển đổi địa chỉ hành chính** nổi bật tại Hero Section đầu trang.
 
 Xem [DIAGRAMS.md](DIAGRAMS.md) để đọc sơ đồ hoạt động và [ROADMAP.md](ROADMAP.md) để biết hạng mục đang nghiên cứu.
 
@@ -298,9 +299,50 @@ Chi tiết hạ tầng và rollback: [deploy/README.md](deploy/README.md).
 | 🟢 **Zalo** | [0356 719 463 ↗](https://zalo.me/0356719463) |
 | 🔷 **Telegram** | [0356 719 463 ↗](https://t.me/+84356719463) |
 
+## 🗺️ Chuyển đổi Địa giới Hành chính Việt Nam (Cũ → Mới)
+
+Module chuyên biệt hỗ trợ chuyển đổi địa giới hành chính từ mô hình 3 cấp (Tỉnh/Huyện/Xã) sang mô hình 2 cấp hiện hành (Tỉnh/Xã) theo **Nghị quyết 202/2025/QH15** của Quốc hội và các Nghị quyết của Ủy ban Thường vụ Quốc hội.
+
+```mermaid
+flowchart LR
+    A["📜 Nguồn chính thức<br/>NQ 202/QH15 · QĐ 19/TTg · NQ UBTVQH"] --> W["🛰️ Update Watcher"]
+    W --> S["📋 Staging (NEEDS_REVIEW)"]
+    S --> V["✅ Verified Canonical DB<br/>SQLite node:sqlite"]
+    V --> M["⚡ In-Memory Cache (RAM)"]
+    M --> C1["🔍 Tra cứu Cũ ➔ Mới"]
+    M --> C2["🔄 Tra cứu Mới ➔ Cũ"]
+    M --> C3["📊 Excel hàng loạt (10k+ rows)"]
+    M --> C4["🌐 REST API /api/admin-address"]
+```
+
+### Điểm nổi bật & Nguyên tắc cốt lõi:
+1. **Nguồn chính thức là nguồn chân lý:** Ánh xạ được xây dựng dựa trên văn bản quy phạm pháp luật chính thức (Quốc hội, Thủ tướng Chính phủ, UBTVQH), không phụ thuộc runtime vào API bên thứ ba.
+2. **Xử lý nghiêm ngặt trường hợp PARTIAL (Chia tách):** Nếu một xã/phường cũ bị chia thành nhiều đơn vị mới, hệ thống **bắt buộc** trả về trạng thái `ambiguous` (Cần kiểm tra) và cung cấp danh sách ứng viên (candidates) kèm hướng dẫn người dùng cung cấp thêm số nhà/tên đường; tuyệt đối không tự ý suy đoán sai lệch.
+3. **Normalization Engine thông minh:** Tự động chuẩn hóa Unicode NFC, xử lý viết tắt (`TP`, `TP.HCM`, `Q1`, `P.`, `X.`), không dấu và số La Mã (`Quận I` ➔ `Quận 1`), nhận diện chính xác kể cả khi người dùng nhập chuỗi địa chỉ tự do.
+4. **Excel hàng loạt hiệu năng cao:** Xử lý file `.xlsx`, `.csv` với tốc độ cao nhờ In-Memory Cache, tự động nhận diện cột hoặc hỗ trợ map cột thủ công, xuất file giữ nguyên cột gốc và thêm các cột kết quả, trạng thái, căn cứ pháp lý và ghi chú.
+5. **CSDL Versioning & Update Watcher:** Lưu trữ bằng SQLite chuẩn `node:sqlite` (Node.js 22.12+), quản lý lịch sử hiệu lực, có bảng Staging `candidate_changes` tự động gắn cờ `NEEDS_REVIEW` đối với các thay đổi chia tách địa giới.
+
+---
+
 ## 📝 Nhật ký phiên bản
 
 <details open>
+<summary><b>🗺️ v1.2.0 · 2026-09-07 — Module Chuyển đổi Địa chỉ Hành chính Việt Nam Cũ → Mới (Mô hình 2 cấp NQ 202/2025/QH15)</b></summary>
+
+| Hạng mục | Thay đổi |
+| :--- | :--- |
+| 🏛️ **Mô hình 2 cấp** | Xây dựng công cụ chuyển đổi địa chỉ từ 3 cấp (Tỉnh/Huyện/Xã) sang 2 cấp (Tỉnh/Xã) theo Nghị quyết 202/2025/QH15 của Quốc hội và các Nghị quyết UBTVQH |
+| 🌟 **Giao diện Hero Section** | Đưa công cụ lên vị trí nổi bật đầu trang với giao diện frosted glassmorphism tràn viền, bộ chọn lưới 3 cấp trực quan kèm số thứ tự (1, 2, 3), chip điều hướng nhanh xuống các bộ công cụ PDF/Ảnh/Tiện ích |
+| 🔍 **Tra cứu 2 chiều** | Hỗ trợ 4 tab chức năng: 1. Tra cứu Cũ ➔ Mới (chọn 3 cấp cascade hoặc nhập nguyên chuỗi địa chỉ tự do thông minh), 2. Mới ➔ Cũ (xem danh sách các đơn vị cũ cấu thành kèm nhãn FULL/PARTIAL), 3. Chuyển đổi Excel hàng loạt, 4. Căn cứ pháp lý & CSDL |
+| ⚠️ **Xử lý PARTIAL** | Trường hợp địa giới cũ chia tách nhiều phần bắt buộc trả `ambiguous` và danh sách candidates kèm hướng dẫn chi tiết, tuyệt đối không tạo kết quả giả |
+| 📊 **Excel hàng loạt** | Xử lý hàng chục nghìn dòng Excel/CSV trong bộ nhớ đệm, tự động nhận diện cột địa chỉ, báo cáo tỷ lệ (Chính xác, Cần kiểm tra, Không nhận diện), xuất file kết quả kèm căn cứ pháp lý |
+| 💾 **CSDL Độc lập** | Tích hợp SQLite built-in (`node:sqlite`) với 5 bảng chuẩn hóa: `administrative_units`, `administrative_mappings`, `legal_documents`, `data_versions`, `candidate_changes` |
+| 🛰️ **Update Watcher** | Cơ chế theo dõi văn bản mới định kỳ từ Thư Viện Pháp Luật, lưu trữ tại Staging và tự động gắn cờ `NEEDS_REVIEW` đối với các thay đổi chia tách |
+| 🧪 **Kiểm thử** | 10 bộ test đơn vị trong `scripts/test-admin-address.mjs`, tích hợp E2E API trong `scripts/e2e-api.mjs`, toàn bộ `npm run verify` pass 100% |
+
+</details>
+
+<details>
 <summary><b>📈 v1.1.3 · 2026-09-07 — Sửa lỗi Thống kê Client-side & Trực quan hóa Bảng Thống kê</b></summary>
 
 | Hạng mục | Thay đổi |

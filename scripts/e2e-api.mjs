@@ -496,4 +496,24 @@ blankForm.append('file', new Blob([firstPdf], { type: 'application/pdf' }), 'bla
 const blankError = await requestError('/api/tools/pdf/to-word', blankForm, 422)
 assert.match(blankError.message, /OCR/)
 
-console.log('E2E API thành công: ảnh, PDF, chỉnh vị trí overlay, phân loại scan/Word và chuyển Word/Excel/PowerPoint/TXT đều hợp lệ.')
+// Kiểm tra API địa giới hành chính Cũ -> Mới
+const adminConvertRes = await fetch(`${baseUrl}/api/admin-address/convert`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ province: 'Quảng Nam', district: 'Tam Kỳ', ward: 'Tam Thanh' }),
+})
+assert.equal(adminConvertRes.status, 200)
+const adminConvertData = await adminConvertRes.json()
+assert.equal(adminConvertData.status, 'exact')
+assert.equal(adminConvertData.newAddress.province, 'Thành phố Đà Nẵng')
+assert.equal(adminConvertData.newAddress.ward, 'Phường Quảng Phú')
+assert.equal(adminConvertData.legalBasis.documentNumber, '1659/NQ-UBTVQH15')
+
+// Kiểm tra API địa giới hành chính Mới -> Cũ (Legacies)
+const adminLegaciesRes = await fetch(`${baseUrl}/api/admin-address/legacies?province=Th%C3%A0nh+ph%E1%BB%91+%C4%90%C3%A0+N%E1%BA%B5ng&ward=Ph%C6%B0%E1%BB%9Dng+Qu%E1%BA%A3ng+Ph%C3%BA`)
+assert.equal(adminLegaciesRes.status, 200)
+const adminLegaciesData = await adminLegaciesRes.json()
+assert.equal(adminLegaciesData.status, 'success')
+assert.ok(adminLegaciesData.legacies.length >= 2)
+
+console.log('E2E API thành công: ảnh, PDF, chuyển đổi địa giới hành chính 2 cấp và các công cụ đều hợp lệ.')

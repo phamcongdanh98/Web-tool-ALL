@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import UtilityToolModal from './UtilityTools.jsx'
+import AdminAddressModal from './AdminAddressModal.jsx'
 import StatsDashboardModal from './StatsDashboard.jsx'
 import { useLanguage } from './i18n.jsx'
 import { formatBytes, trackClientTool } from '../lib/browser-utility.js'
@@ -1582,15 +1583,29 @@ export default function App() {
     <div className="app redesigned">
       <header className="header">
         <div className="header-brand-group"><a className="brand" href="#home" aria-label={tx('PDFTools — Trang chủ', 'PDFTools — Home')}><BrandLogo /></a></div>
-        <nav><a className="active" href="#home">{tx('Trang chủ', 'Home')}</a><a href="#pdf">PDF Tools</a><a href="#images">Image Tools</a><a href="#utilities">{tx('Tiện ích', 'Utilities')}</a><a href="#benefits">{tx('Lợi ích', 'Benefits')}</a></nav>
-        <div className="header-actions"><button className="theme-toggle" aria-label={tx('Đổi chế độ màu', 'Toggle color theme')} onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button><button className="stats-toggle" type="button" aria-label={tx('Thống kê', 'Stats')} title={tx('Xem thống kê truy cập & công cụ', 'View analytics')} onClick={() => setModal('analytics-stats')}><span>📊</span><b>{tx('Thống kê', 'Stats')}</b></button><button className="language" type="button" onClick={toggleLanguage} aria-label={language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'} title={language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'}><span aria-hidden="true">◎</span><b>{language === 'vi' ? 'VI' : 'EN'}</b><small>→ {language === 'vi' ? 'EN' : 'VI'}</small></button><a className="header-cta" href="#pdf">{tx('Dùng miễn phí', 'Use for free')} <span>→</span></a></div>
+        <nav>
+          <a className="active" href="#home">{tx('Trang chủ', 'Home')}</a>
+          <a href="#admin-address-converter">{tx('Đổi địa chỉ', 'Address Converter')}</a>
+          <a href="#pdf">PDF Tools</a>
+          <a href="#images">Image Tools</a>
+          <a href="#utilities">{tx('Tiện ích', 'Utilities')}</a>
+          <a href="#benefits">{tx('Lợi ích', 'Benefits')}</a>
+        </nav>
+        <div className="header-actions">
+          <button className="theme-toggle" aria-label={tx('Đổi chế độ màu', 'Toggle color theme')} onClick={() => setDark(!dark)}>{dark ? '☀' : '☾'}</button>
+          <button className="stats-toggle" type="button" aria-label={tx('Thống kê', 'Stats')} title={tx('Xem thống kê truy cập & công cụ', 'View analytics')} onClick={() => setModal('analytics-stats')}><span>📊</span><b>{tx('Thống kê', 'Stats')}</b></button>
+          <button className="language" type="button" onClick={toggleLanguage} aria-label={language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'} title={language === 'vi' ? 'Switch to English' : 'Chuyển sang tiếng Việt'}><span aria-hidden="true">◎</span><b>{language === 'vi' ? 'VI' : 'EN'}</b><small>→ {language === 'vi' ? 'EN' : 'VI'}</small></button>
+          <a className="header-cta" href="#pdf">{tx('Dùng miễn phí', 'Use for free')} <span>↓</span></a>
+        </div>
       </header>
       <main id="home">
-        <section className="hero"><div className="hero-copy"><div className="hero-kicker"><span>✦</span> {tx('Bộ công cụ tài liệu trực tuyến', 'Online document toolkit')}</div><h1>{tx('Làm việc với', 'Work with')}<br /><em>{tx('PDF & hình ảnh', 'PDFs & images')}</em><br />{tx('nhẹ nhàng hơn.', 'with less effort.')}</h1><p className="hero-text">{tx('Nén, chuyển đổi và xử lý tệp trong vài bước.', 'Compress, convert and process files in a few steps.')}<br />{tx('Nhanh chóng, rõ ràng và luôn tôn trọng dữ liệu của bạn.', 'Fast, transparent and always respectful of your data.')}</p><label className="search"><span>⌕</span><input value={query} onChange={event => setQuery(event.target.value)} placeholder={tx('Bạn muốn làm gì với tệp của mình?', 'What would you like to do with your file?')} /><small>{query && `${count} ${tx('công cụ', count === 1 ? 'tool' : 'tools')}`}</small></label><div className="hero-trust"><span>✓ {tx('Không cần đăng ký', 'No sign-up')}</span><span>✓ {tx('Tiếng Việt & English', 'English & Vietnamese')}</span><span>✓ {tx('Preview trước khi tải', 'Preview before download')}</span></div></div><div className="hero-illustration"><div className="document"><div className="doc-dots">●　●　●</div><div className="doc-sidebar" /><div className="doc-lines"><b /><b /><b /><b /><div /><b /></div></div><span className="hero-chip pdf">PDF</span><span className="hero-chip word">W</span><span className="hero-chip image">▣</span><span className="hero-chip add">＋</span><i className="spark s1">✦</i><i className="spark s2">✦</i></div></section>
+        {/* HERO FEATURED TOOL: Công cụ chuyển đổi địa chỉ hành chính Việt Nam */}
+        <AdminAddressModal inline={true} />
+
         <div className="content">
-          <ToolSection title={tx('Công cụ PDF', 'PDF Tools')} eyebrow={tx('TÀI LIỆU', 'DOCUMENTS')} description={tx('Các tác vụ PDF thiết yếu, dễ dùng và an toàn.', 'Essential PDF tasks that are simple and safe to use.')} tools={pdfTools} id="pdf" open={setModal} query={query} />
-          <ToolSection title={tx('Công cụ Ảnh', 'Image Tools')} eyebrow={tx('HÌNH ẢNH', 'IMAGES')} description={tx('Tối ưu và bảo vệ hình ảnh với preview trực quan.', 'Optimize and protect images with visual previews.')} tools={imageTools} id="images" open={setModal} query={query} />
-          <ToolSection title={tx('Công cụ Tiện ích', 'Utility Tools')} eyebrow={tx('QR & TỆP', 'QR & FILES')} description={tx('Các thao tác nhỏ hữu ích, ưu tiên xử lý riêng tư ngay trên máy.', 'Useful everyday tasks with private, on-device processing whenever possible.')} tools={utilityTools} id="utilities" open={setModal} query={query} />
+          <ToolSection title={tx('Công cụ PDF', 'PDF Tools')} eyebrow={tx('TÀI LIỆU', 'DOCUMENTS')} description={tx('Các tác vụ PDF thiết yếu, dễ dùng và an toàn.', 'Essential PDF tasks that are simple and safe to use.')} tools={pdfTools} id="pdf" open={setModal} query="" />
+          <ToolSection title={tx('Công cụ Ảnh', 'Image Tools')} eyebrow={tx('HÌNH ẢNH', 'IMAGES')} description={tx('Tối ưu và bảo vệ hình ảnh với preview trực quan.', 'Optimize and protect images with visual previews.')} tools={imageTools} id="images" open={setModal} query="" />
+          <ToolSection title={tx('Công cụ Tiện ích', 'Utility Tools')} eyebrow={tx('QR & TỆP', 'QR & FILES')} description={tx('Các thao tác nhỏ hữu ích, ưu tiên xử lý riêng tư ngay trên máy.', 'Useful everyday tasks with private, on-device processing whenever possible.')} tools={utilityTools} id="utilities" open={setModal} query="" />
           <section className="benefits" id="benefits"><Benefit icon="♢" title={tx('Không lưu tệp lâu dài', 'No long-term file storage')} text={tx('Tệp chỉ được xử lý trong bộ nhớ hoặc ngay trên trình duyệt, không tạo hồ sơ lưu trữ trên máy chủ.', 'Files are processed in memory or directly in your browser without creating a server-side archive.')} /><Benefit icon="ϟ" title={tx('Xử lý tối ưu', 'Optimized processing')} text={tx('Mỗi luồng ảnh và PDF được tối ưu riêng, kèm trạng thái rõ ràng trong lúc chờ.', 'Each image and PDF workflow is optimized separately with clear progress feedback.')} /><Benefit icon="☁" title={tx('Hỗ trợ mọi thiết bị', 'Works on every device')} text={tx('Sử dụng dễ dàng trên mọi thiết bị, mọi nền tảng.', 'Easy to use across devices and platforms.')} /><Benefit icon="✪" title={tx('Dùng miễn phí', 'Free to use')} text={tx('Các công cụ hiện tại được sử dụng miễn phí, không cần đăng ký tài khoản.', 'Current tools are free to use with no account required.')} /></section>
           <CreatorShowcase />
         </div>

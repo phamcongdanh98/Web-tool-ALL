@@ -12,6 +12,8 @@ import { convertPdfText } from './lib/pdf-office.js'
 import { redactionToPixels } from './lib/browser-utility.js'
 import { analytics, getClientIp } from './lib/analytics.js'
 import { telegramBot } from './lib/telegram.js'
+import adminAddressRouter from './lib/admin-address/routes.js'
+import { adminAddressSyncService } from './lib/admin-address/sync-service.js'
 
 const require = createRequire(import.meta.url)
 const { ZipArchive } = require('archiver')
@@ -399,6 +401,8 @@ app.post('/api/admin/unblock-ip', express.json(), verifyAdminPasscode, async (re
   }
 })
 
+app.use('/api/admin-address', adminAddressRouter)
+
 app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp ảnh.' })
@@ -710,11 +714,13 @@ const host = process.env.HOST || '127.0.0.1'
 const server = app.listen(port, host, () => {
   console.log(`ToolHub listening on http://${host}:${port}`)
   telegramBot.start()
+  adminAddressSyncService.start()
 })
 
 const shutdown = signal => {
   console.log(`${signal} received, closing ToolHub gracefully.`)
   telegramBot.stop()
+  adminAddressSyncService.stop()
   server.close(error => process.exit(error ? 1 : 0))
   setTimeout(() => process.exit(1), 10_000).unref()
 }
