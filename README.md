@@ -301,7 +301,20 @@ Chi tiết hạ tầng và rollback: [deploy/README.md](deploy/README.md).
 ## 📝 Nhật ký phiên bản
 
 <details open>
-<summary><b>🛡️ v1.1.3 · 2026-09-04 — Nâng cấp Quản lý Chặn IP & Thống kê Truy cập Trực quan</b></summary>
+<summary><b>📈 v1.1.3 · 2026-09-07 — Sửa lỗi Thống kê Client-side & Trực quan hóa Bảng Thống kê</b></summary>
+
+| Hạng mục | Thay đổi |
+| :--- | :--- |
+| ✳️ **Thống kê Nén PDF** | Bổ sung gửi sự kiện `pdf-compress` khi nén ở chế độ *Đạt dung lượng mục tiêu* (xử lý client-side bằng Canvas/PDF.js); sửa triệt để lỗi không ghi nhận lượt nén PDF vào bảng Thống kê |
+| 🤖 **Tracking Client-side** | Tích hợp `trackClientTool` cho toàn bộ các tác vụ xử lý thuần trên trình duyệt: Nén PDF mục tiêu, AI xóa phông (`remove-background`) và Word giữ vị trí từng dòng (`exact-word`), ghi nhận cả trạng thái thành công lẫn lỗi |
+| 📡 **Fetch Keepalive** | Nâng cấp `trackClientTool` ưu tiên Fetch API chuẩn W3C (`keepalive: true` + `application/json`) giúp đảm bảo sự kiện gửi về server ngay cả khi chuyển trang hoặc đóng tab, tự động fallback sang `sendBeacon` |
+| 🏷️ **Tên công cụ trực quan** | Bảng xếp hạng Top Tools và danh sách Sự kiện gần đây trong Dashboard Quản trị được hiển thị kèm Icon đặc trưng và tên tiếng Việt thân thiện (thay vì mã code thô) |
+| 🧪 **Kiểm thử** | Bổ sung unit test cho `trackClientTool` trong `scripts/test-browser-utilities.mjs`; toàn bộ `npm run verify` pass 100% |
+
+</details>
+
+<details>
+<summary><b>🛡️ v1.1.3-pre · 2026-09-04 — Nâng cấp Quản lý Chặn IP & Thống kê Truy cập Trực quan</b></summary>
 
 | Hạng mục | Thay đổi |
 | :--- | :--- |

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import UtilityToolModal from './UtilityTools.jsx'
 import StatsDashboardModal from './StatsDashboard.jsx'
 import { useLanguage } from './i18n.jsx'
-import { formatBytes } from '../lib/browser-utility.js'
+import { formatBytes, trackClientTool } from '../lib/browser-utility.js'
 
 const appVersion = import.meta.env.VITE_APP_VERSION
 const appBuildNumber = import.meta.env.VITE_APP_BUILD_NUMBER
@@ -1277,6 +1277,7 @@ function ToolModal({ mode, close }) {
           exactDpi: exactWord.dpi,
           exactImageFormats: exactWord.imageFormats,
         }
+        trackClientTool('pdf-to-word', { action: 'exact-word', fileSize: files[0].size, details: { mode: 'exact', pages: exactWord.pages } })
       } else if (mode === 'remove-background') {
         setMessage(tx('Đang chuẩn bị AI xóa phông…', 'Preparing background removal AI…'))
         const { removeBackground } = await import('@imgly/background-removal')
@@ -1289,11 +1290,13 @@ function ToolModal({ mode, close }) {
         try { blob = await run(globalThis.navigator?.gpu ? 'gpu' : 'cpu') }
         catch (gpuError) { if (!globalThis.navigator?.gpu) throw gpuError; setMessage(tx('GPU không khả dụng, đang chuyển sang CPU…', 'GPU is unavailable; switching to CPU…')); blob = await run('cpu') }
         name = `${files[0].name.replace(/\.[^/.]+$/, '')}-no-background.png`
+        trackClientTool('remove-background', { action: 'remove-background', fileSize: files[0].size, details: { quality: backgroundQuality } })
       } else if (mode === 'pdf-compress' && pdfCompression === 'target') {
         const compressed = await compressPdfToTarget(files[0], targetMb, pdfContentProfile, reportProgress)
         blob = compressed.blob
         outputMetadata = { compression: compressed.compression }
         name = `${files[0].name.replace(/\.[^/.]+$/, '')}-under-${String(targetMb).replace('.', '-')}-mb.pdf`
+        trackClientTool('pdf-compress', { action: 'compress-target', fileSize: files[0].size, details: { targetMb, outputSize: blob.size } })
       } else {
         const form = new FormData()
         if (isPageComposer) {
@@ -1365,7 +1368,16 @@ function ToolModal({ mode, close }) {
         setMessage(tx(`Chuyển đổi hoàn tất — ${sourceLabel.toLowerCase()}, đã trích xuất ${Number(outputMetadata.characters || 0).toLocaleString(locale)} ký tự từ ${outputMetadata.pages || 0} trang${graphicsNotice}${mixedNotice}.`, `Conversion complete — ${sourceLabel.toLowerCase()}; extracted ${Number(outputMetadata.characters || 0).toLocaleString(locale)} characters from ${outputMetadata.pages || 0} pages${graphicsNotice}${mixedNotice}.`))
       }
       else setMessage(tx('Xử lý hoàn tất — hãy xem preview và tải xuống khi đã hài lòng.', 'Processing complete — review the preview and download when you are satisfied.'))
-    } catch (error) { setMessage(language === 'en' && containsVietnamese(error.message) ? 'Unable to process this file. Please try again.' : (error.message || tx('Không thể xử lý tệp này. Hãy thử lại.', 'Unable to process this file. Please try again.'))) }
+    } catch (error) {
+      if (mode === 'pdf-compress' && pdfCompression === 'target') {
+        trackClientTool('pdf-compress', { action: 'compress-target', status: 'error', fileSize: files[0]?.size || 0, details: { error: error.message } })
+      } else if (mode === 'remove-background') {
+        trackClientTool('remove-background', { action: 'remove-background', status: 'error', fileSize: files[0]?.size || 0, details: { error: error.message } })
+      } else if (mode === 'pdf-to-word' && wordMode === 'exact') {
+        trackClientTool('pdf-to-word', { action: 'exact-word', status: 'error', fileSize: files[0]?.size || 0, details: { error: error.message } })
+      }
+      setMessage(language === 'en' && containsVietnamese(error.message) ? 'Unable to process this file. Please try again.' : (error.message || tx('Không thể xử lý tệp này. Hãy thử lại.', 'Unable to process this file. Please try again.')))
+    }
     finally { setLoading(false) }
   }
 

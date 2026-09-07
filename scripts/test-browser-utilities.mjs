@@ -3,7 +3,7 @@ import jsQR from 'jsqr'
 import JSZip from 'jszip'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
-import { buildRenamedFileNames, formatBytes, parsePublicHttpUrl, redactionToPixels, sanitizeFileSegment, splitFileName, transformRedactionRegion } from '../lib/browser-utility.js'
+import { buildRenamedFileNames, formatBytes, parsePublicHttpUrl, redactionToPixels, sanitizeFileSegment, splitFileName, trackClientTool, transformRedactionRegion } from '../lib/browser-utility.js'
 
 assert.equal(formatBytes(0), '0 KB')
 assert.equal(formatBytes(500), '500 B')
@@ -45,4 +45,19 @@ assert.deepEqual(transformRedactionRegion({ id: 'a', x: 10, y: 12, w: 34, h: 14 
 assert.deepEqual(transformRedactionRegion({ id: 'a', x: 10, y: 12, w: 34, h: 14 }, 'se', 12, 8), { id: 'a', x: 10, y: 12, w: 46, h: 22 })
 assert.deepEqual(transformRedactionRegion({ id: 'a', x: 10, y: 12, w: 34, h: 14 }, 'nw', 5, 4), { id: 'a', x: 15, y: 16, w: 29, h: 10 })
 
-console.log('Tiện ích browser hợp lệ: QR round-trip · tên/ZIP nguyên byte · URL an toàn · tọa độ vùng che.')
+let sentTrack = null
+globalThis.window = {}
+globalThis.fetch = async (url, options) => {
+  sentTrack = { url, options, body: JSON.parse(options.body) }
+  return { ok: true }
+}
+trackClientTool('pdf-compress', { action: 'compress-target', fileSize: 1024, details: { targetMb: 2 } })
+assert.equal(sentTrack?.url, '/api/analytics/track')
+assert.equal(sentTrack?.body?.tool, 'pdf-compress')
+assert.equal(sentTrack?.body?.action, 'compress-target')
+assert.equal(sentTrack?.body?.fileSize, 1024)
+assert.equal(sentTrack?.options?.keepalive, true)
+delete globalThis.window
+delete globalThis.fetch
+
+console.log('Tiện ích browser hợp lệ: QR round-trip · tên/ZIP nguyên byte · URL an toàn · tọa độ vùng che · client tracking.')

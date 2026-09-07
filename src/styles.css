@@ -2199,6 +2199,22 @@ footer { padding: 47px max(7.5vw, 48px) 22px; border-top: 1px solid var(--line);
 }
 .tag-tool b { color: var(--primary); }
 .tag-tool small { color: var(--muted); margin-left: 4px; }
+.stats-tool-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.stats-tool-name-cell > span {
+  font-size: 16px;
+  line-height: 1;
+}
+.stats-tool-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: 1px;
+}
 .stats-badge-source {
   display: inline-block;
   font-size: 11px;

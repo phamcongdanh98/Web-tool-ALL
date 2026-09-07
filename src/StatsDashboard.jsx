@@ -50,6 +50,34 @@ export const formatBytes = (bytes) => {
   return `${(n / 1024 / 1024 / 1024).toFixed(2)} GB`
 }
 
+export const TOOL_LABELS = {
+  'pdf-compress': { vi: 'Nén PDF', en: 'Compress PDF', icon: '✳' },
+  'pdf-to-word': { vi: 'PDF sang Word', en: 'PDF to Word', icon: 'W' },
+  'pdf-merge': { vi: 'Ghép PDF', en: 'Merge PDF', icon: '⊕' },
+  'pdf-organize': { vi: 'Sắp xếp PDF', en: 'Organize PDF', icon: '↕' },
+  'pdf-split': { vi: 'Tách PDF', en: 'Split PDF', icon: '◫' },
+  'pdf-edit': { vi: 'Chỉnh sửa PDF', en: 'Edit PDF', icon: '✎' },
+  'pdf-to-excel': { vi: 'PDF sang Excel', en: 'PDF to Excel', icon: 'X' },
+  'pdf-to-powerpoint': { vi: 'PDF sang PowerPoint', en: 'PDF to PowerPoint', icon: 'P' },
+  'pdf-to-text': { vi: 'PDF sang văn bản', en: 'PDF to Text', icon: 'TXT' },
+  'remove-background': { vi: 'Xóa phông nền', en: 'Remove Background', icon: '♙' },
+  convert: { vi: 'Chuyển đổi định dạng', en: 'Convert Image', icon: '▣' },
+  resize: { vi: 'Thay đổi kích thước', en: 'Resize Image', icon: '⛶' },
+  crop: { vi: 'Cắt ảnh', en: 'Crop Image', icon: '⌗' },
+  compress: { vi: 'Nén ảnh', en: 'Compress Image', icon: '✳' },
+  edit: { vi: 'Chỉnh sửa ảnh', en: 'Edit Image', icon: '☷' },
+  'image-redact': { vi: 'Che thông tin ảnh', en: 'Redact Information', icon: '▰' },
+  'qr-create': { vi: 'Tạo mã QR', en: 'Create QR Code', icon: '⌗' },
+  'qr-read': { vi: 'Đọc mã QR', en: 'Read QR Code', icon: '◉' },
+  'batch-rename': { vi: 'Đổi tên hàng loạt', en: 'Batch Rename', icon: 'Aa' },
+}
+
+export const getToolDisplay = (toolKey, tx) => {
+  const meta = TOOL_LABELS[toolKey]
+  if (!meta) return { icon: '🔧', label: toolKey, code: toolKey }
+  return { icon: meta.icon, label: tx(meta.vi, meta.en), code: toolKey }
+}
+
 export default function StatsDashboardModal({ close }) {
   const { tx } = useLanguage()
   const [adminPass, setAdminPass] = useState(() => {
@@ -784,10 +812,15 @@ export default function StatsDashboardModal({ close }) {
                               {isVisit ? (
                                 <span className="badge-visit">👁️ {tx('Truy cập Web', 'Web Visit')}</span>
                               ) : (
-                                <span className="badge-tool">
-                                  🔧 <strong>{ev.tool}</strong>
-                                  {ev.action && <small>({ev.action})</small>}
-                                </span>
+                                (() => {
+                                  const display = getToolDisplay(ev.tool, tx)
+                                  return (
+                                    <span className="badge-tool" title={`${display.label} (${ev.tool})`}>
+                                      <span>{display.icon}</span> <strong>{display.label}</strong>
+                                      {ev.action && <small>({ev.action})</small>}
+                                    </span>
+                                  )
+                                })()
                               )}
                             </td>
                             <td>
@@ -883,9 +916,18 @@ export default function StatsDashboardModal({ close }) {
                       {stats.topTools.map(item => {
                         const total = item.totalUses || 0
                         const rate = total > 0 ? Math.round(((item.successes || 0) / total) * 100) : 100
+                        const display = getToolDisplay(item.tool, tx)
                         return (
                           <tr key={item.tool}>
-                            <td><strong>{item.tool}</strong></td>
+                            <td>
+                              <div className="stats-tool-name-cell">
+                                <span>{display.icon}</span>
+                                <div>
+                                  <strong>{display.label}</strong>
+                                  {display.code !== display.label && <small className="stats-tool-sub">({display.code})</small>}
+                                </div>
+                              </div>
+                            </td>
                             <td><strong>{total.toLocaleString()}</strong></td>
                             <td><span className="text-success">{(item.successes || 0).toLocaleString()}</span></td>
                             <td><span className={item.errors > 0 ? 'text-error' : 'text-muted'}>{(item.errors || 0).toLocaleString()}</span></td>
