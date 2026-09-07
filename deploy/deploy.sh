@@ -309,6 +309,13 @@ fi
 if [[ -n "$current_running_release" && -f "${current_running_release}/data/analytics.jsonl" && ! -f "${SHARED_DATA_DIR}/analytics.jsonl" ]]; then
   cp -p "${current_running_release}/data/analytics.jsonl" "${SHARED_DATA_DIR}/analytics.jsonl" || true
 fi
+for data_file in vietnam-units.json sapnhap-extracted-wards.json tvpl-extracted-wards.json; do
+  if [[ -f "${release_dir}/data/${data_file}" ]]; then
+    cp -p "${release_dir}/data/${data_file}" "${SHARED_DATA_DIR}/${data_file}" || true
+  elif [[ -f "${APP_DIR}/data/${data_file}" ]]; then
+    cp -p "${APP_DIR}/data/${data_file}" "${SHARED_DATA_DIR}/${data_file}" || true
+  fi
+done
 rm -rf "${release_dir}/data"
 ln -sfn "$SHARED_DATA_DIR" "${release_dir}/data"
 
