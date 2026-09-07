@@ -98,8 +98,8 @@ const resBenNghe = convertOldToNew({
 assert.equal(resBenNghe.status, 'exact')
 assert.equal(resBenNghe.newAddress.province, 'Thành phố Hồ Chí Minh')
 assert.equal(resBenNghe.newAddress.ward, 'Phường Sài Gòn')
-assert.equal(resBenNghe.legalBasis.documentNumber, '1658/NQ-UBTVQH15')
-console.log('✅ 6. Convert EXACT: Phường Bến Nghé, Q.1, TP.HCM → Phường Sài Gòn, TP.HCM (NQ 1658/NQ-UBTVQH15).')
+assert.equal(resBenNghe.legalBasis.documentNumber, '1685/NQ-UBTVQH15')
+console.log('✅ 6. Convert EXACT: Phường Bến Nghé, Q.1, TP.HCM → Phường Sài Gòn, TP.HCM (NQ 1685/NQ-UBTVQH15).')
 
 // 7.1. Test Khánh Hòa - Nha Trang - Phước Đồng (Case người dùng thực tế)
 const resKhanhHoa = convertOldToNew({

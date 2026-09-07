@@ -17,4 +17,7 @@ coverage/
 *.log
 *.jsonl
 npm-debug.log*
-data/
+data/*
+!data/vietnam-units.json
+!data/sapnhap-extracted-wards.json
+!data/tvpl-extracted-wards.json

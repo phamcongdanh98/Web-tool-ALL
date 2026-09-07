@@ -327,17 +327,19 @@ flowchart LR
 ## 📝 Nhật ký phiên bản
 
 <details open>
-<summary><b>🗺️ v1.2.0 · 2026-09-07 — Module Chuyển đổi Địa chỉ Hành chính Việt Nam Cũ → Mới (Mô hình 2 cấp NQ 202/2025/QH15)</b></summary>
+<summary><b>🗺️ v1.2.0 · 2026-09-07 — Module Chuyển đổi Địa chỉ Hành chính Việt Nam Cũ → Mới (Toàn diện 34 tỉnh/thành & 3.321 xã/phường)</b></summary>
 
 | Hạng mục | Thay đổi |
 | :--- | :--- |
-| 🏛️ **Mô hình 2 cấp** | Xây dựng công cụ chuyển đổi địa chỉ từ 3 cấp (Tỉnh/Huyện/Xã) sang 2 cấp (Tỉnh/Xã) theo Nghị quyết 202/2025/QH15 của Quốc hội và các Nghị quyết UBTVQH |
+| 🏛️ **Mô hình 2 cấp Toàn quốc** | Xây dựng công cụ chuyển đổi địa chỉ từ 3 cấp (Tỉnh/Huyện/Xã) sang 2 cấp (Tỉnh/Xã) theo Nghị quyết 202/2025/QH15 của Quốc hội và 35 Nghị quyết UBTVQH trên toàn quốc |
+| 🌐 **Dữ liệu Sáp nhập Toàn diện** | Tích hợp bộ thu thập dữ liệu tự động (`scripts/crawl-sapnhap-bando.mjs`) từ Cổng Bản đồ Sáp nhập ĐVHC Việt Nam (`https://sapnhap.bando.com.vn/`), phủ kín 100% gồm **34 tỉnh/thành phố mới**, **3.321 xã/phường mới**, **11.555+ bản ghi mappings** và **34 văn bản pháp lý** chính thức |
+| 🧠 **Phân giải Cụm xã Thông minh** | Thuật toán Cluster Context Voting tự động xác định quận/huyện gốc dựa trên các xã/phường cùng sáp nhập trong cụm, giải quyết triệt để sự trùng lặp tên xã (ví dụ: Phường 1, Phường 2, Xã Tân Lập...) giữa các quận/huyện hoặc các tỉnh lân cận |
 | 🌟 **Giao diện Hero Section** | Đưa công cụ lên vị trí nổi bật đầu trang với giao diện frosted glassmorphism tràn viền, bộ chọn lưới 3 cấp trực quan kèm số thứ tự (1, 2, 3), chip điều hướng nhanh xuống các bộ công cụ PDF/Ảnh/Tiện ích |
-| 🔍 **Tra cứu 2 chiều** | Hỗ trợ 4 tab chức năng: 1. Tra cứu Cũ ➔ Mới (chọn 3 cấp cascade hoặc nhập nguyên chuỗi địa chỉ tự do thông minh), 2. Mới ➔ Cũ (xem danh sách các đơn vị cũ cấu thành kèm nhãn FULL/PARTIAL), 3. Chuyển đổi Excel hàng loạt, 4. Căn cứ pháp lý & CSDL |
+| 🔍 **Tra cứu 2 chiều** | Hỗ trợ 4 tab chức năng: 1. Tra cứu Cũ ➔ Mới (chọn 3 cấp cascade hoặc nhập nguyên chuỗi địa chỉ tự do thông minh), 2. Mới ➔ Cũ (xem danh sách các đơn vị cũ cấu thành kèm trụ sở UBND, diện tích, dân số, nhãn FULL/PARTIAL), 3. Chuyển đổi Excel hàng loạt, 4. Căn cứ pháp lý & CSDL |
 | ⚠️ **Xử lý PARTIAL** | Trường hợp địa giới cũ chia tách nhiều phần bắt buộc trả `ambiguous` và danh sách candidates kèm hướng dẫn chi tiết, tuyệt đối không tạo kết quả giả |
 | 📊 **Excel hàng loạt** | Xử lý hàng chục nghìn dòng Excel/CSV trong bộ nhớ đệm, tự động nhận diện cột địa chỉ, báo cáo tỷ lệ (Chính xác, Cần kiểm tra, Không nhận diện), xuất file kết quả kèm căn cứ pháp lý |
 | 💾 **CSDL Độc lập** | Tích hợp SQLite built-in (`node:sqlite`) với 5 bảng chuẩn hóa: `administrative_units`, `administrative_mappings`, `legal_documents`, `data_versions`, `candidate_changes` |
-| 🛰️ **Update Watcher** | Cơ chế theo dõi văn bản mới định kỳ từ Thư Viện Pháp Luật, lưu trữ tại Staging và tự động gắn cờ `NEEDS_REVIEW` đối với các thay đổi chia tách |
+| 🛰️ **Đồng bộ Tự động (Sync Service)** | Bộ lập lịch quét định kỳ hàng ngày lúc 03:00 sáng hoặc kích hoạt thủ công qua CLI (`npm run sync:tvpl`, `npm run crawl:sapnhap`), tự động làm mới bộ nhớ đệm RAM Cache tức thì |
 | 🧪 **Kiểm thử** | 10 bộ test đơn vị trong `scripts/test-admin-address.mjs`, tích hợp E2E API trong `scripts/e2e-api.mjs`, toàn bộ `npm run verify` pass 100% |
 
 </details>
