@@ -52,8 +52,8 @@ Tệp được xử lý trong bộ nhớ hoặc trong browser. Luồng hiện t�
 
 ```mermaid
 flowchart TB
-    ROOT["PDFTools · 20 công cụ · 19 sẵn sàng"]
-    ROOT --> PDF["📄 9 công cụ PDF"]
+    ROOT["PDFTools · 18 công cụ · 17 sẵn sàng"]
+    ROOT --> PDF["📄 7 công cụ PDF"]
     ROOT --> IMG["🖼️ 7 công cụ ảnh"]
     ROOT --> UTL["🧰 4 công cụ tiện ích"]
 
@@ -64,8 +64,6 @@ flowchart TB
     PDF --> PS["Tách PDF<br/>chọn thumbnail · xuất ZIP"]
     PDF --> PW["PDF sang Word<br/>đoạn + bảng + dấu/chữ ký"]
     PDF --> PX["PDF sang Excel"]
-    PDF --> PP["PDF sang PowerPoint"]
-    PDF --> PT["PDF sang văn bản"]
 
     IMG --> IR["Xóa phông nền<br/>AI trong browser"]
     IMG --> IC["Chuyển đổi định dạng<br/>JPG / PNG / WebP / AVIF"]

@@ -17,8 +17,6 @@ const pdfTools = [
   { icon: '◫', name: 'Tách PDF', description: 'Chọn trực tiếp thumbnail và tải kết quả dạng ZIP', color: 'purple', mode: 'pdf-split' },
   { icon: 'W', name: 'PDF sang Word', description: 'Dựng đoạn, bảng, dấu và chữ ký thành Word dễ sửa', color: 'blue', mode: 'pdf-to-word' },
   { icon: 'X', name: 'PDF sang Excel', description: 'Tách dòng và cột thành workbook XLSX', color: 'green', mode: 'pdf-to-excel' },
-  { icon: 'P', name: 'PDF sang PowerPoint', description: 'Mỗi trang thành slide với chữ có thể sửa', color: 'orange', mode: 'pdf-to-powerpoint' },
-  { icon: 'TXT', name: 'PDF sang văn bản', description: 'Xuất nội dung có thể chọn thành tệp TXT', color: 'teal', mode: 'pdf-to-text' },
 ]
 
 const imageTools = [
@@ -46,8 +44,6 @@ const englishTools = {
   'pdf-split': ['Split PDF', 'Select page thumbnails and download the result as ZIP'],
   'pdf-to-word': ['PDF to Word', 'Rebuild paragraphs, tables, stamps and signatures in Word'],
   'pdf-to-excel': ['PDF to Excel', 'Extract rows and columns into an XLSX workbook'],
-  'pdf-to-powerpoint': ['PDF to PowerPoint', 'Turn each page into a slide with editable text'],
-  'pdf-to-text': ['PDF to Text', 'Export selectable content as a TXT file'],
   'remove-background': ['Remove Background', 'AI background removal with transparent preview'],
   convert: ['Convert Image', 'Preview and convert JPG, PNG, WebP and AVIF'],
   resize: ['Resize Image', 'Enter dimensions and preview before downloading'],
@@ -84,8 +80,6 @@ const labels = {
   'pdf-edit': 'Chỉnh sửa PDF',
   'pdf-to-word': 'PDF sang Word',
   'pdf-to-excel': 'PDF sang Excel',
-  'pdf-to-powerpoint': 'PDF sang PowerPoint',
-  'pdf-to-text': 'PDF sang văn bản',
   compress: 'Nén ảnh',
   convert: 'Chuyển đổi định dạng ảnh',
   resize: 'Thay đổi kích thước',
@@ -97,7 +91,7 @@ const labels = {
 const labelsEn = Object.fromEntries(Object.entries(englishTools).map(([mode, [name]]) => [mode, name]))
 
 const imageModes = ['compress', 'convert', 'resize', 'crop', 'edit', 'remove-background']
-const pdfOfficeModes = ['pdf-to-word', 'pdf-to-excel', 'pdf-to-powerpoint', 'pdf-to-text']
+const pdfOfficeModes = ['pdf-to-word', 'pdf-to-excel']
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value))
 const containsVietnamese = text => /[àáâãèéêìíòóôõùúýăđơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỷỹỵÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚÝĂĐƠƯ]/u.test(String(text || ''))
 const maximumFileBytes = 25 * 1024 * 1024
@@ -726,53 +720,77 @@ function ToolSection({ title, eyebrow, description, tools, id, open, query }) {
 function PdfCanvasPreview({ info }) {
   const { tx } = useLanguage()
   const canvasRef = useRef(null)
+  const currentRenderTask = useRef(null)
   const [pageNumber, setPageNumber] = useState(1)
   const [rendering, setRendering] = useState(true)
   const [renderMode, setRenderMode] = useState('native')
   const [error, setError] = useState('')
   const previewUrl = `${info.url}#page=${pageNumber}&toolbar=0&navpanes=0&scrollbar=0&view=FitH`
 
-  useEffect(() => { setPageNumber(1) }, [info.url])
   useEffect(() => {
+    setPageNumber(1)
     setRendering(true)
     setRenderMode('native')
     setError('')
-    const fallbackTimer = setTimeout(() => setRenderMode(mode => mode === 'native' ? 'canvas' : mode), 1200)
+    const fallbackTimer = setTimeout(() => setRenderMode(mode => mode === 'native' ? 'canvas' : mode), 350)
     return () => clearTimeout(fallbackTimer)
-  }, [previewUrl])
+  }, [info.url])
+
+  useEffect(() => {
+    const handleKeyDown = event => {
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.isContentEditable) return
+      if (event.key === 'ArrowLeft') {
+        setPageNumber(p => Math.max(1, p - 1))
+      } else if (event.key === 'ArrowRight') {
+        setPageNumber(p => Math.min(info.pages || 1, p + 1))
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [info.pages])
+
   useEffect(() => {
     if (renderMode !== 'canvas') return undefined
     let cancelled = false
-    let loadingTask
+    setRendering(true)
+    setError('')
+    currentRenderTask.current?.cancel?.()
+
     const renderPage = async () => {
       try {
-        const pdfjs = await loadPdfJs()
-        loadingTask = pdfjs.getDocument({ url: info.url })
-        const pdf = await loadingTask.promise
+        const pdf = await loadThumbnailPdf(info.url)
         const page = await pdf.getPage(pageNumber)
         const viewport = page.getViewport({ scale: 1.35 })
         const canvas = canvasRef.current
-        if (!canvas || cancelled) return
+        if (!canvas || cancelled) {
+          page.cleanup?.()
+          return
+        }
         const ratio = Math.min(globalThis.devicePixelRatio || 1, 2)
         canvas.width = Math.floor(viewport.width * ratio)
         canvas.height = Math.floor(viewport.height * ratio)
         canvas.style.aspectRatio = `${viewport.width} / ${viewport.height}`
         const context = canvas.getContext('2d')
-        await page.render({ canvasContext: context, viewport, transform: ratio === 1 ? null : [ratio, 0, 0, ratio, 0, 0] }).promise
+        const task = page.render({ canvasContext: context, viewport, transform: ratio === 1 ? null : [ratio, 0, 0, ratio, 0, 0] })
+        currentRenderTask.current = task
+        await task.promise
+        page.cleanup?.()
+      } catch (err) {
+        if (!cancelled && err?.name !== 'RenderingCancelledException') {
+          setError(tx('Không thể hiển thị trang PDF này trong preview.', 'This PDF page cannot be displayed in the preview.'))
+        }
       } finally {
         if (!cancelled) setRendering(false)
       }
     }
-    renderPage().catch(() => {
-      if (!cancelled) {
-        setRendering(false)
-        setError(tx('Không thể hiển thị trang PDF này trong preview.', 'This PDF page cannot be displayed in the preview.'))
-      }
-    })
-    return () => { cancelled = true; loadingTask?.destroy?.() }
+    renderPage()
+    return () => {
+      cancelled = true
+      currentRenderTask.current?.cancel?.()
+    }
   }, [info.url, pageNumber, renderMode])
 
-  return <div className="pdf-canvas-preview">
+  return <div className="pdf-canvas-preview" tabIndex={0}>
     <div className="pdf-page-canvas">
       {rendering && <span>{renderMode === 'canvas' ? tx('Đang dựng trang PDF…', 'Rendering PDF page…') : tx('Đang mở bản xem trước…', 'Opening preview…')}</span>}
       {error && <span>{error}</span>}
@@ -814,17 +832,17 @@ function PdfEditPreview({ info, editType, text, position, setPosition, xPercent,
   useEffect(() => { setPageNumber(1) }, [info.url])
   useEffect(() => {
     let cancelled = false
-    let loadingTask
     let renderTask
     setRendering(true); setError('')
     const render = async () => {
-      const pdfjs = await loadPdfJs()
-      loadingTask = pdfjs.getDocument({ url: info.url })
-      const pdf = await loadingTask.promise
+      const pdf = await loadThumbnailPdf(info.url)
       const page = await pdf.getPage(pageNumber)
       const viewport = page.getViewport({ scale: 1.35 })
       const canvas = canvasRef.current
-      if (!canvas || cancelled) return
+      if (!canvas || cancelled) {
+        page.cleanup?.()
+        return
+      }
       const ratio = Math.min(globalThis.devicePixelRatio || 1, 2)
       canvas.width = Math.max(1, Math.floor(viewport.width * ratio))
       canvas.height = Math.max(1, Math.floor(viewport.height * ratio))
@@ -834,9 +852,10 @@ function PdfEditPreview({ info, editType, text, position, setPosition, xPercent,
       await renderTask.promise
       page.cleanup?.()
     }
-    render().catch(() => { if (!cancelled) setError(tx('Không thể dựng trang PDF để đặt nội dung.', 'The PDF page could not be rendered for content placement.')) })
-      .finally(() => { if (!cancelled) setRendering(false) })
-    return () => { cancelled = true; renderTask?.cancel?.(); loadingTask?.destroy?.() }
+    render().catch(err => {
+      if (!cancelled && err?.name !== 'RenderingCancelledException') setError(tx('Không thể dựng trang PDF để đặt nội dung.', 'The PDF page could not be rendered for content placement.'))
+    }).finally(() => { if (!cancelled) setRendering(false) })
+    return () => { cancelled = true; renderTask?.cancel?.() }
   }, [info.url, pageNumber])
 
   const moveToPointer = event => {
@@ -874,10 +893,30 @@ function PdfEditPreview({ info, editType, text, position, setPosition, xPercent,
 function PdfPageThumbnail({ item, info, number, selected, mode, onSelect, onDropPage, onDragPage, onDelete, onInsert }) {
   const { tx } = useLanguage()
   const canvasRef = useRef(null)
+  const containerRef = useRef(null)
+  const [inView, setInView] = useState(false)
   const [rendering, setRendering] = useState(true)
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    const el = containerRef.current
+    if (!el) return undefined
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true)
+      return undefined
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true)
+        observer.disconnect()
+      }
+    }, { rootMargin: '250px 0px' })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!inView || !info?.url) return undefined
     let cancelled = false
     let renderTask
     const render = async () => {
@@ -889,7 +928,10 @@ function PdfPageThumbnail({ item, info, number, selected, mode, onSelect, onDrop
         const scale = Math.min(0.42, 210 / Math.max(base.width, 1))
         const viewport = page.getViewport({ scale, rotation: page.rotate + item.rotation })
         const canvas = canvasRef.current
-        if (!canvas || cancelled) return
+        if (!canvas || cancelled) {
+          page.cleanup?.()
+          return
+        }
         const ratio = Math.min(globalThis.devicePixelRatio || 1, 2)
         canvas.width = Math.max(1, Math.floor(viewport.width * ratio))
         canvas.height = Math.max(1, Math.floor(viewport.height * ratio))
@@ -897,16 +939,20 @@ function PdfPageThumbnail({ item, info, number, selected, mode, onSelect, onDrop
         const context = canvas.getContext('2d', { alpha: false })
         renderTask = page.render({ canvasContext: context, viewport, background: '#fff', transform: ratio === 1 ? null : [ratio, 0, 0, ratio, 0, 0] })
         await renderTask.promise
-      } catch (renderError) { if (!cancelled) setError(true) }
-      finally { if (!cancelled) setRendering(false) }
+        page.cleanup?.()
+      } catch (renderError) {
+        if (!cancelled && renderError?.name !== 'RenderingCancelledException') setError(true)
+      } finally {
+        if (!cancelled) setRendering(false)
+      }
     }
     render()
     return () => { cancelled = true; renderTask?.cancel?.() }
-  }, [info.url, item.pageIndex, item.rotation])
+  }, [inView, info?.url, item.pageIndex, item.rotation])
 
   const pageLabel = info.pages > 1 ? `${info.name} · ${tx('trang', 'page')} ${item.pageIndex + 1}` : info.name
   const canEditPages = mode === 'pdf-merge' || mode === 'pdf-organize'
-  return <article className={`pdf-page-card ${selected ? 'selected' : ''}`} draggable onDragStart={() => onDragPage(item.id)} onDragOver={event => event.preventDefault()} onDrop={() => onDropPage(item.id)}>
+  return <article ref={containerRef} className={`pdf-page-card ${selected ? 'selected' : ''}`} draggable onDragStart={() => onDragPage(item.id)} onDragOver={event => event.preventDefault()} onDrop={() => onDropPage(item.id)}>
     <button className="page-check" type="button" aria-label={`${selected ? tx('Bỏ chọn', 'Deselect') : tx('Chọn', 'Select')} ${tx('trang', 'page')} ${number}`} aria-pressed={selected} onClick={() => onSelect(item.id)}>{selected ? '✓' : ''}</button>
     <button className="page-thumbnail" type="button" onClick={() => onSelect(item.id)}>
       <span className="page-paper">{rendering && <i>{tx('Đang tải…', 'Loading…')}</i>}{error && <i>{tx('Không thể xem', 'Preview unavailable')}</i>}<canvas ref={canvasRef} /></span>
@@ -1101,7 +1147,7 @@ function ToolModal({ mode, close }) {
   const { language, locale, tx } = useLanguage()
   const [files, setFiles] = useState([])
   const [fileInfo, setFileInfo] = useState([])
-  const [format, setFormat] = useState('webp')
+  const [format, setFormat] = useState('png')
   const [quality, setQuality] = useState(82)
   const [width, setWidth] = useState('')
   const [height, setHeight] = useState('')
@@ -1195,6 +1241,7 @@ function ToolModal({ mode, close }) {
       if (isPageComposer && nextInfo.reduce((sum, info) => sum + (info.pages || 0), 0) > maximumPdfPages) throw new Error(tx(`Mỗi lượt chỉ xử lý tối đa ${maximumPdfPages} trang PDF.`, `Each operation supports up to ${maximumPdfPages} PDF pages.`))
       setFiles(nextFiles); setFileInfo(nextInfo); setCrop({ x: 10, y: 10, w: 80, h: 80 })
       setBrightness(100); setContrast(100); setSaturation(100); setHue(0); setBlur(0); setRotation(0); setFlip(false); setFlop(false); setGrayscale(false)
+      if (isImage) setFormat('png')
       if (isPdfOffice) {
         setMessage(tx('Đang đọc trước phần văn bản có thể chuyển đổi…', 'Scanning selectable text for conversion…'))
         const diagnosis = await readPdfTextPreview(nextFiles[0])
@@ -1410,9 +1457,7 @@ function ToolModal({ mode, close }) {
   const officeDescription = mode === 'pdf-to-word' && wordMode === 'exact'
     ? tx(`PDFTools đặt từng dòng chữ vào text box theo tọa độ và giữ lớp đồ họa nền ${exactWordDpi} DPI. Cách này ưu tiên vị trí nhưng khó sửa đoạn dài và có thể khác nhau giữa Word/LibreOffice.`, `PDFTools places each line in a coordinate-based text box and preserves a ${exactWordDpi} DPI graphics layer. This prioritizes position but makes long edits harder and can vary between Word and LibreOffice.`)
     : mode === 'pdf-to-word' ? tx('Dựng lại đoạn văn, tiêu đề hai cột và bảng thành phần tử Word thật; ảnh, dấu và chữ ký được tách khỏi PDF rồi neo theo tọa độ trang.', 'Rebuilds paragraphs, two-column headings and tables as real Word elements; images, stamps and signatures are extracted and anchored to page coordinates.')
-      : mode === 'pdf-to-excel' ? tx('Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.', 'Each page becomes a worksheet; large gaps are separated into columns.')
-      : mode === 'pdf-to-powerpoint' ? tx('Mỗi trang thành một slide; chữ được đặt gần vị trí gốc.', 'Each page becomes a slide with text placed near its original position.')
-          : tx('Xuất văn bản UTF-8, phân tách rõ từng trang.', 'Exports UTF-8 text with clear page separation.')
+      : tx('Mỗi trang thành một sheet; khoảng cách lớn được tách thành cột.', 'Each page becomes a worksheet; large gaps are separated into columns.')
 
   const resetWorkspace = () => {
     fileInfo.forEach(info => {
@@ -1429,6 +1474,7 @@ function ToolModal({ mode, close }) {
     setPdfTextPreview('')
     setPdfDiagnosis(null)
     setMessage('')
+    if (isImage) setFormat('png')
     if (input.current) input.current.value = ''
   }
 
@@ -1458,7 +1504,7 @@ function ToolModal({ mode, close }) {
             {mode === 'remove-background' && <div className="control-group"><span>{tx('Chế độ AI', 'AI mode')}</span><div className="option-cards"><button type="button" className={backgroundQuality === 'balanced' ? 'active' : ''} onClick={() => setBackgroundQuality('balanced')}><b>{tx('Nhanh', 'Fast')}</b><small>{tx('~40 MB · ảnh thông thường', '~40 MB · everyday images')}</small></button><button type="button" className={backgroundQuality === 'high' ? 'active' : ''} onClick={() => setBackgroundQuality('high')}><b>{tx('Chất lượng cao', 'High quality')}</b><small>{tx('~80 MB · viền tóc tốt hơn', '~80 MB · finer hair edges')}</small></button></div></div>}
 
             {isImage && mode !== 'remove-background' && <>
-              <div className="control-group"><label>{tx('Định dạng kết quả', 'Output format')}<select value={format} onChange={event => setFormat(event.target.value)}><option value="webp">{tx('WebP — nhẹ, hiện đại', 'WebP — compact and modern')}</option><option value="jpeg">{tx('JPG — tương thích cao', 'JPG — widely compatible')}</option><option value="png">{tx('PNG — không mất dữ liệu', 'PNG — lossless')}</option><option value="avif">{tx('AVIF — dung lượng thấp', 'AVIF — smallest files')}</option></select></label></div>
+              <div className="control-group"><label>{tx('Định dạng kết quả', 'Output format')}<select value={format} onChange={event => setFormat(event.target.value)}><option value="png">{tx('PNG — không mất dữ liệu', 'PNG — lossless')}</option><option value="jpeg">{tx('JPG — tương thích cao', 'JPG — widely compatible')}</option><option value="webp">{tx('WebP — nhẹ, hiện đại', 'WebP — compact and modern')}</option><option value="avif">{tx('AVIF — dung lượng thấp', 'AVIF — smallest files')}</option></select></label></div>
               <div className="control-group"><div className="range-label"><span>{tx('Chất lượng', 'Quality')}</span><b>{quality}%</b></div><input type="range" min="20" max="100" value={quality} onChange={event => setQuality(event.target.value)} /><small>{tx('Chất lượng thấp hơn thường tạo tệp nhẹ hơn. PNG có thể ít thay đổi.', 'Lower quality usually creates a smaller file. PNG may change very little.')}</small></div>
               {mode === 'resize' && <div className="control-group"><div className="dimensions"><label>{tx('Rộng (px)', 'Width (px)')}<input inputMode="numeric" value={width} onChange={event => resizeValue('width', event.target.value)} /></label><label>{tx('Cao (px)', 'Height (px)')}<input inputMode="numeric" value={height} onChange={event => resizeValue('height', event.target.value)} /></label></div><button className={`ratio-lock ${lockRatio ? 'active' : ''}`} type="button" onClick={() => setLockRatio(!lockRatio)}>{lockRatio ? tx('🔗 Đang khóa tỷ lệ', '🔗 Aspect ratio locked') : tx('Mở khóa tỷ lệ', 'Unlock aspect ratio')}</button></div>}
               {mode === 'edit' && <>
@@ -1575,7 +1621,11 @@ export default function App() {
     if (!modal) return undefined
     const closeOnEscape = event => { if (event.key === 'Escape') setModal(null) }
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    document.body.classList.add('modal-open')
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      document.body.classList.remove('modal-open')
+    }
   }, [modal])
 
   return <>

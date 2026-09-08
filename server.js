@@ -408,7 +408,7 @@ app.post('/api/tools/image/:action', upload.single('file'), enforceUploadedBytes
     if (!req.file) return res.status(400).json({ message: 'Vui lòng chọn một tệp ảnh.' })
     await assertImageFile(req.file)
     const { action } = req.params
-    const { format = 'jpeg', quality = '82', width, height, left, top, cropWidth, cropHeight } = req.body
+    const { format = 'png', quality = '82', width, height, left, top, cropWidth, cropHeight } = req.body
     let image = sharp(req.file.buffer, { animated: false, limitInputPixels: maximumImagePixels }).rotate()
     const imageFormat = format === 'jpg' ? 'jpeg' : format
     if (!['jpeg', 'png', 'webp', 'avif'].includes(imageFormat)) return res.status(400).json({ message: 'Định dạng ảnh không được hỗ trợ.' })

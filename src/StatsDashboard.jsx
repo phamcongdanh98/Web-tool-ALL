@@ -58,8 +58,6 @@ export const TOOL_LABELS = {
   'pdf-split': { vi: 'Tách PDF', en: 'Split PDF', icon: '◫' },
   'pdf-edit': { vi: 'Chỉnh sửa PDF', en: 'Edit PDF', icon: '✎' },
   'pdf-to-excel': { vi: 'PDF sang Excel', en: 'PDF to Excel', icon: 'X' },
-  'pdf-to-powerpoint': { vi: 'PDF sang PowerPoint', en: 'PDF to PowerPoint', icon: 'P' },
-  'pdf-to-text': { vi: 'PDF sang văn bản', en: 'PDF to Text', icon: 'TXT' },
   'remove-background': { vi: 'Xóa phông nền', en: 'Remove Background', icon: '♙' },
   convert: { vi: 'Chuyển đổi định dạng', en: 'Convert Image', icon: '▣' },
   resize: { vi: 'Thay đổi kích thước', en: 'Resize Image', icon: '⛶' },

@@ -327,6 +327,20 @@ flowchart LR
 ## 📝 Nhật ký phiên bản
 
 <details open>
+<summary><b>⚡ v1.2.1 · 2026-09-08 — Tối ưu Trải nghiệm Mượt mà, Chống Khựng Lag & Tinh giản Bộ Công cụ</b></summary>
+
+| Hạng mục | Thay đổi |
+| :--- | :--- |
+| ✂️ **Tinh giản Công cụ** | Bỏ 2 tiện ích không cần thiết: `PDF sang PowerPoint` và `PDF sang văn bản`. Cập nhật đồng bộ sơ đồ `DIAGRAMS.md` (18 công cụ · 17 sẵn sàng: 7 PDF, 7 Ảnh, 4 Tiện ích) và `src/StatsDashboard.jsx` |
+| ⚡ **Lật trang Siêu tốc** | Nâng cấp `PdfCanvasPreview` dùng cache tài liệu singleton (`loadThumbnailPdf`), loại bỏ hoàn toàn độ trễ 1.2s và hiện tượng nháy giật iframe mỗi khi bấm lật trang; bổ sung phím tắt mũi tên Trái/Phải (ArrowLeft/ArrowRight) để duyệt trang mượt mà |
+| 👁️ **Lazy-render Thumbnail** | Tích hợp `IntersectionObserver` cho `PdfPageThumbnail`, chỉ render các thumbnail xuất hiện trong tầm nhìn; giải quyết triệt để tình trạng nghẽn CPU và đơ máy khi mở PDF có hàng chục trang (Ghép/Sắp xếp/Tách PDF) |
+| 🧹 **Dọn dẹp Bộ nhớ** | Bổ sung cơ chế `page.cleanup?.()` và hủy tác vụ dở dang (`renderTask.cancel()`) sau mỗi lần vẽ, giải phóng RAM và tránh rò rỉ bộ nhớ |
+| 🔒 **Khóa cuộn & Chống giật Layout** | Thêm `body.modal-open { overflow: hidden; }` và `scrollbar-gutter: stable;` trên `html`, chống hiện tượng cuộn dính trang nền và layout shift; kích hoạt GPU hardware acceleration (`transform: translateZ(0)`) cho modal |
+| 🧪 **Kiểm thử** | `check:diagrams` đạt chuẩn 100%, `npm run verify` pass toàn bộ từ cú pháp, build, smoke đến E2E |
+
+</details>
+
+<details>
 <summary><b>🗺️ v1.2.0 · 2026-09-07 — Module Chuyển đổi Địa chỉ Hành chính Việt Nam Cũ → Mới (Toàn diện 34 tỉnh/thành & 3.321 xã/phường)</b></summary>
 
 | Hạng mục | Thay đổi |
